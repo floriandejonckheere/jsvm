@@ -617,7 +617,7 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
       RNOK( CabaDecoder::getTerminateBufferBit( uiSymbol ) )
       if( 0 != uiSymbol )
       {
-        uiMbMode += ( rcMbDataAccess.getSH().isBSlice() ) ? 22 : 24;
+        uiMbMode += 24;
       }
       else
       {
@@ -644,6 +644,10 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
   }
 
   rcMbDataAccess.setConvertMbType( uiMbMode );
+  if( rcMbDataAccess.getMbData().isPCM() )
+  {
+    m_uiLastDQpNonZero = 0; // no DQP for IPCM
+  }
 
   DTRACE_T( "MbMode" );
   DTRACE_TY( "ae(v)" );
@@ -850,19 +854,19 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
   UInt uiBit;
   UInt uiCtx = 0, a, b;
 
-  a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 0 ), 0, 16 );
-  b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 0 ), 0, 16 ) << 1;
+  a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 0 ), 0, 16, false );
+  b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 0 ), 0, 16, false ) << 1;
 
   RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp = uiBit;
 
   a = uiCbp & 1;
-  b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 2 ), 0, 16 ) << 1;
+  b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 2 ), 0, 16, false ) << 1;
 
   RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp += uiBit << 1;
 
-  a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 8 ), 0, 16 );
+  a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 8 ), 0, 16, false );
   b = (uiCbp  << 1) & 2;
 
   RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
@@ -876,8 +880,8 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
 
   uiCtx = 1;
 
-  UInt  uiLeftChromaCbp   = rcMbDataAccess.getLeftChromaCbp ( 0, 16 );
-  UInt  uiAboveChromaCbp  = rcMbDataAccess.getAboveChromaCbp( 0, 16 );
+  UInt  uiLeftChromaCbp   = rcMbDataAccess.getLeftChromaCbp ( 0, 16, false );
+  UInt  uiAboveChromaCbp  = rcMbDataAccess.getAboveChromaCbp( 0, 16, false );
 
   a = uiLeftChromaCbp  > 0 ? 1 : 0;
   b = uiAboveChromaCbp > 0 ? 2 : 0;
@@ -1037,7 +1041,7 @@ ErrVal CabacReader::xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, Resi
     return Err::m_nERR;
   }
 
-  UInt uiCtx      = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop );
+  UInt uiCtx  = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop, false );
   UInt uiBit;
 
   RNOK( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
@@ -1067,7 +1071,7 @@ ErrVal CabacReader::xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, Resi
     return Err::m_nERR;
   }
 
-  UInt uiCtx      = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop );
+  UInt uiCtx = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop, false );
   UInt uiBit;
 
   RNOK( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
@@ -1196,12 +1200,12 @@ ErrVal CabacReader::samplesPCM( MbDataAccess& rcMbDataAccess )
 
   AOF_DBG( rcMbDataAccess.getMbData().isPCM() );
 
-  Pel* pDest = rcMbDataAccess.getMbTCoeffs().getPelBuffer();
+  TCoeff* pCoeff = rcMbDataAccess.getMbTCoeffs().getTCoeffBuffer();
 
   // get chroma mode
   const UInt uiFactor = 8*8;
   const UInt uiSize   = uiFactor*2*3;
-  DECRNOK( m_pcBitReadBuffer->samples( pDest, uiSize ) );
+  DECRNOK( m_pcBitReadBuffer->pcmSamples( pCoeff, uiSize ) );
 
   DTRACE_N;
 

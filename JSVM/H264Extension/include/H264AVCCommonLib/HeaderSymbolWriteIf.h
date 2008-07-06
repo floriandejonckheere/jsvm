@@ -103,11 +103,11 @@ protected:
 public:
   virtual HeaderSymbolWriteIf* getHeaderSymbolWriteIfNextSlice( Bool bStartNewBitstream ) = 0;
 
-  virtual ErrVal writeUvlc( UInt uiCode, Char* pcTraceString ) = 0;
-  virtual ErrVal writeSvlc( Int iCode, Char* pcTraceString ) = 0;
-  virtual ErrVal writeCode( UInt uiCode, UInt uiLength, Char* pcTraceString ) = 0;
-  virtual ErrVal writeSCode( Int iCode, UInt uiLength, Char* pcTraceString ) = 0;
-  virtual ErrVal writeFlag( Bool bFlag, Char* pcTraceString ) = 0;
+  virtual ErrVal writeUvlc ( UInt uiCode,                const Char* pcTraceString ) = 0;
+  virtual ErrVal writeSvlc ( Int iCode,                  const Char* pcTraceString ) = 0;
+  virtual ErrVal writeCode ( UInt uiCode, UInt uiLength, const Char* pcTraceString ) = 0;
+  virtual ErrVal writeSCode( Int iCode,   UInt uiLength, const Char* pcTraceString ) = 0;
+  virtual ErrVal writeFlag ( Bool bFlag,                 const Char* pcTraceString ) = 0;
   virtual UInt   getNumberOfWrittenBits () = 0;
 };
 

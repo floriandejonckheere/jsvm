@@ -150,10 +150,10 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
     RNOKS( m_apcWriteYuv[uiLayer]->init( rcLayer.getOutputFilename() ) );
     RNOKS( ReadYuvFile   ::create( m_apcReadYuv [uiLayer] ) );  
 
-    ReadYuvFile::FillMode eFillMode = ( rcLayer.getPAff() || rcLayer.getMbAff() ? ReadYuvFile::FILL_FIELD : ReadYuvFile::FILL_FRAME );
-    RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename(),
-                                        rcLayer.getFrameHeight  (),
-                                        rcLayer.getFrameWidth   (), 0, MSYS_UINT_MAX, eFillMode ) );  
+    ReadYuvFile::FillMode eFillMode = ( rcLayer.isInterlaced() ? ReadYuvFile::FILL_FIELD : ReadYuvFile::FILL_FRAME );
+    RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename        (),
+                                        rcLayer.getFrameHeightInSamples (),
+                                        rcLayer.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );  
   }
 
 
@@ -446,8 +446,8 @@ H264AVCEncoderTest::go()
     pcJSVMParams->SetInitialQP      = m_pcH264AVCEncoder->getCodingParameter()->m_uiInitialQp;
     pcJSVMParams->m_uiIntraPeriod   = m_pcEncoderCodingParameter->getIntraPeriod();
     pcJSVMParams->FrameRate         = (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate);
-    pcJSVMParams->height            = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameHeight;
-    pcJSVMParams->width             = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameWidth;
+    pcJSVMParams->height            = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameHeightInSamples;
+    pcJSVMParams->width             = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameWidthInSamples;
     pcJSVMParams->no_frames         = uiMaxFrame;
     pcJSVMParams->successive_Bframe = iGOPSize - 1;
     pcJSVMParams->m_uiLayerId       = 0;
@@ -550,12 +550,12 @@ H264AVCEncoderTest::go()
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     h264::LayerParameters& rcLayer = m_pcEncoderCodingParameter->getLayerParameters( uiLayer );
-    auiMbX        [uiLayer]        = ( rcLayer.getFrameWidth () + 15 ) >> 4;
-    auiMbY        [uiLayer]        = ( rcLayer.getFrameHeight() + 15 ) >> 4;
+    auiMbX        [uiLayer]        = rcLayer.getFrameWidthInMbs ();
+    auiMbY        [uiLayer]        = rcLayer.getFrameHeightInMbs();
     m_aauiCropping[uiLayer][0]     = 0;
-    m_aauiCropping[uiLayer][1]     = ( 16 - ( rcLayer.getFrameWidth () % 16 ) ) % 16;
+    m_aauiCropping[uiLayer][1]     = rcLayer.getHorPadding      ();
     m_aauiCropping[uiLayer][2]     = 0;
-    m_aauiCropping[uiLayer][3]     = ( 16 - ( rcLayer.getFrameHeight() % 16 ) ) % 16;
+    m_aauiCropping[uiLayer][3]     = rcLayer.getVerPadding      ();
     UInt  uiSize            = ((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN);
     auiPicSize    [uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)*((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*3/2;
     m_auiLumOffset[uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;  

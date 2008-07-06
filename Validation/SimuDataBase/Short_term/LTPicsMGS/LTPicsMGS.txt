@@ -1,0 +1,120 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "LTPicsMGS",
+    original 	=> "MOBILE_352x288_30.yuv",
+    width      	=> 352,
+    height     	=> 288,
+    framerate 	=> 30,
+    nbframes	=> 50,
+    verbosemode => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 1,
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                      #----------#
+                      # Layer  0 #
+                      #----------#
+                       {
+                         width        => 176,
+                  			 height       => 144,
+                  			 framerate    =>  30,
+                  			},
+		                  #----------#
+			                #----------#
+                      # Layer  1 #
+                      #----------#
+                       {
+                         width        => 176,
+                  			 height       => 144,
+                  			 framerate    =>  30,
+                  		 },
+		                  #----------#
+			                #----------#
+                      # Layer  2 #
+                      #----------#
+                       {
+                         width        => 176,
+                  			 height       => 144,
+                  			 framerate    =>  30,
+                  		 },
+   		              ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+      bitratecheckrange  => 1.,
+      psnrcheckrange     => 0.,
+	
+
+      tests      => [
+		                  #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+            		        name => "L0",
+            		        mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 30,
+            		        bitrate => 86,
+            		        psnr => 29.44,
+            		      },
+            		      #----------#
+                      # Test   1 #
+                      #----------#
+            		      {
+            		        name => "L2",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 30,
+            		        bitrate => 243,
+            		        psnr => 33.59,
+            		        encdecmatch => 1,
+            		      },
+    		              #----------#
+			# Test   2 #
+                      #----------#
+            		      {
+            		        name => "L2 15Hz",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 220,
+            		        psnr => 34.32,
+            		      },
+    		              #----------#
+			# Test   3 #
+                      #----------#
+            		      {
+            		        name => "L1",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 30,
+            		        bitrate => 152,
+            		        psnr => 31.67,
+            		      },
+    		              #----------#
+			# Test   4 #
+                      #----------#
+            		      {
+            		        name => "L1 15Hz",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 136,
+            		        psnr => 32.12,
+            		      },
+		  ],
+}

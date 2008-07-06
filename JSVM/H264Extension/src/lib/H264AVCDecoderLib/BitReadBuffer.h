@@ -113,7 +113,7 @@ public:
   ErrVal  get     ( UInt& ruiBits, UInt uiNumberOfBits );
   ErrVal  get     ( UInt& ruiBits );
   ErrVal  flush   ( UInt uiNumberOfBits );
-  ErrVal  samples ( Pel* pPel, UInt uiNumberOfSamples );
+  ErrVal  pcmSamples ( TCoeff* pCoeff, UInt uiNumberOfSamples );
 
   Int     getBitsUntilByteAligned ()  { return m_iValidBits & 0x7;  }
   Bool    isWordAligned           ()  { return ( 0 == ( m_iValidBits & 0x1f ) ); }

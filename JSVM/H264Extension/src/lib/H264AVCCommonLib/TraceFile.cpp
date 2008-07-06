@@ -155,7 +155,7 @@ TraceFile::initTrace()
 
 
 ErrVal
-TraceFile::openTrace( Char* pucBaseFilename )
+TraceFile::openTrace( const Char* pucBaseFilename )
 {
   for( UInt ui = 0; ui < MAX_TRACE_LAYERS; ui++ )
   {
@@ -239,7 +239,7 @@ TraceFile::startMb( Int iMbAddress )
 
 
 ErrVal
-TraceFile::printHeading( Char* pcString )
+TraceFile::printHeading( const Char* pcString )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   sm_uiPosCounter[sm_uiLayer] = 0;
@@ -287,7 +287,7 @@ TraceFile::printString( const Char* pcString )
 
 
 ErrVal
-TraceFile::printType( Char* pcString )
+TraceFile::printType( const Char* pcString )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   ::snprintf( sm_acType, 8, "%s", pcString);

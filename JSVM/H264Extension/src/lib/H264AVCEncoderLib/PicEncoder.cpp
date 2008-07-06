@@ -383,7 +383,7 @@ PicEncoder::xInitSPS()
   UInt  uiOutFreq   = (UInt)ceil( m_pcCodingParameter->getMaximumFrameRate() );
   UInt  uiMvRange   = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange();
   UInt  uiDPBSize   = m_pcCodingParameter->getDPBSize();
-  UInt  uiLevelIdc  = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, 0, 0 );
+  UInt  uiLevelIdc  = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, 0 );
 
   //===== create parameter sets =====
   RNOK( SequenceParameterSet::create( m_pcSPS ) );
@@ -397,9 +397,9 @@ PicEncoder::xInitSPS()
   m_pcSPS->setConstrainedSet1Flag                   ( false );
   m_pcSPS->setConstrainedSet2Flag                   ( false );
   m_pcSPS->setConstrainedSet3Flag                   ( false );
-  m_pcSPS->setLevelIdc                              ( uiLevelIdc );
+  m_pcSPS->setConvertedLevelIdc                     ( uiLevelIdc );
   m_pcSPS->setSeqParameterSetId                     ( uiSPSId );
-  m_pcSPS->setSeqScalingMatrixPresentFlag           ( m_pcCodingParameter->get8x8Mode() > 1 );
+  m_pcSPS->setSeqScalingMatrixPresentFlag           ( m_pcCodingParameter->getScalingMatricesPresent() > 0 );
   m_pcSPS->setLog2MaxFrameNum                       ( m_pcCodingParameter->getLog2MaxFrameNum() );
   m_pcSPS->setLog2MaxPicOrderCntLsb                 ( m_pcCodingParameter->getLog2MaxPocLsb() );
   m_pcSPS->setNumRefFrames                          ( m_pcCodingParameter->getNumDPBRefFrames() );
@@ -441,7 +441,7 @@ PicEncoder::xInitPPS()
   m_pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
   m_pcPPS->setConstrainedIntraPredFlag              ( false );
   m_pcPPS->setRedundantPicCntPresentFlag            ( false );  //JVT-Q054 Red. Picture
-  m_pcPPS->setTransform8x8ModeFlag                  ( m_pcCodingParameter->get8x8Mode() > 0 );
+  m_pcPPS->setTransform8x8ModeFlag                  ( m_pcCodingParameter->getEnable8x8Trafo() > 0 );
   m_pcPPS->setPicScalingMatrixPresentFlag           ( false );
   m_pcPPS->set2ndChromaQpIndexOffset                ( 0 );
   m_pcPPS->setNumSliceGroupsMinus1                  ( 0 );
@@ -740,6 +740,7 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
                                          rcRecPicBufUnit.getMbDataCtrl(),
                                          cList0,
                                          cList1,
+                                         m_pcCodingParameter->getMCBlks8x8Disable() > 0,
                                          m_uiFrameWidthInMb,
                                          dLambda ) );
 
@@ -767,6 +768,8 @@ PicEncoder::xStartPicture( RecPicBufUnit& rcRecPicBufUnit,
 {
   //===== initialize reference picture lists and update slice header =====
   RNOK( m_pcRecPicBuffer->getRefLists( rcList0, rcList1, rcSliceHeader ) );
+  rcSliceHeader.setRefFrameList( &rcList0, FRAME, LIST_0 );
+  rcSliceHeader.setRefFrameList( &rcList1, FRAME, LIST_1 );
 
   //===== init half-pel buffers =====
   UInt uiPos;  

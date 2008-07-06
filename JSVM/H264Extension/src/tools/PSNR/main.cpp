@@ -203,7 +203,7 @@ void readFrame( YuvFrame* f, FILE* file )
   readColorComponent( &f->cr,  file );
 }
 
-void print_usage_and_exit( int test, char* name, char* message = 0 )
+void print_usage_and_exit( int test, const char* name, const char* message = 0 )
 {
   if( test )
   {
@@ -211,7 +211,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     {
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
-    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<t> [<skip> [<strm> <fps> ]]] [-r]\n\n", name );
+    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<t> [<skip> [<strm> <fps> [strg]]]] [-r]\n\n", name );
     fprintf (   stderr, "\t    w : original width  (luma samples)\n" );
     fprintf (   stderr, "\t    h : original height (luma samples)\n" );
     fprintf (   stderr, "\t  org : original file\n" );
@@ -220,7 +220,8 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "\t skip : number of frames to skip at start      (default: 0)\n" );
     fprintf (   stderr, "\t strm : coded stream\n" );
     fprintf (   stderr, "\t fps  : frames per second\n" );
-	fprintf (   stderr, "\t -r   : return Luma psnr (default: return -1 when failed and 0 otherwise)\n" );
+    fprintf (   stderr, "\t strg : prefix string for summary output\n" );
+	  fprintf (   stderr, "\t -r   : return Luma psnr (default: return -1 when failed and 0 otherwise)\n" );
     fprintf (   stderr, "\n" );
     exit    (   -1 );
   }
@@ -243,6 +244,7 @@ int main(int argc, char *argv[])
   FILE*         org_file        = 0;
   FILE*         rec_file        = 0;
   FILE*         str_file        = 0;
+  char*         prefix_string   = 0;
 
   //===== variables =====
   unsigned int  index, skip, skip_between, sequence_length;
@@ -258,12 +260,11 @@ int main(int argc, char *argv[])
 
 
   //===== read input parameters =====
-  print_usage_and_exit((argc < 5 || (argc > 10 )), argv[0]);
+  print_usage_and_exit((argc < 5 || (argc > 11 )), argv[0]);
   width             = atoi  ( argv[1] );
   height            = atoi  ( argv[2] );
   org_file          = fopen ( argv[3], "rb" );
   rec_file          = fopen ( argv[4], "rb" );
-
 
   if(( argc >=  6 ) && strcmp( argv[5], "-r" ) )
   {
@@ -283,13 +284,18 @@ int main(int argc, char *argv[])
     stream          = 1;
 	  currarg+=2;
   }
+  if(( argc >= 10 ) && strcmp( argv[9], "-r" ) )
+  {
+    prefix_string   = argv[9];
+    currarg++;
+  }
 
 	if(currarg < argc )
 	{
 	  if(!strcmp( argv[currarg], "-r" ))
 		  rpsnr=1;
 	  else
-          print_usage_and_exit (true,argv[0],"Bad number of argument!" );
+      print_usage_and_exit (true,argv[0],"Wrong number of argument!" );
 	}
 
 
@@ -350,8 +356,16 @@ int main(int argc, char *argv[])
   br = (int)floor( acc * bitrate                                 + 0.5 );
   if( stream )
   {
-    fprintf(stderr,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
-    fprintf(stdout,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
+    if( prefix_string )
+    {
+      fprintf(stderr,"%s\t"OUT"\t"OUT"\t"OUT"\t"OUT"\n",prefix_string,br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
+      fprintf(stdout,"%s\t"OUT"\t"OUT"\t"OUT"\t"OUT"\n",prefix_string,br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
+    }
+    else
+    {
+      fprintf(stderr,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
+      fprintf(stdout,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
+    }
   }
   else
   {
@@ -373,6 +387,5 @@ int main(int argc, char *argv[])
   }
 
   return (rpsnr*py);
-  //return 0;	
 }
 

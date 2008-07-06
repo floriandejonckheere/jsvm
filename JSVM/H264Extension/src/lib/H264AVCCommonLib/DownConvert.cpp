@@ -2825,7 +2825,8 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
     for( int i = 0; i < iCurrW; i++ ) 
     {
       int   iRefPosX16  = ( ( ( i - iOffsetX ) * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
-      int   iRefPosX    = xClip( iRefPosX16 >> 4, 0, iBaseW - 1 );
+      int   iRndPosX    = ( iRefPosX16 >> 4 ) + ( ( iRefPosX16 & 15 ) >> 3 );
+      int   iRefPosX    = xClip( iRndPosX, 0, iBaseW - 1 );
       int*  piSrc       = &m_paiImageBuffer[i];
       for( int j = -iYBorder; j < iCurrH+iYBorder; j++ )
       {

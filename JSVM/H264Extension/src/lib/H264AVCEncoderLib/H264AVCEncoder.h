@@ -156,6 +156,9 @@ public:
                               UInt&                     ruiNumCodedFrames,
                               Double&                   rdHighestLayerOutputRate );
 
+  UInt    getPicCodingType    ( UInt          uiBaseLayerId,
+                                UInt          uiTemporalId,
+                                UInt          uiFrameIdInTLayer );
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
 																UInt&         ruiBaseLayerIdMotionOnly,
 																UInt          uiLayerId,
@@ -186,9 +189,8 @@ public:
 
 	UInt    getNewBits          ( UInt          uiBaseLayerId );
 
-
-	Frame* getLowPassRec     ( UInt uiLayerId );
-  Frame* getELRefPic       ( UInt uiLayerId, Int iPoc );
+  Frame* getLowPassRec     ( UInt uiLayerId, UInt uiLowPassIndex );
+  Frame* getELRefPic       ( UInt uiLayerId, UInt uiTemporalId, UInt uiFrameIdInTId );
 
   // JVT-T073 {
   ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );

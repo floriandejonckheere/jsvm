@@ -161,7 +161,6 @@ public:
 
   ERROR_CONCEAL getErrorConcealMode       ()                    const { return m_eErrorConcealMode; }
   Bool          isTrueSlice               ()                    const { return m_bTrueSlice; }
-  Bool			    getInIDRAccess            ()		                const { return m_bInIDRAccess; }
   UInt          getMbInPic                ()                    const { AOF( parameterSetsInitialized() ); return getFieldPicFlag() ? getSPS().getMbInFrame() / 2 : getSPS().getMbInFrame(); }
   UInt          getNumMbsInSlice          ()                    const { return m_uiNumMbsInSlice; }
   UInt          getLastMbInSlice          ()                    const { return m_uiLastMbInSlice; }
@@ -173,6 +172,7 @@ public:
                                             ListIdx eListIdx )  const { return m_aauiNumRefIdxActiveUpdate[uiTempLevel][eListIdx]; }
   Bool          getSCoeffResidualPredFlag ()                    const { return m_bSCoeffResidualPred; }
   Bool          isReconstructionLayer     ()                    const { return m_bReconstructionLayer; }
+  Int           getLongTermFrameIdx       ()                    const { return m_iLongTermFrameIdx; }
   const FMO*    getFMO                    ()                    const { return &m_cFMO;}
   FMO*          getFMO                    ()                          { return &m_cFMO;}
   PicType       getPicType                ()                    const;
@@ -184,7 +184,6 @@ public:
 
   Void          setErrorConcealMode       ( ERROR_CONCEAL       eErrorConcealMode       )   { m_eErrorConcealMode       = eErrorConcealMode; }
   Void          setTrueSlice              ( Bool                bTrueSlice              )   { m_bTrueSlice              = bTrueSlice; }
-  Void			    setInIDRAccess            ( Bool                bInIdrAccessUnit        )	  { m_bInIDRAccess            = bInIdrAccessUnit; }
   Void          setNumMbsInSlice          ( UInt                uiNumMbsInSlice         )   { m_uiNumMbsInSlice         = uiNumMbsInSlice; }
   Void          setLastMbInSlice          ( UInt                uiLastMbInSlice         )   { m_uiLastMbInSlice         = uiLastMbInSlice; }
   Void          setTopFieldPoc            ( Int                 iTopFieldPoc            )   { m_iTopFieldPoc            = iTopFieldPoc;  }
@@ -197,15 +196,12 @@ public:
                                             UInt                uiNumRefIdxActive       )   { m_aauiNumRefIdxActiveUpdate[uiTempLevel][eListIdx] = uiNumRefIdxActive;  }
   Void          setSCoeffResidualPredFlag ( ResizeParameters*   pcResizeParameters      );
   Void          setReconstructionLayer    ( Bool                bReconstructionLayer    )   { m_bReconstructionLayer = bReconstructionLayer; }
+  Void          setLongTermFrameIdx       ( Int                 iLongTermFrameIdx       )   { m_iLongTermFrameIdx = iLongTermFrameIdx; }
   Void          setPicType                ( PicType             ePicType                );
-
-private:
-  ErrVal  xInitScalingMatrix();
 
 private:
   ERROR_CONCEAL	m_eErrorConcealMode;
   Bool	        m_bTrueSlice;
-  Bool          m_bInIDRAccess;
   UInt          m_uiNumMbsInSlice;
   UInt          m_uiLastMbInSlice;
   Int           m_iTopFieldPoc;
@@ -215,6 +211,7 @@ private:
   RefFrameList* m_aapcRefFrameList[3][2];
   UInt          m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF preprocessor
   Bool          m_bReconstructionLayer;
+  Int           m_iLongTermFrameIdx;
   //>>> remove
   UInt          m_uiLayerCGSSNR;
   UInt          m_uiQualityLevelCGSSNR;

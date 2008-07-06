@@ -139,13 +139,13 @@ ReconstructionBypass::padRecFrame( Frame*             pcFrame,
   for( UInt uiMbX = 0; uiMbX < uiFrmWidth;  uiMbX++ )
   {
     UInt  uiMask  = 0;
-    Bool  bIntra  = pcMbDataCtrl->getMbData( uiMbX, uiMbY ).isIntraInSlice( uiSliceId );
+    Bool  bIntra  = false;
     RNOK( pcFrame->getFullPelYuvBuffer()->getYuvBufferCtrl().initMb( uiMbY, uiMbX, bMbAffFrame ) );
 
     if( ! bMbAffFrame )
     {
-      RNOK( pcMbDataCtrl->getBoundaryMask( uiMbY, uiMbX, uiMask, uiSliceId ) );
-      if  ( uiMask || ! bIntra )
+      RNOK( pcMbDataCtrl->getBoundaryMask( uiMbY, uiMbX, bIntra, uiMask, uiSliceId ) );
+      if  ( ! bIntra )
       {
         YuvMbBufferExtension  cBuffer;
         YuvPicBuffer*         pcPicBuffer = pcFrame->getPic( ePicType )->getFullPelYuvBuffer();
@@ -160,8 +160,8 @@ ReconstructionBypass::padRecFrame( Frame*             pcFrame,
     }
     else
     {
-      RNOK( pcMbDataCtrl->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask, uiSliceId ) );
-      if  ( uiMask || ! bIntra )
+      RNOK( pcMbDataCtrl->getBoundaryMask_MbAff( uiMbY, uiMbX, bIntra, uiMask, uiSliceId ) );
+      if  ( ! bIntra )
       {
         YuvMbBufferExtension  cBuffer;
         PicType               eMbPicType  = ( uiMbY % 2 ? BOT_FIELD : TOP_FIELD );
@@ -255,7 +255,7 @@ ReconstructionBypass::xPadRecMb( YuvMbBufferExtension* pcBuffer, UInt uiMask )
         {
           if( bLeftIntra )
           {
-            pcBuffer->mergeLeftBelow( cIdx, bLeftBelowIntra );
+            pcBuffer->mergeFromLeftBelow( cIdx, bLeftBelowIntra );
           }
           else
           {
@@ -281,7 +281,7 @@ ReconstructionBypass::xPadRecMb( YuvMbBufferExtension* pcBuffer, UInt uiMask )
         {
           if( bRightIntra )
           {
-            pcBuffer->mergeRightBelow( cIdx, bRightBelowIntra );
+            pcBuffer->mergeFromRightBelow( cIdx, bRightBelowIntra );
           }
           else
           {
@@ -313,172 +313,164 @@ ReconstructionBypass::xPadRecMb( YuvMbBufferExtension* pcBuffer, UInt uiMask )
 ErrVal
 ReconstructionBypass::xPadRecMb_MbAff( YuvMbBufferExtension* pcBuffer, UInt uiMask )
 {
-  Bool bAboveIntra      = 0 != (uiMask & 0x01);
-  Bool bBelowIntra      = 0 != (uiMask & 0x10);
-  //Bool bLeftIntra       = 0 != (uiMask & 0x40);
-  //Bool bRightIntra      = 0 != (uiMask & 0x04);
-  Bool bLeftAboveIntra  = 0 != (uiMask & 0x80);
-  Bool bRightAboveIntra = 0 != (uiMask & 0x02);
-  Bool bLeftBelowIntra  = 0 != (uiMask & 0x20);
-  Bool bRightBelowIntra = 0 != (uiMask & 0x08);
-  Bool bLeftIntraTop    = 0 != (uiMask & 0x0100);
-  Bool bLeftIntraBot    = 0 != (uiMask & 0x0200);
-  Bool bRightIntraTop   = 0 != (uiMask & 0x0400);
-  Bool bRightIntraBot   = 0 != (uiMask & 0x0800);
-  Bool bTopIntra        = 0 != (uiMask & 0x01000);
-  Bool bBotIntra        = 0 != (uiMask & 0x02000);
+  Bool bAvailableTopLeft  = ( ( uiMask & 0x001 ) != 0 );
+  Bool bAvailableTop      = ( ( uiMask & 0x002 ) != 0 );
+  Bool bAvailableTopRight = ( ( uiMask & 0x004 ) != 0 );
+  Bool bAvailableLeftTop  = ( ( uiMask & 0x008 ) != 0 );
+  Bool bAvailableLeftBot  = ( ( uiMask & 0x010 ) != 0 );
+  Bool bAvailableCurrTop  = ( ( uiMask & 0x020 ) != 0 );
+  Bool bAvailableCurrBot  = ( ( uiMask & 0x040 ) != 0 );
+  Bool bAvailableRightTop = ( ( uiMask & 0x080 ) != 0 );
+  Bool bAvailableRightBot = ( ( uiMask & 0x100 ) != 0 );
+  Bool bAvailableBotLeft  = ( ( uiMask & 0x200 ) != 0 );
+  Bool bAvailableBot      = ( ( uiMask & 0x400 ) != 0 );
+  Bool bAvailableBotRight = ( ( uiMask & 0x800 ) != 0 );
 
-  UInt mymap[4]={0,1,2,3}; 
-
-  if(bBotIntra)
-   { 
- //TMM_JV_PAD
-	   //  pcBuffer->setSubBlock();
-     mymap[2]=0;
-     mymap[3]=1;
- 
-//TMM_JV_PAD {
-	 if(bAboveIntra)
-	{
-	bBelowIntra = bLeftIntraBot = bRightIntraBot =bLeftBelowIntra= bRightBelowIntra= 0;
-	}
- //TMM_JV_PAD }  
-   }
-   else if(bTopIntra)
-   {
-    //TMM_JV_PAD
-	   //pcBuffer->setSubBlock();
-    mymap[0]=2;
-    mymap[1]=3;
-
-	//TMM_JV_PAD {
-	if(bBelowIntra)
-	{
-	bAboveIntra = bLeftIntraTop = bRightIntraTop = bLeftAboveIntra= bRightAboveIntra= 0;
-	}
-	//TMM_JV_PAD }
-   }
-
-  //for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
-  for( B8x8Idx cB8x8idx; cB8x8idx.isLegal(); cB8x8idx++ )
+  //===== TOP-LEFT 8x8 block =====
+  if( ! bAvailableCurrTop )
   {
-    //Int iIndex=mymap[cIdx.b8x8Index()];
-    Int iIndex=mymap[cB8x8idx.b8x8Index()];
-    B8x8Idx cIdx( (Par8x8)iIndex );
-    
-    switch(cB8x8idx.b8x8Index())//cIdx.b8x8Index() )
-    {
-    case 0:
-      {
-        if( bAboveIntra )
-        {
-           if( bLeftIntraTop )
-          {
-            pcBuffer->mergeFromLeftAbove( cIdx, bLeftAboveIntra );
-          }
-          else
-          {
-            pcBuffer->copyFromAbove( cIdx );
-          }
-        }
-        else
-        {
-          if( bLeftIntraTop )
-          {
-            pcBuffer->copyFromLeft( cIdx );
-          }
-          else if( bLeftAboveIntra )
-          {
-            pcBuffer->copyFromLeftAbove( cIdx );
-          }
-        }
-      }
-      break;
-    case 1:
-      {
-        if( bAboveIntra )
-        {
-          if( bRightIntraTop )  
-          {
-            pcBuffer->mergeFromRightAbove( cIdx, bRightAboveIntra );
-          }
-          else
-          {
-            pcBuffer->copyFromAbove( cIdx );
-          }
-        }
-        else
-        {
-          if( bRightIntraTop )
-          {
-            pcBuffer->copyFromRight( cIdx );
-          }
-          else if( bRightAboveIntra )
-          {
-            pcBuffer->copyFromRightAbove( cIdx );
-          }
-        }
-      }
-      break;
-    case 2:
-      {
-        if( bBelowIntra )
-        {
-          if( bLeftIntraBot) 
-          {
-            pcBuffer->mergeLeftBelow( cIdx, bLeftBelowIntra );
-          }
-          else
-          {
-            pcBuffer->copyFromBelow( cIdx );
-          }
-        }
-        else
-        {
-          if( bLeftIntraBot )
-          {
-            pcBuffer->copyFromLeft( cIdx);
-          }
-          else if( bLeftBelowIntra )
-          {
-            pcBuffer->copyFromLeftBelow( cIdx );
-          }
-        }
-      }
-      break;
-    case 3:
-      {
-        if( bBelowIntra )
-        {
-          if( bRightIntraBot ) 
-          {
-            pcBuffer->mergeRightBelow( cIdx, bRightBelowIntra );
-          }
-          else
-          {
-            pcBuffer->copyFromBelow( cIdx );
-          }
-        }
-        else
-        {
-          if( bRightIntraBot )
-          {
-            pcBuffer->copyFromRight( cIdx );
-          }
-          else if( bRightBelowIntra )
-          {
-            pcBuffer->copyFromRightBelow( cIdx );
-          }
-        }
-      }
-      break;
-    default:
-      break;
-    }
+    Bool  bV0 = bAvailableTop;
+    Bool  bV1 = bAvailableCurrBot;
+    Bool  bH  = bAvailableLeftTop;
+    Bool  bC0 = bAvailableTopLeft;
+    Bool  bC1 = bAvailableLeftBot;
+    RNOK( xPad8x8Blk_MbAff( pcBuffer, 0, bV0, bV1, bH, bC0, bC1 ) );
+  }
+
+  //===== TOP-RIGHT 8x8 block =====
+  if( ! bAvailableCurrTop )
+  {
+    Bool  bV0 = bAvailableTop;
+    Bool  bV1 = bAvailableCurrBot;
+    Bool  bH  = bAvailableRightTop;
+    Bool  bC0 = bAvailableTopRight;
+    Bool  bC1 = bAvailableRightBot;
+    RNOK( xPad8x8Blk_MbAff( pcBuffer, 1, bV0, bV1, bH, bC0, bC1 ) );
+  }
+
+  //===== BOTTOM-LEFT 8x8 block =====
+  if( ! bAvailableCurrBot )
+  {
+    Bool  bV0 = bAvailableBot;
+    Bool  bV1 = bAvailableCurrTop;
+    Bool  bH  = bAvailableLeftBot;
+    Bool  bC0 = bAvailableBotLeft;
+    Bool  bC1 = bAvailableLeftTop;
+    RNOK( xPad8x8Blk_MbAff( pcBuffer, 2, bV0, bV1, bH, bC0, bC1 ) );
+  }
+
+  //===== BOTTOM-RIGHT 8x8 block =====
+  if( ! bAvailableCurrBot )
+  {
+    Bool  bV0 = bAvailableBot;
+    Bool  bV1 = bAvailableCurrTop;
+    Bool  bH  = bAvailableRightBot;
+    Bool  bC0 = bAvailableBotRight;
+    Bool  bC1 = bAvailableRightTop;
+    RNOK( xPad8x8Blk_MbAff( pcBuffer, 3, bV0, bV1, bH, bC0, bC1 ) );
   }
 
   return Err::m_nOK;
 }
+
+ErrVal
+ReconstructionBypass::xPad8x8Blk_MbAff( YuvMbBufferExtension* pcBuffer, UInt ui8x8Blk, Bool bV0, Bool bV1, Bool bH, Bool bC0, Bool bC1 )
+{
+  Bool    bSwitch     = ( !bV0 && bV1 && bH ) || ( !bV0 && !bH && !bC0 && ( bV1 || bC1 ) );
+  Bool    bDouble     = ( bV0 && bV1 ) || ( ( bV0 || bC0 ) && !bH && ( bV1 || bC1 ) );
+  ROT( bSwitch && bDouble );
+  Bool    bFromAbove  = ( ui8x8Blk < 2 );
+  Bool    bFromLeft   = ( ui8x8Blk % 2 == 0 );
+  B8x8Idx cIdx( (Par8x8)ui8x8Blk );
+
+  if( bDouble )
+  {
+    RNOK( xPadBlock_MbAff( pcBuffer, cIdx, bV0, bH, bC0, true,   bFromAbove, bFromLeft ) );
+    RNOK( xPadBlock_MbAff( pcBuffer, cIdx, bV1, bH, bC1, true,  !bFromAbove, bFromLeft ) );
+  }
+  else if( bSwitch )
+  {
+    RNOK( xPadBlock_MbAff( pcBuffer, cIdx, bV1, bH, bC1, false, !bFromAbove, bFromLeft ) );
+  }
+  else
+  {
+    RNOK( xPadBlock_MbAff( pcBuffer, cIdx, bV0, bH, bC0, false,  bFromAbove, bFromLeft ) );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+ReconstructionBypass::xPadBlock_MbAff( YuvMbBufferExtension* pcBuffer, LumaIdx cIdx, Bool bVer, Bool bHor, Bool bCorner, Bool bHalfYSize, Bool bFromAbove, Bool bFromLeft )
+{
+  if( bVer && bHor )
+  {
+    if( bFromAbove && bFromLeft )
+    {
+      pcBuffer->mergeFromLeftAbove ( cIdx, bCorner, bHalfYSize );
+    }
+    else if( bFromAbove )
+    {
+      pcBuffer->mergeFromRightAbove( cIdx, bCorner, bHalfYSize );
+    }
+    else if( bFromLeft )
+    {
+      pcBuffer->mergeFromLeftBelow ( cIdx, bCorner, bHalfYSize );
+    }
+    else
+    {
+      pcBuffer->mergeFromRightBelow( cIdx, bCorner, bHalfYSize );
+    }
+  }
+  else if( bVer )
+  {
+    if( bFromAbove )
+    {
+      pcBuffer->copyFromAbove( cIdx, bHalfYSize );
+    }
+    else
+    {
+      pcBuffer->copyFromBelow( cIdx, bHalfYSize );
+    }
+  }
+  else if( bHor )
+  {
+    ROT( bHalfYSize );
+    if( bFromLeft )
+    {
+      pcBuffer->copyFromLeft ( cIdx );
+    }
+    else
+    {
+      pcBuffer->copyFromRight( cIdx );
+    }
+  }
+  else if( bCorner )
+  {
+    if( bFromAbove && bFromLeft )
+    {
+      pcBuffer->copyFromLeftAbove ( cIdx, bHalfYSize );
+    }
+    else if( bFromAbove )
+    {
+      pcBuffer->copyFromRightAbove( cIdx, bHalfYSize );
+    }
+    else if( bFromLeft )
+    {
+      pcBuffer->copyFromLeftBelow ( cIdx, bHalfYSize );
+    }
+    else
+    {
+      pcBuffer->copyFromRightBelow( cIdx, bHalfYSize );
+    }
+  }
+  else
+  {
+    ROT( bHalfYSize );
+  }
+  return Err::m_nOK;
+}
+
 
 H264AVC_NAMESPACE_END
 

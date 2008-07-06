@@ -146,19 +146,17 @@ private:
 class H264AVCDECODERLIB_API NonVCLNALUnit : public NALUnit
 {
 public:
-  NonVCLNALUnit( BinData* pcBinData, BinData* pcBinDataPrefix = 0 );
+  NonVCLNALUnit( BinData* pcBinData );
   virtual ~NonVCLNALUnit();
 
   Void        destroyNALOnly  ();
 
   Bool        isVCLNALUnit    ()  const { return false; }
   BinData*    getBinData      ()        { return m_pcBinData; }
-  BinData*    getBinDataPrefix()        { return m_pcBinDataPrefix; }
   NalUnitType getNalUnitType  ()  const { return m_eNalUnitType; }
 
 private:
   BinData*    m_pcBinData;
-  BinData*    m_pcBinDataPrefix;
   NalUnitType m_eNalUnitType;
 };
 

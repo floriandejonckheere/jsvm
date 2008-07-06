@@ -79,6 +79,8 @@ public:
       , m_bIsMbAffFrame               ( false )
       , m_iFrameWidth                 ( 0 )
       , m_iFrameHeight                ( 0 )
+      , m_iWidthInSamples             ( 0 )
+      , m_iHeightInSamples            ( 0 )
       , m_iChromaPhaseX               ( 0 )
       , m_iChromaPhaseY               ( 0 )
       , m_iScaledRefFrmWidth          ( 0 )
@@ -93,6 +95,8 @@ public:
       , m_bRefLayerIsMbAffFrame       ( false )
       , m_iRefLayerFrmWidth           ( 0 )
       , m_iRefLayerFrmHeight          ( 0 )
+      , m_iRefLayerWidthInSamples     ( 0 )
+      , m_iRefLayerHeightInSamples    ( 0 )
     { 
     };
 
@@ -138,8 +142,9 @@ public:
     }
     Bool  getRestrictedSpatialResolutionChangeFlag() const
     {
-      ROFRS( m_bFieldPicFlag      == m_bRefLayerFieldPicFlag,                                                     false );
-      ROFRS( m_bIsMbAffFrame      == m_bRefLayerIsMbAffFrame,                                                     false );
+      ROFRS( m_bFieldPicFlag          == m_bRefLayerFieldPicFlag,                                                 false );
+      ROFRS( m_bIsMbAffFrame          == false,                                                                   false );
+      ROFRS( m_bRefLayerIsMbAffFrame  == false,                                                                   false );
       ROFRS( ( m_iLeftFrmOffset %                          16   ) == 0,                                           false );
       ROFRS( ( m_iTopFrmOffset  % ( m_bIsMbAffFrame ? 32 : 16 ) ) == 0,                                           false );
       ROFRS( m_iRefLayerFrmHeight == m_iScaledRefFrmHeight || 2 * m_iRefLayerFrmHeight == m_iScaledRefFrmHeight,  false );
@@ -157,6 +162,8 @@ public:
   Bool  m_bIsMbAffFrame;
   Int   m_iFrameWidth;
   Int   m_iFrameHeight;
+  Int   m_iWidthInSamples;
+  Int   m_iHeightInSamples;
   Int   m_iChromaPhaseX;
   Int   m_iChromaPhaseY;
   Int   m_iScaledRefFrmWidth;     // also in PictureParameters
@@ -173,6 +180,8 @@ public:
   Bool  m_bRefLayerIsMbAffFrame;
   Int   m_iRefLayerFrmWidth;
   Int   m_iRefLayerFrmHeight;
+  Int   m_iRefLayerWidthInSamples;
+  Int   m_iRefLayerHeightInSamples;
 };
 
 

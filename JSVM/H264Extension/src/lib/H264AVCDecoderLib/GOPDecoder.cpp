@@ -81,7 +81,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-
 #include "H264AVCDecoderLib.h"
 #include "GOPDecoder.h"
 #include "SliceReader.h"
@@ -94,6 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/ReconstructionBypass.h"
 
 
+
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -101,170 +101,674 @@ H264AVC_NAMESPACE_BEGIN
 //////////////////////////////////////////////////////////////////////////
 // DPB UNIT
 //////////////////////////////////////////////////////////////////////////
-
-DPBUnit::DPBUnit()
-: m_uiFrameNum            ( MSYS_UINT_MAX )
-, m_uiTemporalId          ( MSYS_UINT_MAX )
-, m_bUseBasePred          ( false )
+DPBUnit::DPBUnit( YuvBufferCtrl& rcYuvBufferCtrl )
+: m_rcYuvBufferCtrl       ( rcYuvBufferCtrl )
+, m_ePicStatus            ( PicType( 0 ) )
+, m_uiFrameNum            ( MSYS_UINT_MAX )
+, m_iLongTermFrameIdx     ( -1  )
 , m_bExisting             ( false )
-, m_bNeededForReference   ( false )
-, m_bOutputted            ( false )
 , m_bBaseRepresentation   ( false )
-, m_pcFrame               ( NULL )
-, m_cControlData          ()
-, m_pcMbDataCtrlBL        ( NULL )
+, m_bWaitForOutput        ( false )
+, m_bRefPic               ( false )
+, m_pcFrame               ( 0 )
+, m_pcMbDataCtrlBaseLayer ( 0 )
 {
+  m_aiPoc                 [0] = m_aiPoc                 [1] = MSYS_INT_MAX;
+  m_abUseBasePred         [0] = m_abUseBasePred         [1] = false;
+  m_abNeededForReference  [0] = m_abNeededForReference  [1] = false;
+  m_abLongTerm            [0] = m_abLongTerm            [1] = false;
 }
 
 DPBUnit::~DPBUnit()
 {
-  MbDataCtrl*   pcMbDataCtrl  = m_cControlData.getMbDataCtrl  ();
-  if( pcMbDataCtrl )
-  {
-    pcMbDataCtrl->uninit();
-	  delete pcMbDataCtrl;
-		pcMbDataCtrl = NULL;
-  }
-  if( m_pcMbDataCtrlBL )
-  {
-    m_pcMbDataCtrlBL->uninit();
-    delete m_pcMbDataCtrlBL;
-    m_pcMbDataCtrlBL = NULL;
-  }
-  if( m_pcFrame )
-  {
-    m_pcFrame->uninit();
-		m_pcFrame->destroy();
-		m_pcFrame = NULL;
-  }
 }
 
 ErrVal
 DPBUnit::create( DPBUnit*&                    rpcDPBUnit,
                  YuvBufferCtrl&               rcYuvBufferCtrl,
                  const SequenceParameterSet&  rcSPS,
-                 UInt                         uiDependencyId )
+                 Bool                         bBaseLayer )
 {
-  rpcDPBUnit = new DPBUnit();
-  ROF( rpcDPBUnit );
-
-  MbDataCtrl* pcMbDataCtrl = 0;
-  ROFS( ( rpcDPBUnit->m_pcFrame    = new Frame      ( rcYuvBufferCtrl, rcYuvBufferCtrl, FRAME, 0 ) ) );
-  ROFS( ( pcMbDataCtrl             = new MbDataCtrl ()                                   ) );
-  RNOK(   rpcDPBUnit->m_pcFrame    ->init           ()               );
-          rpcDPBUnit->m_pcFrame    ->setDPBUnit     ( rpcDPBUnit   );
-  RNOK(   pcMbDataCtrl             ->init           ( rcSPS        ) );
-  RNOK(   rpcDPBUnit->m_cControlData.setMbDataCtrl  ( pcMbDataCtrl ) );
-
-  if( uiDependencyId == 0 )
-  {
-    ROFS( ( rpcDPBUnit->m_pcMbDataCtrlBL = new MbDataCtrl() ) );
-    RNOK(   rpcDPBUnit->m_pcMbDataCtrlBL->init( rcSPS ) );
-  }
-
+  ROF(( rpcDPBUnit = new DPBUnit( rcYuvBufferCtrl ) ));
+  RNOK( rpcDPBUnit->xCreateData ( rcSPS, bBaseLayer ) );
   return Err::m_nOK;
 }
-
 
 ErrVal
 DPBUnit::destroy()
 {
+  RNOK( xDeleteData() );
   delete this;
   return Err::m_nOK;
 }
 
-
 ErrVal
-DPBUnit::init( const SliceHeader& rcSH )
+DPBUnit::xCreateData( const SequenceParameterSet& rcSPS,
+                      Bool                        bBaseLayer )
 {
-  RNOK( m_pcFrame->addFrameFieldBuffer() );
-
-	m_pcFrame->setPoc( rcSH );
-  m_uiFrameNum            = rcSH.getFrameNum();
-  m_uiTemporalId          = rcSH.getTemporalId();
-  m_bUseBasePred          = rcSH.getUseRefBasePicFlag();
-  m_bExisting             = true;
-  m_bNeededForReference   = rcSH.getNalRefIdc() > 0;
-  m_bOutputted            = false;
-  m_bBaseRepresentation   = false;
-  m_uiQualityId           = rcSH.getQualityId();
+  ROT( m_pcFrame );
+  ROT( m_pcMbDataCtrlBaseLayer );
+  //===== create and init frame =====
+  {
+    ROF(( m_pcFrame = new Frame( m_rcYuvBufferCtrl, m_rcYuvBufferCtrl, FRAME, 0 ) ));
+    RNOK( m_pcFrame->init() );
+    m_pcFrame->setDPBUnit( this );
+  }
+  //===== create and init base layer macroblock data =====
+  if( bBaseLayer )
+  {
+    ROF(( m_pcMbDataCtrlBaseLayer = new MbDataCtrl() ));
+    RNOK( m_pcMbDataCtrlBaseLayer->init( rcSPS ) );
+  }
   return Err::m_nOK;
 }
 
-
 ErrVal
-DPBUnit::initNonEx( Int   iPoc,
-                    UInt  uiFrameNum )
+DPBUnit::xDeleteData()
 {
-  m_pcFrame->setPoc( iPoc );
-  m_uiFrameNum            = uiFrameNum;
-  m_uiTemporalId          = MSYS_UINT_MAX;
-  m_bUseBasePred          = false;
-  m_bExisting             = false;
-  m_bNeededForReference   = true;
-  m_bOutputted            = false;
-  m_bBaseRepresentation   = false;
+  if( m_pcFrame )
+  {
+    RNOK( m_pcFrame->uninit () );
+    RNOK( m_pcFrame->destroy() );
+    m_pcFrame = 0;
+  }
+  if( m_pcMbDataCtrlBaseLayer )
+  {
+    RNOK(  m_pcMbDataCtrlBaseLayer->uninit() );
+    delete m_pcMbDataCtrlBaseLayer;
+    m_pcMbDataCtrlBaseLayer = 0;
+  }
   return Err::m_nOK;
 }
-
-
-
-ErrVal
-DPBUnit::initBase( DPBUnit& rcDPBUnit,
-                   Frame*   pcFrameBaseRep )
-{
-  ROT( rcDPBUnit.m_bBaseRepresentation );
-  m_uiFrameNum            = rcDPBUnit.m_uiFrameNum;
-  m_uiTemporalId          = rcDPBUnit.m_uiTemporalId;
-  m_bUseBasePred          = rcDPBUnit.m_bUseBasePred;
-  m_bExisting             = rcDPBUnit.m_bExisting;
-  m_bNeededForReference   = rcDPBUnit.m_bNeededForReference;
-  m_bOutputted            = rcDPBUnit.m_bOutputted;
-  m_bBaseRepresentation   = true;
-  m_uiQualityId           = rcDPBUnit.m_uiQualityId;
-
-	const SliceHeader&  rcSH      = *rcDPBUnit.getCtrlData().getSliceHeader();
-  const PicType       ePicType  = rcSH.getPicType();
-	RNOK( m_pcFrame->addFrameFieldBuffer() );
-	m_pcFrame->setPoc( rcSH );
-  RNOK( m_pcFrame->copy( pcFrameBaseRep, ePicType ) );
-
-  return Err::m_nOK;
-}
-
 
 ErrVal
 DPBUnit::uninit()
 {
-  m_uiFrameNum            = MSYS_UINT_MAX;
-  m_uiTemporalId          = MSYS_UINT_MAX;
-  m_bUseBasePred          = false;
-  m_bExisting             = false;
-  m_bNeededForReference   = false;
-  m_bOutputted            = false;
-  m_bBaseRepresentation   = false;
+  m_ePicStatus                = PicType( 0 );
+  m_uiFrameNum                = MSYS_UINT_MAX;
+  m_iLongTermFrameIdx         = -1;
+  m_bExisting                 = false;
+  m_bBaseRepresentation       = false;
+  m_bWaitForOutput            = false;
+  m_bRefPic                   = false;
+  m_aiPoc                 [0] = m_aiPoc                 [1] = MSYS_INT_MAX;
+  m_abUseBasePred         [0] = m_abUseBasePred         [1] = false;
+  m_abNeededForReference  [0] = m_abNeededForReference  [1] = false;
+  m_abLongTerm            [0] = m_abLongTerm            [1] = false;
   return Err::m_nOK;
 }
-
 
 ErrVal
-DPBUnit::markNonRef()
+DPBUnit::dump( UInt uiNumber, Bool bLineBefore, Bool bLineAfter )
 {
-  ROF( m_bNeededForReference );
-  m_bNeededForReference = false;
+  ROF( m_ePicStatus );
+  Int iWidth  = 60;
+  Int iMinFld = ( m_ePicStatus == BOT_FIELD ? 1 : 0 );
+  Int iMaxFld = ( m_ePicStatus == TOP_FIELD ? 1 : 2 );
+  if( bLineBefore )
+  {
+    for( Int i = 0; i < iWidth; i++ )         printf( "-" );
+    printf  ( "\n" );
+  }
+  for( Int iFld = iMinFld; iFld < iMaxFld; iFld++ )
+  {
+    if      ( iFld == iMinFld )               printf( "#%3d:", uiNumber );
+    else                                      printf( "     " );            // 5
+    if      ( iFld == 0 )                     printf( " [T]" );
+    else                                      printf( " [B]" );             // 9 (+4)
+    if      ( !m_abNeededForReference[iFld] ) printf( " --" );
+    else if ( m_abLongTerm[iFld] )            printf( " LT" );
+    else                                      printf( " ST" );              // 12 (+3)
+    if      ( m_bWaitForOutput )              printf( "|WO" );
+    else                                      printf( "|--" );              // 15 (+3)
+    if      ( !m_bExisting )                  printf( " [NE]" );
+    else if ( m_bBaseRepresentation )         printf( " [BR]" );
+    else if ( m_bRefPic )                     printf( " [RP]" );
+    else                                      printf( " [NR]" );            // 20 (+5)
+    printf  ( "   FN=%- 6d",    m_uiFrameNum );                             // 32 (+12)
+    printf  ( "   LTI=%- 3d",   m_iLongTermFrameIdx );                      // 42 (+10)
+    printf  ( "   POC=%- 11d",  m_aiPoc[iFld] );                            // 60 (+18)
+    printf  ( "\n" );
+  }
+  if( bLineAfter )
+  {
+    for( Int i = 0; i < iWidth; i++ )         printf( "-" );
+    printf  ( "\n" );
+  }
   return Err::m_nOK;
 }
 
+Bool
+DPBUnit::isRequired() const
+{
+  ROTRS( m_abNeededForReference[0], true );
+  ROTRS( m_abNeededForReference[1], true );
+  return m_bWaitForOutput;
+}
+
+Bool
+DPBUnit::isUsedForRef() const
+{
+  ROTRS( m_abNeededForReference[0], true );
+  ROTRS( m_abNeededForReference[1], true );
+  return false;
+}
+
+Bool
+DPBUnit::isShortTermUnit() const
+{
+  ROTRS( m_abNeededForReference[0] && !m_abLongTerm[0], true );
+  ROTRS( m_abNeededForReference[1] && !m_abLongTerm[1], true );
+  return false;
+}
+
+Bool
+DPBUnit::isLongTermUnit() const
+{
+  ROTRS( m_abNeededForReference[0] && m_abLongTerm[0], true );
+  ROTRS( m_abNeededForReference[1] && m_abLongTerm[1], true );
+  return false;
+}
+
+Int
+DPBUnit::getMaxPoc( Bool bPocMode0 ) const
+{
+  ROTRS( bPocMode0 && !m_bExisting, MSYS_INT_MIN );
+  ROTRS( m_ePicStatus == TOP_FIELD, m_aiPoc[0] );
+  ROTRS( m_ePicStatus == BOT_FIELD, m_aiPoc[1] );
+  return max( m_aiPoc[0], m_aiPoc[1] );
+}
+
+Int
+DPBUnit::getPoc() const
+{
+  ROTRS( m_ePicStatus == TOP_FIELD, m_aiPoc[0] );
+  ROTRS( m_ePicStatus == BOT_FIELD, m_aiPoc[1] );
+  return min( m_aiPoc[0], m_aiPoc[1] );
+}
+
+Int
+DPBUnit::getFrameNumWrap( UInt uiCurrFrameNum, UInt uiMaxFrameNum ) const
+{
+  ROFRS( m_uiFrameNum > uiCurrFrameNum, (Int)m_uiFrameNum );
+  return Int( m_uiFrameNum - uiMaxFrameNum );
+}
+
+Bool
+DPBUnit::isShortTermRef( PicType ePicType ) const
+{
+  ROFRS( ePicType == FRAME, m_abNeededForReference[ePicType-1] && !m_abLongTerm[ePicType-1] );
+  return isShortTermRef( TOP_FIELD ) && isShortTermRef( BOT_FIELD );
+}
+
+Bool
+DPBUnit::isLongTermRef( PicType ePicType ) const
+{
+  ROFRS( ePicType == FRAME, m_abNeededForReference[ePicType-1] && m_abLongTerm[ePicType-1] );
+  return isLongTermRef( TOP_FIELD ) && isLongTermRef( BOT_FIELD );
+}
+
+Bool
+DPBUnit::isRefPic( PicType ePicType ) const
+{
+  ROFRS( ePicType == FRAME, m_abNeededForReference[ePicType-1] );
+  return isRefPic( TOP_FIELD ) && isRefPic( BOT_FIELD );
+}
 
 ErrVal
-DPBUnit::markOutputted()
+DPBUnit::setNonExisting( UInt uiFrameNum, Int iTopFieldPoc, Int iBotFieldPoc )
 {
-  ROT( m_bOutputted );
-  m_bOutputted = true;
+  RNOK( uninit() );
+  m_ePicStatus              = FRAME;
+  m_uiFrameNum              = uiFrameNum;
+  m_bRefPic                 = true;
+  m_aiPoc               [0] = iTopFieldPoc;
+  m_aiPoc               [1] = iBotFieldPoc;
+  m_abNeededForReference[0] = true;
+  m_abNeededForReference[1] = true;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::output( PicBufferList& rcPicBufferInputList, PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList )
+{
+  ROF( m_bWaitForOutput );
+  ROT( rcPicBufferInputList.empty() );
+  //----- store frame in picture buffer and insert into list -----
+  PicBuffer*  pcPicBuffer = rcPicBufferInputList.popFront();
+  ROF( pcPicBuffer );
+  ROF( pcPicBuffer->getBuffer () );
+  if ( pcPicBuffer->isUsed    () )
+  {
+    pcPicBuffer->setUnused();
+  }
+  RNOK( m_pcFrame->store( pcPicBuffer, m_ePicStatus ) );
+  rcPicBufferOutputList.push_back( pcPicBuffer );
+  rcPicBufferUnusedList.push_back( pcPicBuffer );
+  //----- update DPB unit status -----
+  m_bWaitForOutput = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::markUnusedForRef( PicType ePicType, Bool bRemoveOutputFlag )
+{
+  if( ( ePicType & TOP_FIELD ) == TOP_FIELD )
+  {
+    m_abNeededForReference[0] = false;
+    m_abLongTerm          [0] = false;
+  }
+  if( ( ePicType & BOT_FIELD ) == BOT_FIELD )
+  {
+    m_abNeededForReference[1] = false;
+    m_abLongTerm          [1] = false;
+  }
+  if( !m_abLongTerm[0] && !m_abLongTerm[1] )
+  {
+    m_iLongTermFrameIdx = -1;
+  }
+  if( bRemoveOutputFlag )
+  {
+    ROF( ePicType == FRAME );
+    m_bWaitForOutput = false; 
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::markLongTerm( PicType ePicType, Int iLongTermFrameIdx )
+{
+  if( ( ePicType & TOP_FIELD ) == TOP_FIELD )
+  {
+    ROF( m_abNeededForReference[0] );
+    ROT( m_abLongTerm          [0] );
+    m_abLongTerm[0] = true;
+  }
+  if( ( ePicType & BOT_FIELD ) == BOT_FIELD )
+  {
+    ROF( m_abNeededForReference[1] );
+    ROT( m_abLongTerm          [1] );
+    m_abLongTerm[1] = true;
+  }
+  ROF( m_iLongTermFrameIdx == -1 || m_iLongTermFrameIdx == iLongTermFrameIdx );
+  m_iLongTermFrameIdx = iLongTermFrameIdx;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::checkStatus( Int iMaxLongTermFrameIdx )
+{
+  ROF(  m_ePicStatus );
+  ROT( !m_abLongTerm[0] && !m_abLongTerm[1] && m_iLongTermFrameIdx != -1 );
+  ROT( !m_abNeededForReference[0] && m_abLongTerm[0] );
+  ROT( !m_abNeededForReference[1] && m_abLongTerm[1] );
+  ROT(  m_abNeededForReference[0] && ( m_ePicStatus & TOP_FIELD ) == 0 );
+  ROT(  m_abNeededForReference[1] && ( m_ePicStatus & BOT_FIELD ) == 0 );
+  ROT(  m_abNeededForReference[0] && m_abNeededForReference[1] && m_abLongTerm[0] != m_abLongTerm[1] );
+  ROT(  m_iLongTermFrameIdx > iMaxLongTermFrameIdx );
   return Err::m_nOK;
 }
 
 
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// CURRENT DPB UNIT
+//////////////////////////////////////////////////////////////////////////
+CurrDPBUnit::CurrDPBUnit( YuvBufferCtrl& rcYuvBufferCtrl )
+: DPBUnit             ( rcYuvBufferCtrl )
+, m_bInUse            ( false )
+, m_bRefBasePicInUse  ( false )
+, m_bCompleted        ( false )
+, m_uiQualityId       ( 0 )
+, m_pcControlData     ( 0 )
+, m_pcRefBasePicFrame ( 0 )
+{
+}
+
+CurrDPBUnit::~CurrDPBUnit()
+{
+}
+
+ErrVal
+CurrDPBUnit::create( CurrDPBUnit*&                rpcCurrDPBUnit,
+                     YuvBufferCtrl&               rcYuvBufferCtrl,
+                     const SequenceParameterSet&  rcSPS,
+                     Bool                         bCreateRefBasePicBuffer,
+                     Bool                         bBaseLayer )
+{
+  ROF(( rpcCurrDPBUnit = new CurrDPBUnit( rcYuvBufferCtrl ) ));
+  RNOK( rpcCurrDPBUnit->xCreateData     ( rcSPS, bCreateRefBasePicBuffer, bBaseLayer ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::destroy()
+{
+  RNOK( xDeleteData() );
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::xCreateData( const SequenceParameterSet& rcSPS,
+                          Bool                        bCreateRefBasePicBuffer, 
+                          Bool                        bBaseLayer )
+{
+  ROT ( m_pcControlData );
+  ROT ( m_pcRefBasePicFrame );
+  //===== create data of base class =====
+  RNOK( DPBUnit::xCreateData( rcSPS, bBaseLayer ) );
+  m_pcFrame->setDPBUnit( 0 );
+  //===== create and init control data =====
+  {
+    MbDataCtrl* pcMbDataCtrl = 0;
+    ROF(( m_pcControlData = new ControlData () ));
+    ROF(( pcMbDataCtrl    = new MbDataCtrl  () ));
+    RNOK( pcMbDataCtrl    ->init            ( rcSPS ) );
+    RNOK( m_pcControlData ->setMbDataCtrl   ( pcMbDataCtrl ) );
+  }
+  //===== create and init reference base picture frame =====
+  if( bCreateRefBasePicBuffer )
+  {
+    ROF(( m_pcRefBasePicFrame = new Frame( m_rcYuvBufferCtrl, m_rcYuvBufferCtrl, FRAME, 0 ) ));
+    RNOK( m_pcRefBasePicFrame->init() );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::xDeleteData()
+{
+  RNOK( DPBUnit::xDeleteData() );
+  if( m_pcControlData )
+  {
+    if( m_pcControlData->getMbDataCtrl() )
+    {
+      RNOK(  m_pcControlData->getMbDataCtrl()->uninit() );
+      delete m_pcControlData->getMbDataCtrl();
+      m_pcControlData->setMbDataCtrl( 0 );
+    }
+    delete m_pcControlData;
+    m_pcControlData = 0;
+  }
+  if( m_pcRefBasePicFrame )
+  {
+    RNOK( m_pcRefBasePicFrame->uninit () );
+    RNOK( m_pcRefBasePicFrame->destroy() );
+    m_pcRefBasePicFrame = 0;
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::init( SliceHeader& rcSliceHeader )
+{
+  ROF( !m_bInUse && !m_bRefBasePicInUse && !m_bCompleted );
+  ROT( rcSliceHeader.getStoreRefBasePicFlag() && ! rcSliceHeader.getNalRefIdc() );
+  ROT( rcSliceHeader.getStoreRefBasePicFlag() && ! m_pcRefBasePicFrame );
+  ROT( rcSliceHeader.getDependencyId() == 0   && ! m_pcMbDataCtrlBaseLayer );
+  //===== init parameters =====
+  m_bInUse              = true;
+  m_bRefBasePicInUse    = rcSliceHeader.getStoreRefBasePicFlag();
+  m_bCompleted          = false;
+  m_uiQualityId         = rcSliceHeader.getQualityId          ();
+  m_ePicStatus          = rcSliceHeader.getPicType            ();
+  m_uiFrameNum          = rcSliceHeader.getFrameNum           ();
+  m_iLongTermFrameIdx   = -1;
+  m_bExisting           = true;
+  m_bBaseRepresentation = false;
+  m_bWaitForOutput      = rcSliceHeader.getOutputFlag         ();
+  m_bRefPic             = rcSliceHeader.getNalRefIdc          () > 0;
+  Int iFldMin           = ( m_ePicStatus == BOT_FIELD ? 1 : 0 );
+  Int iFldMax           = ( m_ePicStatus == TOP_FIELD ? 1 : 2 );
+  for( Int iF = iFldMin; iF < iFldMax; iF++ )
+  {
+    m_aiPoc               [iF]  = rcSliceHeader.getPoc              ( m_ePicStatus );
+    m_abUseBasePred       [iF]  = rcSliceHeader.getUseRefBasePicFlag();
+    m_abNeededForReference[iF]  = m_bRefPic;
+    m_abLongTerm          [iF]  = false;
+  }
+  //===== init frame =====
+  RNOK( m_pcFrame->addFrameFieldBuffer() );
+  m_pcFrame->setPoc     ( rcSliceHeader );
+  //===== init reference base picture frame =====
+  if( m_pcRefBasePicFrame )
+  {
+    RNOK( m_pcRefBasePicFrame->addFrameFieldBuffer() );
+    m_pcRefBasePicFrame->setPoc     ( rcSliceHeader );
+  }
+  //===== init control data =====
+  m_pcControlData->clear();
+  RNOK( m_pcControlData->setSliceHeader ( &rcSliceHeader )  );
+  RNOK( m_pcControlData->getMbDataCtrl  ()->reset ()        );
+  RNOK( m_pcControlData->getMbDataCtrl  ()->clear ()        );
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::reinit( SliceHeader& rcSliceHeader, Bool bNewLayerRepresentation )
+{
+  ROF( m_bInUse );
+  ROF( m_bCompleted       ==  bNewLayerRepresentation );
+  ROF( m_bRefBasePicInUse ==  rcSliceHeader.getStoreRefBasePicFlag() );
+  ROF( m_uiQualityId      ==  rcSliceHeader.getQualityId          () - ( bNewLayerRepresentation ? 1 : 0 ) );
+  ROF( m_ePicStatus       ==  rcSliceHeader.getPicType            () );
+  ROF( m_uiFrameNum       ==  rcSliceHeader.getFrameNum           () );
+  ROF( m_bWaitForOutput   ==  rcSliceHeader.getOutputFlag         () );
+  ROF( m_bRefPic          == (rcSliceHeader.getNalRefIdc          () > 0) );
+  Int iFldMin = ( m_ePicStatus == BOT_FIELD ? 1 : 0 );
+  Int iFldMax = ( m_ePicStatus == TOP_FIELD ? 1 : 2 );
+  for( Int iF = iFldMin; iF < iFldMax; iF++ )
+  {
+    ROF( m_aiPoc                [iF] == rcSliceHeader.getPoc              ( m_ePicStatus ) );
+    ROF( m_abUseBasePred        [iF] == rcSliceHeader.getUseRefBasePicFlag() );
+    ROF( m_abNeededForReference [iF] == m_bRefPic );
+    ROF( m_abLongTerm           [iF] == false );
+  }
+  if( bNewLayerRepresentation )
+  {
+    RNOK( uninit() );
+    RNOK( init  ( rcSliceHeader ) );
+  }
+  else
+  {
+    RNOK( m_pcControlData->setSliceHeader( &rcSliceHeader ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::resetMMCO5( SliceHeader& rcSliceHeader )
+{
+  ROT( m_bBaseRepresentation );
+  ROF( m_bExisting );
+  ROF( m_bRefPic );
+  ROF( m_ePicStatus == rcSliceHeader.getPicType () );
+  ROF( m_uiFrameNum == rcSliceHeader.getFrameNum() );
+  m_uiFrameNum  = 0;
+  m_aiPoc[0]    = ( m_ePicStatus == BOT_FIELD ? m_aiPoc[0] : rcSliceHeader.getTopFieldPoc() );
+  m_aiPoc[1]    = ( m_ePicStatus == TOP_FIELD ? m_aiPoc[1] : rcSliceHeader.getBotFieldPoc() );
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::setComplete( CurrDPBUnit& rcILPredUnit, Bool bDependencyRepresentationFinished )
+{
+  ROF( m_bInUse && !m_bCompleted );
+  //===== copy base layer macroblock data =====
+  if( m_pcMbDataCtrlBaseLayer && !m_uiQualityId )
+  {
+    RNOK( m_pcMbDataCtrlBaseLayer->copyMotion( *m_pcControlData->getMbDataCtrl(), m_ePicStatus ) );
+  }
+  //===== set complete =====
+  m_bCompleted = true;
+  //===== set inter-layer prediction DPB unit =====
+  if( bDependencyRepresentationFinished )
+  {
+    if( rcILPredUnit.isCompleted() )
+    {
+      RNOK( rcILPredUnit.uninit() );
+    }
+  }
+  else
+  {
+    Frame*        pcFrame         = m_pcFrame;
+    MbDataCtrl*   pcMbDataCtrl    = m_pcControlData->getMbDataCtrl  ();
+    SliceHeader*  pcSliceHeader   = m_pcControlData->getSliceHeader ();
+    m_pcFrame                     = rcILPredUnit.m_pcFrame;
+    rcILPredUnit.m_pcFrame        = pcFrame;
+    rcILPredUnit.m_bInUse         = true;
+    rcILPredUnit.m_bCompleted     = true;
+    rcILPredUnit.m_uiQualityId    = m_uiQualityId;
+    RNOK( m_pcControlData->setMbDataCtrl( rcILPredUnit.m_pcControlData->getMbDataCtrl() ) );
+    RNOK( rcILPredUnit.m_pcControlData->setMbDataCtrl ( pcMbDataCtrl  ) );
+    RNOK( rcILPredUnit.m_pcControlData->setSliceHeader( pcSliceHeader ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::store( DPBUnit& rcDPBUnit, Bool bRefBasePic )
+{
+  //===== store picture =====
+  if( rcDPBUnit.m_ePicStatus )
+  {
+    RNOK( xStore2ndField( rcDPBUnit, bRefBasePic ) );
+  }
+  else
+  {
+    RNOK( xStoreFrame   ( rcDPBUnit, bRefBasePic ) );
+  }
+  //===== fill image border =====
+  {
+    SliceHeader* pcSliceHeader = m_pcControlData->getSliceHeader();
+    ROF ( pcSliceHeader );
+    RNOK( rcDPBUnit.m_rcYuvBufferCtrl.initMb() );
+    RNOK( rcDPBUnit.m_pcFrame->extendFrame( 0, rcDPBUnit.m_ePicStatus, pcSliceHeader->getSPS().getFrameMbsOnlyFlag() ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::xStoreFrame( DPBUnit& rcDPBUnit, Bool bRefBasePic )
+{
+  ROF( m_bInUse && m_bCompleted );
+  //===== safety checks =====
+  ROF( m_ePicStatus > 0 && m_ePicStatus <= FRAME );
+  ROF( m_iLongTermFrameIdx >= 0 || ( m_ePicStatus == FRAME ? ( !m_abLongTerm[0] && !m_abLongTerm[1] ) : !m_abLongTerm[m_ePicStatus-1] ) );
+  //===== set parameters =====
+  rcDPBUnit.m_ePicStatus          = m_ePicStatus;
+  rcDPBUnit.m_uiFrameNum          = m_uiFrameNum;
+  rcDPBUnit.m_iLongTermFrameIdx   = m_iLongTermFrameIdx;
+  rcDPBUnit.m_bExisting           = true;
+  rcDPBUnit.m_bBaseRepresentation = bRefBasePic;
+  rcDPBUnit.m_bWaitForOutput      = ( bRefBasePic ? false : m_bWaitForOutput );
+  rcDPBUnit.m_bRefPic             = m_bRefPic;
+  Int iMinFld                     = ( m_ePicStatus == BOT_FIELD ? 1 : 0 );
+  Int iMaxFld                     = ( m_ePicStatus == TOP_FIELD ? 1 : 2 );
+  for( Int iFld = iMinFld; iFld < iMaxFld; iFld++ )
+  {
+    rcDPBUnit.m_aiPoc               [iFld]  = m_aiPoc               [iFld];
+    rcDPBUnit.m_abUseBasePred       [iFld]  = m_abUseBasePred       [iFld];
+    rcDPBUnit.m_abNeededForReference[iFld]  = m_abNeededForReference[iFld];
+    rcDPBUnit.m_abLongTerm          [iFld]  = m_abLongTerm          [iFld];
+  }
+  //===== switch frame =====
+  {
+    Frame*  pcTmpFrame  = rcDPBUnit.m_pcFrame;
+    Frame*& rpcFrame    = ( bRefBasePic ? m_pcRefBasePicFrame : m_pcFrame );
+    ROF( rpcFrame && pcTmpFrame );
+    rcDPBUnit.m_pcFrame = rpcFrame;
+    rpcFrame            = pcTmpFrame;
+  }
+  //===== switch base layer macroblock data control =====
+  if( rcDPBUnit.m_pcMbDataCtrlBaseLayer )
+  {
+    ROF( m_pcMbDataCtrlBaseLayer );
+    MbDataCtrl* pcTmpMbDataCtrl       = rcDPBUnit.m_pcMbDataCtrlBaseLayer;
+    rcDPBUnit.m_pcMbDataCtrlBaseLayer = m_pcMbDataCtrlBaseLayer;
+    m_pcMbDataCtrlBaseLayer           = pcTmpMbDataCtrl;
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::xStore2ndField( DPBUnit& rcDPBUnit, Bool bRefBasePic )
+{
+  ROF( m_bInUse && m_bCompleted );
+  //===== safety checks =====
+  ROF( rcDPBUnit.m_bExisting );
+  ROF( rcDPBUnit.m_ePicStatus == TOP_FIELD || rcDPBUnit.m_ePicStatus == BOT_FIELD );
+  ROF( rcDPBUnit.m_ePicStatus + m_ePicStatus  == FRAME );
+  ROF( rcDPBUnit.m_uiFrameNum                 == m_uiFrameNum );
+  ROF( rcDPBUnit.m_iLongTermFrameIdx          == m_iLongTermFrameIdx || rcDPBUnit.m_abLongTerm[rcDPBUnit.m_ePicStatus-1] != m_abLongTerm[m_ePicStatus-1] );
+  ROF( rcDPBUnit.m_bExisting                  == m_bExisting );
+  ROF( rcDPBUnit.m_bBaseRepresentation        == bRefBasePic );
+  ROF( rcDPBUnit.m_bWaitForOutput             == m_bWaitForOutput );
+  ROF( rcDPBUnit.m_bRefPic                    == m_bRefPic );
+  //===== update parameters =====
+  Int i2ndF                               = m_ePicStatus - 1;
+  rcDPBUnit.m_ePicStatus                  = FRAME;
+  rcDPBUnit.m_iLongTermFrameIdx           = ( m_abLongTerm[i2ndF] ? m_iLongTermFrameIdx : rcDPBUnit.m_iLongTermFrameIdx );
+  rcDPBUnit.m_bBaseRepresentation         = bRefBasePic;
+  rcDPBUnit.m_aiPoc               [i2ndF] = m_aiPoc               [i2ndF];
+  rcDPBUnit.m_abUseBasePred       [i2ndF] = m_abUseBasePred       [i2ndF];
+  rcDPBUnit.m_abNeededForReference[i2ndF] = m_abNeededForReference[i2ndF];
+  rcDPBUnit.m_abLongTerm          [i2ndF] = m_abLongTerm          [i2ndF];
+  //===== update frame =====
+  {
+    SliceHeader*  pcSliceHeader = m_pcControlData->getSliceHeader();
+    Frame*        pcFrame       = ( bRefBasePic ? m_pcRefBasePicFrame : m_pcFrame );
+    ROF ( pcSliceHeader );
+    ROF ( pcFrame );
+    RNOK( rcDPBUnit.m_pcFrame->copy( pcFrame, m_ePicStatus ) );
+    rcDPBUnit.m_pcFrame->setPoc( *pcSliceHeader );
+  }
+  //===== update base layer macroblock data =====
+  if( rcDPBUnit.m_pcMbDataCtrlBaseLayer )
+  {
+    ROF ( m_pcMbDataCtrlBaseLayer );
+    RNOK( rcDPBUnit.m_pcMbDataCtrlBaseLayer->copyMotion( *m_pcMbDataCtrlBaseLayer, m_ePicStatus ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+CurrDPBUnit::uninit()
+{
+  ROF ( m_bInUse && m_bCompleted );
+  RNOK( DPBUnit::uninit() );
+  m_bInUse            = false;
+  m_bRefBasePicInUse  = false;
+  m_bCompleted        = false;
+  m_uiQualityId       = 0;
+  return Err::m_nOK;
+}
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// REFERENCE PICTURE ENTRY
+//////////////////////////////////////////////////////////////////////////
+RefPicEntry::RefPicEntry( PicType ePicType, DPBUnit* pcDPBUnit )
+: m_ePicType  ( ePicType )
+, m_pcDPBUnit ( pcDPBUnit )
+{
+}
+
+RefPicEntry::RefPicEntry( const RefPicEntry& rcRefPicEntry )
+: m_ePicType  ( rcRefPicEntry.m_ePicType )
+, m_pcDPBUnit ( rcRefPicEntry.m_pcDPBUnit )
+{
+}
+
+RefPicEntry::~RefPicEntry()
+{
+}
 
 
 
@@ -272,13 +776,23 @@ DPBUnit::markOutputted()
 // DECODED PICTURE BUFFER
 //////////////////////////////////////////////////////////////////////////
 DecodedPicBuffer::DecodedPicBuffer()
-: m_bInitDone         ( false )
-, m_pcYuvBufferCtrl   ( NULL )
-, m_uiNumRefFrames    ( 0 )
-, m_uiMaxFrameNum     ( 0 )
-, m_uiLastRefFrameNum ( MSYS_UINT_MAX )
-, m_pcCurrDPBUnit     ( NULL )
-, m_pcLastDPBUnit     ( NULL )
+: m_bInitDone               ( false )
+, m_bInitBufferDone         ( false )
+, m_bDebugOutput            ( false )
+, m_pcYuvBufferCtrl         ( 0 )
+, m_uiDependencyId          ( 0 )
+, m_uiFrameWidthInMbs       ( 0 )
+, m_uiFrameHeightInMbs      ( 0 )
+, m_uiBufferSizeInFrames    ( 0 )
+, m_uiDPBSizeInFrames       ( 0 )
+, m_uiMaxNumRefFrames       ( 0 )
+, m_uiMaxFrameNum           ( 0 )
+, m_uiLastRefFrameNum       ( MSYS_UINT_MAX )
+, m_iMaxLongTermFrameIdx    ( -1 )
+, m_pcLastDPBUnit           ( 0 )
+, m_pcLastDPBUnitRefBasePic ( 0 )
+, m_pcCurrDPBUnit           ( 0 )
+, m_pcCurrDPBUnitILPred     ( 0 )
 {
 }
 
@@ -289,1293 +803,1272 @@ DecodedPicBuffer::~DecodedPicBuffer()
 ErrVal
 DecodedPicBuffer::create( DecodedPicBuffer*& rpcDecodedPicBuffer )
 {
-  rpcDecodedPicBuffer = new DecodedPicBuffer;
-  ROT( NULL == rpcDecodedPicBuffer );
+  ROF(( rpcDecodedPicBuffer = new DecodedPicBuffer() ));
   return Err::m_nOK;
 }
 
 ErrVal
 DecodedPicBuffer::destroy()
 {
-  ROT( m_bInitDone );
+  RNOK( uninit() );
   delete this;
   return Err::m_nOK;
 }
 
 ErrVal
-DecodedPicBuffer::init( YuvBufferCtrl* pcYuvBufferCtrl,
-                        UInt           uiLayer )
+DecodedPicBuffer::init( YuvBufferCtrl* pcYuvBufferCtrl, UInt uiDependencyId )
 {
   ROT( m_bInitDone );
+  ROT( m_bInitBufferDone );
   ROF( pcYuvBufferCtrl );
-
-  m_pcYuvBufferCtrl   = pcYuvBufferCtrl;
-  m_uiNumRefFrames    = 0;
-  m_uiMaxFrameNum     = 0;
-  m_uiLastRefFrameNum = MSYS_UINT_MAX;
-  m_uiLayer           = uiLayer;
-  m_bInitDone         = true;
-  m_pcLastDPBUnit     = NULL;
+  m_bInitDone       = true;
+  m_bInitBufferDone = false;
+  m_pcYuvBufferCtrl = pcYuvBufferCtrl;
+  m_uiDependencyId  = uiDependencyId;
   return Err::m_nOK;
 }
-
-
-__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; (UInt)( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
-
-
-ErrVal
-DecodedPicBuffer::initSPS( const SequenceParameterSet& rcSPS, UInt uiDependencyId )
-{
-  ROF( m_bInitDone );
-	UInt  uiMaxPicsInDPB  = downround2powerof2( rcSPS.getMaxDPBSize() ) + 5; // up to 3 base representations + 2 extra (should use "real DPB" size in future)
-  RNOK( xCreateData( uiMaxPicsInDPB, rcSPS, uiDependencyId ) );
-  m_uiNumRefFrames      = rcSPS.getNumRefFrames();
-  m_uiMaxFrameNum       = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
-  return Err::m_nOK;
-}
-
 
 ErrVal
 DecodedPicBuffer::uninit()
 {
-  ROF ( m_bInitDone );
   RNOK( xDeleteData() );
-  ROF ( m_cPicBufferList.empty() );
-  
-  m_pcYuvBufferCtrl   = NULL;
-  m_uiNumRefFrames    = 0;
-  m_uiMaxFrameNum     = 0;
-  m_uiLastRefFrameNum = MSYS_UINT_MAX;
-  m_bInitDone         = false;
+  m_bInitDone               = false;
+  m_bInitBufferDone         = false;
+  m_pcYuvBufferCtrl         = 0;
+  m_uiDependencyId          = 0;
+  m_uiFrameWidthInMbs       = 0;
+  m_uiFrameHeightInMbs      = 0;
+  m_uiBufferSizeInFrames    = 0;
+  m_uiDPBSizeInFrames       = 0;
+  m_uiMaxNumRefFrames       = 0;
+  m_uiMaxFrameNum           = 0;
+  m_uiLastRefFrameNum       = MSYS_UINT_MAX;
+  m_iMaxLongTermFrameIdx    = -1;
+  m_pcLastDPBUnit           = 0;
+  m_pcLastDPBUnitRefBasePic = 0;
+  m_pcCurrDPBUnit           = 0;
+  m_pcCurrDPBUnitILPred     = 0;
   return Err::m_nOK;
 }
 
+Bool
+DecodedPicBuffer::xNewBufferDimension( const SequenceParameterSet& rcSPS )
+{
+  ROFRS ( m_bInitBufferDone,                                      true );
+  ROFRS ( m_uiFrameWidthInMbs     == rcSPS.getFrameWidthInMbs (), true );
+  ROFRS ( m_uiFrameHeightInMbs    == rcSPS.getFrameHeightInMbs(), true );
+  ROFRS ( m_uiBufferSizeInFrames  >= rcSPS.getMaxDPBSize      (), true );
+  return  false;
+}
 
 ErrVal
-DecodedPicBuffer::xCreateData( UInt                         uiMaxPicsInDPB,
-                               const SequenceParameterSet&  rcSPS,
-                               UInt                         uiDependencyId )
+DecodedPicBuffer::xInitBuffer( const SliceHeader& rcSliceHeader )
+{
+  ROF( m_bInitDone );
+  ROF( rcSliceHeader.getIdrFlag() );
+  ROF( rcSliceHeader.getSPS().getMaxDPBSize   () );
+  ROF( rcSliceHeader.getSPS().getNumRefFrames () <= rcSliceHeader.getSPS().getMaxDPBSize() );
+  m_uiDPBSizeInFrames       = rcSliceHeader.getSPS().getMaxDPBSize();
+  m_uiMaxNumRefFrames       = max( 1, rcSliceHeader.getSPS().getNumRefFrames() );
+  m_uiMaxFrameNum           = 1 << rcSliceHeader.getSPS().getLog2MaxFrameNum();
+  m_uiLastRefFrameNum       = MSYS_UINT_MAX;
+  m_iMaxLongTermFrameIdx    = -1;
+  m_pcLastDPBUnit           = 0;
+  m_pcLastDPBUnitRefBasePic = 0;
+  ROFRS( xNewBufferDimension( rcSliceHeader.getSPS() ), Err::m_nOK );
+  RNOK ( xCreateData        ( rcSliceHeader.getSPS(), m_uiDPBSizeInFrames, m_uiDependencyId == 0 ) );
+  m_uiFrameWidthInMbs       = rcSliceHeader.getSPS().getFrameWidthInMbs ();
+  m_uiFrameHeightInMbs      = rcSliceHeader.getSPS().getFrameHeightInMbs();
+  m_uiBufferSizeInFrames    = m_uiDPBSizeInFrames;
+  m_bInitBufferDone         = true;
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xCreateData( const SequenceParameterSet&  rcSPS,
+                               UInt                         uiDPBSizeInFrames,
+                               Bool                         bBaseLayer )
 {
   ROF ( m_bInitDone );
   RNOK( xDeleteData() );
-
-  while( uiMaxPicsInDPB-- )
+  //===== create DPB buffer list =====
+  uiDPBSizeInFrames += 2; // up to two frame buffers for temporary usage
+  while( uiDPBSizeInFrames-- )
   {
     DPBUnit* pcDPBUnit = NULL;
-    RNOK( DPBUnit::create( pcDPBUnit, *m_pcYuvBufferCtrl, rcSPS, uiDependencyId ) );
+    RNOK( DPBUnit::create( pcDPBUnit, *m_pcYuvBufferCtrl, rcSPS, bBaseLayer ) );
     m_cFreeDPBUnitList.pushBack( pcDPBUnit );
   }
-  RNOK( DPBUnit::create( m_pcCurrDPBUnit, *m_pcYuvBufferCtrl, rcSPS, uiDependencyId ) );
-  RNOK( m_pcCurrDPBUnit->uninit() );
-  
+  //===== create current DPB units =====
+  RNOK( CurrDPBUnit::create( m_pcCurrDPBUnit,       *m_pcYuvBufferCtrl, rcSPS, true,  bBaseLayer ) );
+  RNOK( CurrDPBUnit::create( m_pcCurrDPBUnitILPred, *m_pcYuvBufferCtrl, rcSPS, false, false      ) );
   return Err::m_nOK;
 }
-
 
 ErrVal
 DecodedPicBuffer::xDeleteData()
 {
-  ROF( m_bInitDone );
-
+  //===== check picture buffer list =====
+  ROF( m_cPicBufferList.empty() );
+  //===== delete DPB units =====
   m_cFreeDPBUnitList += m_cUsedDPBUnitList;
   m_cUsedDPBUnitList.clear();
-
   while( m_cFreeDPBUnitList.size() )
   {
-    DPBUnit*  pcDPBUnit = m_cFreeDPBUnitList.popFront();
-		if( pcDPBUnit )
-		{
-			RNOK( pcDPBUnit->destroy() );
-			pcDPBUnit = NULL;
-    }
+    DPBUnit* pcDPBUnit = m_cFreeDPBUnitList.popFront();
+    ROF ( pcDPBUnit );
+    RNOK( pcDPBUnit->destroy() );
   }
-
+  //===== delete current DPB units =====
   if( m_pcCurrDPBUnit )
   {
     RNOK( m_pcCurrDPBUnit->destroy() );
-    m_pcCurrDPBUnit = NULL;
+    m_pcCurrDPBUnit = 0;
+  }
+  if( m_pcCurrDPBUnitILPred )
+  {
+    RNOK( m_pcCurrDPBUnitILPred->destroy() );
+    m_pcCurrDPBUnitILPred = 0;
   }
   return Err::m_nOK;
 }
 
-
+ErrVal
+DecodedPicBuffer::initCurrDPBUnit( CurrDPBUnit*&  rpcCurrDPBUnit, 
+                                   PicBuffer*&    rpcPicBuffer,
+                                   SliceHeader&   rcSliceHeader,
+                                   PocCalculator& rcPocCalculator,
+                                   PicBufferList& rcOutputList,
+                                   PicBufferList& rcUnusedList,
+                                   Bool           bFirstSliceInDependencyRepresentation,
+                                   Bool           bFirstSliceInLayerRepresentation )
+{
+  ROF( m_bInitDone );
+  ROF( m_bInitBufferDone || rcSliceHeader.getIdrFlag() );
+  ROF( rpcPicBuffer );
+  ROF( rcSliceHeader.getDependencyId() == m_uiDependencyId );
+  if( bFirstSliceInDependencyRepresentation )
+  {
+    ROF ( bFirstSliceInLayerRepresentation );
+    ROT ( rcSliceHeader.getQualityId() );
+    //--- initialize buffer when required ---
+    if( rcSliceHeader.getIdrFlag() )
+    {
+      if( m_bInitBufferDone )
+      {
+        RNOK( xMarkAllUnusedForRef( rcSliceHeader.getNoOutputOfPriorPicsFlag() ) );
+        RNOK( xBumpingOutput      ( rcOutputList, rcUnusedList, true ) );
+        RNOK( xCheckBufferStatus  () );
+      }
+      RNOK  ( xInitBuffer         ( rcSliceHeader ) );
+    }
+    //--- check status ---
+    ROF ( m_pcCurrDPBUnit       ->isUninitialized() );
+    ROF ( m_pcCurrDPBUnitILPred ->isUninitialized() );
+    //--- store picture buffer ---
+    if( rcSliceHeader.getOutputFlag() && !xIs2ndFieldOfCompFieldPair( rcSliceHeader ) )
+    {
+      m_cPicBufferList.push_back( rpcPicBuffer );
+      rpcPicBuffer = 0;
+    }
+    //--- check for gaps in frame_num ---
+    RNOK( xCheckGapsInFrameNum          ( rcSliceHeader, rcPocCalculator, rcOutputList, rcUnusedList ) );
+    //--- initialize POC and DPB unit ---
+    RNOK( rcPocCalculator .calculatePoc ( rcSliceHeader ) );
+    RNOK( m_pcCurrDPBUnit->init         ( rcSliceHeader ) );
+  }
+  else
+  {
+    //--- check status ---
+    ROF ( m_pcCurrDPBUnit       ->isCompleted () == bFirstSliceInLayerRepresentation     );
+    ROF ( m_pcCurrDPBUnitILPred ->isCompleted () == ( rcSliceHeader.getQualityId() > 0 ) );
+    //--- initialize POC and DPB unit ---
+    RNOK( rcPocCalculator        .calculatePoc( rcSliceHeader ) );
+    RNOK( m_pcCurrDPBUnit       ->reinit      ( rcSliceHeader, bFirstSliceInLayerRepresentation ) );
+  }
+  rpcCurrDPBUnit = m_pcCurrDPBUnit;
+  return Err::m_nOK;
+}
 
 ErrVal
-DecodedPicBuffer::xClearBuffer()
+DecodedPicBuffer::storeCurrDPBUnit( Bool bDependencyRepresentationFinished )
 {
-	//===== remove non-output/non-ref pictures =====
-  //--- store in temporary list ---
-  DPBUnitList cTempList;
+  ROF ( m_bInitDone && m_bInitBufferDone );
+  ROF ( m_pcCurrDPBUnit->inCurrentUse () );
+  RNOK( m_pcCurrDPBUnit->setComplete  ( *m_pcCurrDPBUnitILPred, bDependencyRepresentationFinished ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::updateBuffer( PocCalculator& rcPocCalculator, PicBufferList& rcOutputList, PicBufferList& rcUnusedList )
+{
+  ROF   ( m_bInitDone );
+  ROTRS ( !m_bInitBufferDone || m_pcCurrDPBUnit->isUninitialized(),  Err::m_nOK );
+  ROF   ( m_pcCurrDPBUnit->isCompleted()   );
+  //===== ununit inter-layer prediction DPB unit =====
+  if( m_pcCurrDPBUnitILPred->isCompleted() )
+  {
+    RNOK( m_pcCurrDPBUnitILPred->uninit() );
+  }
+  //===== update DPB and check whether current DPB unit was correctly stored =====
+  RNOK  ( xUpdateAndStoreCurrentPic( rcPocCalculator, rcOutputList, rcUnusedList ) );
+  ROF   ( m_pcCurrDPBUnit->isUninitialized() );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::finish( PicBufferList& rcOutputList, PicBufferList& rcUnusedList )
+{
+  ROF   ( m_bInitDone );
+  ROFRS ( m_bInitBufferDone, Err::m_nOK );
+  ROF   ( m_pcCurrDPBUnit      ->isUninitialized() );
+  ROF   ( m_pcCurrDPBUnitILPred->isUninitialized() );
+  RNOK  ( xMarkAllUnusedForRef    () );
+  RNOK  ( xBumpingOutput          ( rcOutputList, rcUnusedList, true ) );
+  RNOK  ( xCheckBufferStatus      () );
+  ROF   ( m_cUsedDPBUnitList.empty() );
+  ROF   ( m_cPicBufferList  .empty() );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::setPrdRefLists( CurrDPBUnit* pcCurrDPBUnit )
+{
+  ROF( m_pcCurrDPBUnit == pcCurrDPBUnit  );
+  ROF( m_pcCurrDPBUnit->inCurrentUse  () );
+  ROF( m_pcCurrDPBUnit->getSliceHeader() );
+  SliceHeader&  rcSliceHeader = *m_pcCurrDPBUnit->getSliceHeader();
+  RefFrameList& rcRefPicList0 =  m_pcCurrDPBUnit->getCtrlData   ().getPrdFrameList( LIST_0 );
+  RefFrameList& rcRefPicList1 =  m_pcCurrDPBUnit->getCtrlData   ().getPrdFrameList( LIST_1 );
+  MbDataCtrl*   pcMbDataCtrl0 =  0;
+  rcRefPicList0.reset();
+  rcRefPicList1.reset();
+  m_pcCurrDPBUnit->getCtrlData().setMbDataCtrl0L1( pcMbDataCtrl0 );
+  ROTRS ( rcSliceHeader.isIntraSlice(), Err::m_nOK );
+  //===== set list 0 =====
+  RefPicEntryList cRefPicEntryList0;
+  RefPicEntryList cRefPicEntryList1;
+  RNOK  ( xCreateInitialRefPicLists ( cRefPicEntryList0,  cRefPicEntryList1,  rcSliceHeader ) );
+  RNOK  ( xRefPicListModification   ( cRefPicEntryList0,  rcSliceHeader,      LIST_0 ) );
+  RNOK  ( xSetReferencePictureList  ( rcRefPicList0,      cRefPicEntryList0,  rcSliceHeader.getNumRefIdxL0Active() ) );
+  RNOK  ( xDumpRefPicList           ( rcRefPicList0,      LIST_0,             "final" ) );
+  ROFRS ( rcSliceHeader.isBSlice(), Err::m_nOK );
+  //===== set list 1 =====
+  RNOK  ( xRefPicListModification   ( cRefPicEntryList1,  rcSliceHeader,     LIST_1 ) );
+  RNOK  ( xSetReferencePictureList  ( rcRefPicList1,      cRefPicEntryList1, rcSliceHeader.getNumRefIdxL1Active() ) );
+  RNOK  ( xDumpRefPicList           ( rcRefPicList1,      LIST_1,             "final" ) );
+  if( rcSliceHeader.isH264AVCCompatible() )
+  {
+    RNOK( xSetMbDataCtrlEntry0      ( pcMbDataCtrl0,      cRefPicEntryList1 ) );
+    m_pcCurrDPBUnit->getCtrlData().setMbDataCtrl0L1( pcMbDataCtrl0 );
+  }
+  return Err::m_nOK;
+}
+
+CurrDPBUnit*
+DecodedPicBuffer::getILPredDPBUnit()
+{
+  ROTRS( m_pcCurrDPBUnitILPred->isCompleted(),  m_pcCurrDPBUnitILPred );
+  ROTRS( m_pcCurrDPBUnit      ->isCompleted(),  m_pcCurrDPBUnit );
+  return 0;
+}
+
+Bool
+DecodedPicBuffer::xIs2ndFieldOfCompFieldPair( const SliceHeader& rcSliceHeader )
+{
+  ROFRS( m_pcLastDPBUnit,                                                                   false );
+  ROFRS( m_pcLastDPBUnit->isExisting      (),                                               false );
+  ROFRS( rcSliceHeader.getFieldPicFlag    (),                                               false );
+  ROTRS( rcSliceHeader.getIdrFlag         (),                                               false );
+  ROTRS( rcSliceHeader.getDecRefPicMarking().hasMMCO5(),                                    false );
+  ROFRS( rcSliceHeader.getPicType         ()  + m_pcLastDPBUnit->getPicStatus () == FRAME,  false );
+  ROFRS( rcSliceHeader.getFrameNum        () == m_pcLastDPBUnit->getFrameNum  (),           false );
+  ROFRS( rcSliceHeader.isRefPic           () == m_pcLastDPBUnit->isRefPicUnit (),           false );
+  return true;
+}
+
+Bool
+DecodedPicBuffer::xIs2ndFieldOfCompFieldPair( Bool bRefBasePic )
+{
+  DPBUnit*  pcLastDPBUnit = ( bRefBasePic ? m_pcLastDPBUnitRefBasePic : m_pcLastDPBUnit );
+  ROFRS( pcLastDPBUnit,                                                               false );
+  ROFRS( pcLastDPBUnit->isExisting  (),                                               false );
+  ROTRS( pcLastDPBUnit->getPicStatus() == FRAME,                                      false );
+  ROFRS( pcLastDPBUnit->getPicStatus() +  m_pcCurrDPBUnit->getPicStatus () == FRAME,  false );
+  ROFRS( pcLastDPBUnit->getFrameNum () == m_pcCurrDPBUnit->getFrameNum  (),           false );
+  ROFRS( pcLastDPBUnit->isRefPicUnit() == m_pcCurrDPBUnit->isRefPicUnit (),           false );
+  return true;
+}
+
+ErrVal
+DecodedPicBuffer::xInsertNonExistingFrame( const SliceHeader* pcSliceHeader, UInt uiFrameNum )
+{
+  //===== determine POC =====
+  Int iTopFieldPoc = ( pcSliceHeader ? pcSliceHeader->getPoc( TOP_FIELD ) : MSYS_INT_MIN );
+  Int iBotFieldPoc = ( pcSliceHeader ? pcSliceHeader->getPoc( BOT_FIELD ) : MSYS_INT_MIN );
+  //===== insert new non-existing frame unit =====
+  ROT( m_cFreeDPBUnitList.empty() );
+  DPBUnit* pcDPBUnit = m_cFreeDPBUnitList.popFront();
+  RNOK(    pcDPBUnit->setNonExisting( uiFrameNum, iTopFieldPoc, iBotFieldPoc ) );
+  m_cUsedDPBUnitList.push_back( pcDPBUnit );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xInsertCurrentInNewBuffer( DPBUnit*& rpcStoredDPBUnit, Bool bRefBasePic )
+{
+  ROF ( m_uiMaxNumRefFrames > ( bRefBasePic ? 1U : 0U ) );
+  ROF ( m_pcCurrDPBUnit->isCompleted() );
+  ROT ( m_cFreeDPBUnitList.empty() );
+  ROF(( rpcStoredDPBUnit = m_cFreeDPBUnitList.popFront() ));
+  RNOK( m_pcCurrDPBUnit->store( *rpcStoredDPBUnit, bRefBasePic ) );
+  m_cUsedDPBUnitList.push_back(  rpcStoredDPBUnit );
+  if( ! bRefBasePic && m_pcCurrDPBUnit->isRefPicUnit() )
+  {
+    m_uiLastRefFrameNum = m_pcCurrDPBUnit->getFrameNum();
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xCheckGapsInFrameNum( const SliceHeader& rcSliceHeader, PocCalculator& rcPocCalculator, PicBufferList& rcOutputList, PicBufferList& rcUnusedList )
+{
+  ROTRS( xIs2ndFieldOfCompFieldPair ( rcSliceHeader ),                                        Err::m_nOK );
+  ROTRS( rcSliceHeader.getIdrFlag   (),                                                       Err::m_nOK );
+  ROTRS( rcSliceHeader.getFrameNum  () == ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ),  Err::m_nOK );
+
+  SliceHeader*  pcNonExSliceHeader  = 0; 
+  UInt          uiCurrFrameNum      = rcSliceHeader.getFrameNum();
+  UInt          uiMissingFrames     = uiCurrFrameNum - m_uiLastRefFrameNum - 1 + ( uiCurrFrameNum <= m_uiLastRefFrameNum ? m_uiMaxFrameNum : 0 );
+  if( !rcSliceHeader.getSPS().getGapsInFrameNumValueAllowedFlag() )
+  {
+    fprintf( stderr, "\nLOST FRAMES = %d\n", uiMissingFrames );
+    RERR();
+  }
+  if( rcSliceHeader.getSPS().getPicOrderCntType() )
+  {
+    ROF(( pcNonExSliceHeader = new SliceHeader( rcSliceHeader ) ));
+    pcNonExSliceHeader->setNalRefIdc          ( NAL_REF_IDC_PRIORITY_HIGH );
+    pcNonExSliceHeader->setNalUnitType        ( NAL_UNIT_CODED_SLICE );
+    pcNonExSliceHeader->setIdrFlag            ( false );
+    pcNonExSliceHeader->setFieldPicFlag       ( false );
+    pcNonExSliceHeader->setBottomFieldFlag    ( false );
+    pcNonExSliceHeader->setDeltaPicOrderCnt0  ( 0 );
+    pcNonExSliceHeader->setDeltaPicOrderCnt1  ( 0 );
+  }
+  while( uiMissingFrames-- )
+  {
+    UInt  uiFrameNum    = ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum;
+    m_uiLastRefFrameNum = uiFrameNum;
+    if( pcNonExSliceHeader )
+    {
+      pcNonExSliceHeader  ->setFrameNum ( uiFrameNum );
+      RNOK( rcPocCalculator.calculatePoc( *pcNonExSliceHeader ) );
+    }
+    RNOK( xSlidingWindow          ( uiFrameNum ) );
+    RNOK( xInsertNonExistingFrame ( pcNonExSliceHeader, uiFrameNum   ) );
+    RNOK( xBumpingOutput          ( rcOutputList,       rcUnusedList ) );
+    RNOK( xCheckBufferStatus      () );
+  }
+  m_pcLastDPBUnit           = 0;
+  m_pcLastDPBUnitRefBasePic = 0;
+  ROF( ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ) == uiCurrFrameNum );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xUpdateAndStoreCurrentPic( PocCalculator& rcPocCalculator, PicBufferList& rcOutputList, PicBufferList& rcUnusedList )
+{
+  ROF( m_bInitDone && m_bInitBufferDone );
+  ROF( m_pcCurrDPBUnit->isCompleted() );
+
+  SliceHeader* pcSliceHeader = m_pcCurrDPBUnit->getSliceHeader();
+  ROF( pcSliceHeader );
+  ROF( pcSliceHeader->isRefPic      () == m_pcCurrDPBUnit->isRefPicUnit       () );
+  ROF( pcSliceHeader->getOutputFlag () == m_pcCurrDPBUnit->isWaitingForOutput () );
+  ROF( pcSliceHeader->getFrameNum   () == m_pcCurrDPBUnit->getFrameNum        () );
+
+  UInt  uiCurrFrameNum    = pcSliceHeader->getFrameNum  ();
+  Bool  bIsIDR            = pcSliceHeader->getIdrFlag   ();
+  Bool  bIsRefPic         = pcSliceHeader->isRefPic     ();
+  Bool  bIsOutput         = pcSliceHeader->getOutputFlag(); 
+  Bool  bIs2ndFld         = xIs2ndFieldOfCompFieldPair  ();
+  Bool  bIs2ndFldBase     = xIs2ndFieldOfCompFieldPair  ( true );
+  Bool  bStoredAsLongTerm = false;
+
+  //===== possible output of single non-reference field that might occupy an extra DPB unit (for output of complementary field pairs) =====
+  if( ! bIs2ndFld )
+  {
+    RNOK  ( xBumpingOutput    ( rcOutputList, rcUnusedList ) ); 
+    RNOK  ( xCheckBufferStatus() );
+  }
+
+  //===== non-reference/non-output picture =====
+  if( ! bIsRefPic && ! bIsOutput )
+  {
+    RNOK  ( m_pcCurrDPBUnit->uninit () );
+    RNOK  ( xCheckBufferStatus      () );
+    RNOK  ( xDumpDPB                ( "after update (non-output and non-ref pic)" ) );
+    m_pcLastDPBUnit           = 0;
+    m_pcLastDPBUnitRefBasePic = 0;
+    return Err::m_nOK;
+  }
+
+  //===== 2nd field of non-reference/output complementary field pair =====
+  if( ! bIsRefPic && bIs2ndFld )
+  {
+    ROT   ( m_pcLastDPBUnitRefBasePic );
+    RNOK  ( m_pcCurrDPBUnit->store  ( *m_pcLastDPBUnit ) );
+    RNOK  ( m_pcCurrDPBUnit->uninit () );
+    RNOK  ( xBumpingOutput          ( rcOutputList, rcUnusedList ) );
+    RNOK  ( xCheckBufferStatus      () );
+    RNOK  ( xDumpDPB                ( "after update (non-ref 2nd field)" ) );
+    return Err::m_nOK;
+  }
+  
+  //===== non-reference/output frame/field (not 2nd field of a complementary field pair) =====
+  if( ! bIsRefPic )
+  {
+    RNOK  ( xInsertCurrentInNewBuffer     ( m_pcLastDPBUnit ) );
+    RNOK  ( m_pcCurrDPBUnit->uninit       () );
+    if( ! pcSliceHeader->getFieldPicFlag  () )
+    {
+      RNOK( xBumpingOutput                ( rcOutputList, rcUnusedList ) );
+      RNOK( xCheckBufferStatus            () );
+      RNOK( xDumpDPB                      ( "after update (non-ref frame)" ) );
+    }
+    else
+    {
+      RNOK( xDumpDPB                      ( "after update (non-ref 1st field)" ) );
+    }
+    m_pcLastDPBUnitRefBasePic = 0;
+    return  Err::m_nOK;
+  }
+
+  //===== IDR picture =====
+  if( bIsIDR )
+  {
+    ROF   ( m_cUsedDPBUnitList.empty() ); // has been cleaned in initCurrDPBUnit()
+    ROT   ( m_pcLastDPBUnit );
+    ROT   ( m_pcLastDPBUnitRefBasePic );
+    if( pcSliceHeader->getLongTermReferenceFlag() )
+    {
+      m_iMaxLongTermFrameIdx = 0;
+      RNOK( m_pcCurrDPBUnit->markLongTerm ( pcSliceHeader->getPicType(), m_iMaxLongTermFrameIdx ) );
+    }
+    RNOK  ( xInsertCurrentInNewBuffer     ( m_pcLastDPBUnit ) );
+    if( pcSliceHeader->getStoreRefBasePicFlag() )
+    {
+      RNOK( xInsertCurrentInNewBuffer     ( m_pcLastDPBUnitRefBasePic, true ) );
+    }
+    RNOK  ( m_pcCurrDPBUnit->uninit       () );
+    RNOK  ( xCheckBufferStatus            () );
+    RNOK  ( xDumpDPB                      ( "after update (IDR pic)" ) );
+    return  Err::m_nOK;
+  }
+
+  //===== non-IDR reference pictures =====
+  //----- MMCO for reference base pictures -----
+  if( pcSliceHeader->getDecRefBasePicMarking().getAdaptiveRefPicMarkingModeFlag() )
+  {
+    RNOK( xMMCO( rcPocCalculator, *pcSliceHeader, bStoredAsLongTerm, true ) );
+    ROT ( bStoredAsLongTerm );
+  }
+  //----- memory management for decoded picture -----
+  if( pcSliceHeader->getDecRefPicMarking().getAdaptiveRefPicMarkingModeFlag() )
+  {
+    RNOK( xMMCO( rcPocCalculator, *pcSliceHeader, bStoredAsLongTerm ) );
+  }
+  else if( ! bIs2ndFld )
+  {
+    RNOK( xSlidingWindow( uiCurrFrameNum ) );
+  }
+  //----- store pictures -----
+  if( ! bStoredAsLongTerm )
+  {
+    if( bIs2ndFld )
+    {
+      RNOK( m_pcCurrDPBUnit->store    ( *m_pcLastDPBUnit ) );
+    }
+    else
+    {
+      RNOK( xInsertCurrentInNewBuffer (  m_pcLastDPBUnit ) );
+    }
+    if( pcSliceHeader->getStoreRefBasePicFlag() )
+    {
+      if( bIs2ndFldBase )
+      {
+        RNOK( m_pcCurrDPBUnit->store    ( *m_pcLastDPBUnitRefBasePic, true ) );
+      }
+      else
+      {
+        RNOK( xSlidingWindow            (  uiCurrFrameNum ) );
+        RNOK( xInsertCurrentInNewBuffer (  m_pcLastDPBUnitRefBasePic, true ) );
+      }
+    }
+    else
+    {
+      m_pcLastDPBUnitRefBasePic = 0;
+    }
+  }
+  //----- uninit, output, check ----
+  RNOK( m_pcCurrDPBUnit->uninit () );
+  RNOK( xBumpingOutput          ( rcOutputList, rcUnusedList ) );
+  RNOK( xCheckBufferStatus      () );
+  RNOK( xDumpDPB                ( "after update (non-IDR ref pic)" ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xCheckBufferStatus()
+{
+  ROF( m_bInitDone && m_bInitBufferDone );
+  UInt                  uiNumNonRequired    = 0;
+  UInt                  uiNumRequiredRef    = 0;
+  UInt                  uiNumRequiredNonRef = 0;
+  DPBUnitList::iterator iter                = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end                 = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    RNOK( (*iter)->checkStatus( m_iMaxLongTermFrameIdx ) );
+    if( ! (*iter)->isRequired () )
+    {
+      uiNumNonRequired++;
+    }
+    else if( (*iter)->isUsedForRef() )
+    {
+      uiNumRequiredRef++;
+    }
+    else
+    {
+      uiNumRequiredNonRef++;
+    }
+  }
+  ROT( uiNumNonRequired );
+  ROF( uiNumRequiredRef                       <= m_uiMaxNumRefFrames );
+  ROF( uiNumRequiredRef + uiNumRequiredNonRef <= m_uiDPBSizeInFrames );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xBumpingOutput( PicBufferList& rcOutputList, PicBufferList& rcUnusedList, Bool bOutputAll )
+{
+  ROF( m_bInitDone && m_bInitBufferDone );
+  //===== determine number of required and non-required picture and determine DPB unit with minimum POC =====
+  DPBUnitList           cSortedByPocList;
+  DPBUnitList           cNonRequiredList;
+  UInt                  uiNumRequiredRef    = 0;
+  UInt                  uiNumRequiredNonRef = 0;
+  DPBUnitList::iterator iter                = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end                 = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( ! (*iter)->isRequired() )
+    {
+      cNonRequiredList.push_back( *iter );
+    }
+    else
+    {
+      if( (*iter)->isUsedForRef() )
+      {
+        uiNumRequiredRef++;
+      }
+      else
+      {
+        uiNumRequiredNonRef++;
+      }
+      if( (*iter)->isWaitingForOutput() )
+      {
+        //----- insert in POC sorted list -----
+        DPBUnitList::iterator iterPocList = cSortedByPocList.begin();
+        DPBUnitList::iterator endPocList  = cSortedByPocList.end  ();
+        for( ; iterPocList != endPocList && (*iterPocList)->getPoc() < (*iter)->getPoc(); iterPocList++ );
+        cSortedByPocList.insert( iterPocList, *iter );
+      }
+    }
+  }
+  ROT( uiNumRequiredRef  > m_uiDPBSizeInFrames );
+  ROT( uiNumRequiredRef && bOutputAll );
+  //===== output non-reference unit with minimum POC when required =====
+  while( uiNumRequiredRef + uiNumRequiredNonRef > m_uiDPBSizeInFrames || ( bOutputAll && uiNumRequiredNonRef ) )
+  {
+    DPBUnit* pcDPBUnitToOutput = cSortedByPocList.popFront();
+    ROF ( pcDPBUnitToOutput );
+    RNOK( pcDPBUnitToOutput->output( m_cPicBufferList, rcOutputList, rcUnusedList ) );
+    if( ! pcDPBUnitToOutput->isUsedForRef() )    
+    {
+      cNonRequiredList.push_back( pcDPBUnitToOutput );
+      uiNumRequiredNonRef--;
+    }
+  }
+  //===== clean-up used DPB unit list =====
+  while( cNonRequiredList.size() )
+  {
+    DPBUnit* pcDPBUnit = cNonRequiredList.popFront();
+    ROF ( pcDPBUnit );
+    RNOK( pcDPBUnit->uninit() );
+    m_cUsedDPBUnitList.remove   ( pcDPBUnit );
+    m_cFreeDPBUnitList.push_back( pcDPBUnit );
+  }
+  ROF( ! bOutputAll || m_cUsedDPBUnitList.empty() );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xMarkAllUnusedForRef( Bool bRemoveOutputFlag )
+{
+  m_iMaxLongTermFrameIdx      = -1;
   DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    const Bool bNoOutput = ( ! (*iter)->isExisting() || (*iter)->isBaseRep() || (*iter)->isOutputted() );
-    const Bool bNonRef   = ( ! (*iter)->isNeededForRef() );
-		if( bNonRef && bNoOutput )
+    RNOK( (*iter)->markUnusedForRef( FRAME, bRemoveOutputFlag ) );
+  }
+  m_pcLastDPBUnit           = 0;
+  m_pcLastDPBUnitRefBasePic = 0;
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xSlidingWindow( UInt uiCurrFrameNum )
+{
+  ROF( m_bInitDone && m_bInitBufferDone );
+  //===== determine number of reference frames and DPB units with smallest FrameNumWrap value =====
+  UInt                  uiNumShortTerm    = 0;
+  UInt                  uiNumLongTerm     = 0;
+  Int                   iMinFrameNumWrap  = MSYS_INT_MAX;
+  DPBUnit*              pcMinFrameNumUnit = 0;
+  DPBUnitList::iterator iter              = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end               = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isLongTermUnit() )
     {
-      cTempList.push_back( *iter );
+      uiNumLongTerm++;
+    }
+    else if( (*iter)->isShortTermUnit() )
+    {
+      uiNumShortTerm++;
+      if( ( (*iter)->getFrameNumWrap( uiCurrFrameNum, m_uiMaxFrameNum )  < iMinFrameNumWrap ) ||
+          ( (*iter)->getFrameNumWrap( uiCurrFrameNum, m_uiMaxFrameNum ) == iMinFrameNumWrap && (*iter)->isRefBasePicUnit() ) )
+      {
+        pcMinFrameNumUnit = *iter;
+        iMinFrameNumWrap  = pcMinFrameNumUnit->getFrameNumWrap( uiCurrFrameNum, m_uiMaxFrameNum );
+      }
     }
   }
-  //--- move to free list ---
-  while( cTempList.size() )
-  {
-    DPBUnit*  pcDPBUnit = cTempList.popFront();
-    
-    RNOK( pcDPBUnit->uninit() );
-    m_cUsedDPBUnitList.remove( pcDPBUnit );
-    AOT( pcDPBUnit == NULL)
-
-    m_cFreeDPBUnitList.push_back( pcDPBUnit );
-  }
-
+  //===== check number of reference frames =====
+  ROTRS ( uiNumShortTerm + uiNumLongTerm < m_uiMaxNumRefFrames,  Err::m_nOK );
+  ROT   ( uiNumShortTerm + uiNumLongTerm > m_uiMaxNumRefFrames );
+  ROF   ( pcMinFrameNumUnit ); // no short-term reference picture available
+  //===== mark DPB unit with smallest FrameNumWrap value as "unused for reference" =====
+  RNOK  ( pcMinFrameNumUnit->markUnusedForRef( FRAME ) );
   return Err::m_nOK;
 }
 
-
-
 ErrVal
-DecodedPicBuffer::xUpdateMemory( SliceHeader* pcSliceHeader )
+DecodedPicBuffer::xMMCO( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHeader, Bool& rbMMCO6, Bool bRefBasePic )
 {
-  ROTRS( pcSliceHeader && pcSliceHeader->getNalRefIdc() == NAL_REF_IDC_PRIORITY_LOWEST, Err::m_nOK );
-
-  if( pcSliceHeader && pcSliceHeader->getDecRefPicMarking().getAdaptiveRefPicMarkingModeFlag() )
-  {
-    RNOK( xMMCO( pcSliceHeader ) );
-  }
-  else
-  {
-    RNOK( xSlidingWindow() );
-  }
-
-  //===== clear buffer =====
-  RNOK( xClearBuffer() );
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
-{
-  ROF( pcSliceHeader );
-
-  Mmco              eMmcoOp;
-  const DecRefPicMarking& rcMmcoBuffer  = pcSliceHeader->getDecRefPicMarking();
-  Int               iIndex        = 0;
-  UInt              uiVal1, uiVal2;
+  Mmco                    eMmcoOp;
+  UInt                    uiVal1, uiVal2;
+  UInt                    uiCurrFrameNum  = rcSliceHeader.getFrameNum (); 
+  PicType                 eCurrPicType    = rcSliceHeader.getPicType  ();
+  const DecRefPicMarking& rcMmcoBuffer    = ( bRefBasePic ? rcSliceHeader.getDecRefBasePicMarking() : rcSliceHeader.getDecRefPicMarking() );
+  Int                     iIndex          = 0;
+  Int                     iMMCO6LTFrmIdx  = -1;
+  Bool                    bMMCO123        = false;
+  Bool                    bMMCO4          = false;
+  Bool                    bMMCO5          = false;
+  rbMMCO6                                 = false;
 
   while( MMCO_END != ( eMmcoOp = rcMmcoBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
   {
     switch( eMmcoOp )
     {
     case MMCO_SHORT_TERM_UNUSED:
-			RNOK( xMarkShortTermUnused( pcSliceHeader->getPicType(), m_pcCurrDPBUnit, uiVal1 ) );
+      ROT ( bMMCO5 );
+      RNOK( xMarkShortTermUnused( uiCurrFrameNum, eCurrPicType, uiVal1, bRefBasePic ) );
+      bMMCO123  = true;
+      break;
+    case MMCO_LONG_TERM_UNUSED:
+      ROT ( bMMCO5 );
+      ROT ( rbMMCO6 && iMMCO6LTFrmIdx == (Int)( eCurrPicType == FRAME ? uiVal1 : ( uiVal1 >> 1 ) ) );
+      RNOK( xMarkLongTermUnused( eCurrPicType, uiVal1, bRefBasePic ) );
+      bMMCO123  = true;
+      break;
+    case MMCO_ASSIGN_LONG_TERM:
+      ROT ( bRefBasePic );
+      ROT ( bMMCO5 );
+      ROT ( rbMMCO6 && iMMCO6LTFrmIdx == (Int)uiVal2 );
+      ROF ( (Int)uiVal2 <= m_iMaxLongTermFrameIdx );
+      RNOK( xAssignLongTermIndex( uiCurrFrameNum, eCurrPicType, uiVal1, uiVal2 ) );
+      bMMCO123  = true;
+      break;
+    case MMCO_MAX_LONG_TERM_IDX:
+      ROT ( bRefBasePic );
+      ROT ( bMMCO4 );
+      ROT ( rbMMCO6 && iMMCO6LTFrmIdx >= (Int)uiVal1 )
+      RNOK( xSetMaxLongTermIndex( uiVal1 ) );
+      bMMCO4  = true;
       break;
     case MMCO_RESET:
-    case MMCO_MAX_LONG_TERM_IDX:
-    case MMCO_ASSIGN_LONG_TERM:
-    case MMCO_LONG_TERM_UNUSED:
+      ROT ( bRefBasePic );
+      ROT ( bMMCO123 );
+      ROT ( bMMCO5 );
+      ROT ( rbMMCO6 );
+      RNOK( xReset( rcPocCalculator, rcSliceHeader ) );
+      bMMCO5  = true;
+      break;
     case MMCO_SET_LONG_TERM:
+      ROT ( bRefBasePic );
+      ROT ( rbMMCO6 );
+      ROF ( (Int)uiVal1 <= m_iMaxLongTermFrameIdx );
+      RNOK( xStoreCurrentLongTerm( uiVal1, rcSliceHeader.getStoreRefBasePicFlag() ) );
+      rbMMCO6         = true;
+      iMMCO6LTFrmIdx  = uiVal1;
+      break;
     default:
-      fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-      RERR();
+      ROT ( true );
     }
   }
-
   return Err::m_nOK;
 }
 
-
 ErrVal
-DecodedPicBuffer::MMCOBase( SliceHeader* pcSliceHeader, UInt mCurrFrameNum ) 
+DecodedPicBuffer::xMarkShortTermUnused( UInt uiCurrFrameNum, PicType eCurrPicType, UInt uiPicNumDiff, Bool bRefBasePic )
 {
-	ROF( pcSliceHeader );
-
-  Mmco                    eMmcoOp;
-  const DecRefPicMarking& rcMmcoBaseBuffer = pcSliceHeader->getDecRefBasePicMarking();
-  Int                     iIndex        = 0;
-  UInt                    uiVal1, uiVal2;
-
-  while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
-  {
-		switch( eMmcoOp )
-		{
-		case MMCO_SHORT_TERM_UNUSED:
-			RNOK( xMarkShortTermUnusedBase( pcSliceHeader->getPicType(), mCurrFrameNum, uiVal1 ) );
-		  break;
-		case MMCO_RESET:
-		case MMCO_MAX_LONG_TERM_IDX:
-		case MMCO_ASSIGN_LONG_TERM:
-		case MMCO_LONG_TERM_UNUSED:
-		case MMCO_SET_LONG_TERM:
-		default:
-			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-		  RERR();
-		}
-  }
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::xMarkShortTermUnusedBase( const PicType eCurrentPicType, UInt mCurrFrameNum, UInt uiDiffOfPicNums ) 
-{
-  UInt    uiCurrPicNum = ( eCurrentPicType==FRAME ? mCurrFrameNum
-		                                           : mCurrFrameNum*2+1 );
-  UInt    uiPicNumN    = uiCurrPicNum - uiDiffOfPicNums - 1;
-	PicType ePicType;
-	xSetIdentifier( uiPicNumN, ePicType, eCurrentPicType );
-
+  Int     iCurrPicNum     = ( eCurrPicType == FRAME ? (Int)uiCurrFrameNum : 2 * (Int)uiCurrFrameNum + 1 );
+  Int     iPicNumX        = ( iCurrPicNum - (Int)uiPicNumDiff - 1 );
+  PicType ePicTypeX       = ( eCurrPicType == FRAME ? FRAME    : ( iPicNumX  % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
+  UInt    iFrameNumWrapX  = ( eCurrPicType == FRAME ? iPicNumX : ( iPicNumX >> 1 ) );
+  //===== find short-term picture and mark "unused for reference" =====
+  DPBUnit*              pcDPBUnit = 0;
   DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-	  if( (*iter)->isNeededForRef() && (*iter)->getFrameNum() == (Int)uiPicNumN && (*iter)->isBaseRep() ) 
+    if( (*iter)->isShortTermRef   ( ePicTypeX )                                         &&
+        (*iter)->isRefBasePicUnit ()                                  == bRefBasePic    &&
+        (*iter)->getFrameNumWrap  ( uiCurrFrameNum, m_uiMaxFrameNum ) == iFrameNumWrapX   )
     {
-		  DPBUnit* pcDPBUnit = (*iter);
-   	  RNOK( pcDPBUnit->uninit() );
-		  m_cUsedDPBUnitList.remove(pcDPBUnit);
-		  m_cFreeDPBUnitList.push_back( pcDPBUnit );
-		  return Err::m_nOK;  
+      ROT( pcDPBUnit );
+      pcDPBUnit = *iter;
     }
   }
+  ROF ( pcDPBUnit ); // not found
+  RNOK( pcDPBUnit->markUnusedForRef( ePicTypeX ) );
   return Err::m_nOK;
 }
 
-
 ErrVal
-DecodedPicBuffer::xMarkShortTermUnused( const PicType eCurrentPicType, const DPBUnit* pcCurrentDPBUnit, UInt uiDiffOfPicNums )
+DecodedPicBuffer::xMarkLongTermUnused( PicType eCurrPicType, UInt uiLongTermPicNum, Bool bRefBasePic )
 {
-  ROF( pcCurrentDPBUnit );
-
-  UInt uiCurrPicNum = ( eCurrentPicType==FRAME ? pcCurrentDPBUnit->getFrameNum()
-		                                           : pcCurrentDPBUnit->getFrameNum()*2+1 );
-  UInt uiPicNumN     = uiCurrPicNum - uiDiffOfPicNums - 1;
-
+  PicType ePicTypeX         = ( eCurrPicType == FRAME ? FRAME                 : ( (Int)uiLongTermPicNum % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
+  Int     iLongTermFrameIdx = ( eCurrPicType == FRAME ? (Int)uiLongTermPicNum : ( (Int)uiLongTermPicNum >> 1 ) );
+  //===== find long-term picture and mark "unused for reference" =====
+  DPBUnit*              pcDPBUnit = 0;
   DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    if( (*iter)->isNeededForRef() && (*iter)->getPicNum(uiCurrPicNum,m_uiMaxFrameNum) == (Int)uiPicNumN )
+    if( (*iter)->isLongTermRef    ( ePicTypeX )                       &&
+        (*iter)->isRefBasePicUnit ()            == bRefBasePic        &&
+        (*iter)->getLongTermIndex ()            == iLongTermFrameIdx    )
     {
-      (*iter)->markNonRef();
+      ROT( pcDPBUnit );
+      pcDPBUnit = *iter;
     }
   }
+  ROF ( pcDPBUnit ); // not found
+  RNOK( pcDPBUnit->markUnusedForRef( ePicTypeX ) );
   return Err::m_nOK;
 }
 
-
-
 ErrVal
-DecodedPicBuffer::xSlidingWindow()
+DecodedPicBuffer::xAssignLongTermIndex( UInt uiCurrFrameNum, PicType eCurrPicType, UInt uiPicNumDiff, UInt uiLongTermFrameIndex )
 {
-  //===== get number of reference frames =====
-  UInt uiCurrNumRefFrames     = 0;
+  ROF( (Int)uiLongTermFrameIndex <= m_iMaxLongTermFrameIdx );
+  Int     iCurrPicNum       = ( eCurrPicType == FRAME ? (Int)uiCurrFrameNum : 2 * (Int)uiCurrFrameNum + 1 );
+  Int     iPicNumX          = ( iCurrPicNum - (Int)uiPicNumDiff - 1 );
+  PicType ePicTypeX         = ( eCurrPicType == FRAME ? FRAME    : ( iPicNumX  % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
+  UInt    iFrameNumWrapX    = ( eCurrPicType == FRAME ? iPicNumX : ( iPicNumX >> 1 ) );
+  Int     iLongTermFrameIdx = (Int)uiLongTermFrameIndex;
+  //===== mark long-term pictures with specified index as "unused for reference" =====
   DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    if( (*iter)->isNeededForRef() && !(*iter)->isBaseRep() )
+    if( (*iter)->isLongTermUnit   ()                      &&
+        (*iter)->getLongTermIndex () == iLongTermFrameIdx   )
     {
-      uiCurrNumRefFrames++;
+      RNOK( (*iter)->markUnusedForRef( FRAME ) );
     }
   }
-  ROTRS( uiCurrNumRefFrames <= m_uiNumRefFrames, Err::m_nOK );
-
-  //===== sliding window reference picture update =====
-  //--- look for last ref frame that shall be removed ---
-  UInt uiRefFramesToRemove = uiCurrNumRefFrames - m_uiNumRefFrames;
-  iter                     = m_cUsedDPBUnitList.begin();
+  //===== find short-term pictures =====
+  DPBUnit*  pcDPBUnit     = 0;
+  DPBUnit*  pcDPBUnitBase = 0;
+  iter                    = m_cUsedDPBUnitList.begin();
+  end                     = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    if( (*iter)->isNeededForRef() && !(*iter)->isBaseRep() )
+    if( (*iter)->isShortTermRef   ( ePicTypeX )                                         &&
+        (*iter)->getFrameNumWrap  ( uiCurrFrameNum, m_uiMaxFrameNum ) == iFrameNumWrapX   )
     {
-      uiRefFramesToRemove--;
-      if( uiRefFramesToRemove == 0 )
+      if( (*iter)->isRefBasePicUnit() )
       {
-        break;
-      }
-    }
-  }
-  ROT( uiRefFramesToRemove );
-  //--- delete reference label ---
-  end   = ++iter;
-  iter  = m_cUsedDPBUnitList.begin();
-  for( ; iter != end; iter++ )
-  {
-    if( (*iter)->isNeededForRef() )
-    {
-      RNOK( (*iter)->markNonRef() );
-    }
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::slidingWindowBase( UInt mCurrFrameNum ) 
-{
-  //===== get number of reference frames =====
-  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-  DPBUnitList::iterator iiter;
-  for( ; iter != end; iter++ )
-  {
-	  if( (*iter)->isBaseRep() && (*iter)->getFrameNum() != mCurrFrameNum )
-    {
-		  for( iiter = m_cUsedDPBUnitList.begin(); iiter != end; iiter++ )
-		  {
-			  if ( (*iiter)->getFrameNum() == (*iter)->getFrameNum() && !(*iiter)->isBaseRep() )
-			  {
-				  if((*iter)->isNeededForRef())  
-				  {
-					  DPBUnit* pcDPBUnit = (*iter);
-					  RNOK( pcDPBUnit->uninit() );
-					  m_cUsedDPBUnitList.remove(pcDPBUnit);
-					  m_cFreeDPBUnitList.push_back( pcDPBUnit );
-					  return Err::m_nOK;  
-				  }
-			  }
-		  }
-    }
-  }
-  
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-DecodedPicBuffer::xOutput( PicBufferList&   rcOutputList,
-                           PicBufferList&   rcUnusedList )
-{
-  ROTRS( m_cFreeDPBUnitList.size(), Err::m_nOK ); // no need for output
-  
-  //===== smallest non-ref/output poc value =====
-  Int       iMinOutputPoc   = MSYS_INT_MAX;
-  DPBUnit*  pcElemToRemove = NULL;
-  DPBUnitList::iterator iter =  m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end  =  m_cUsedDPBUnitList.end  ();
-  for( ; iter != end; iter++ )
-  {
-    const Bool bOutput  = ( !(*iter)->isOutputted() && (*iter)->isExisting() && !(*iter)->isBaseRep() && !(*iter)->isNeededForRef() );
-    if(  bOutput && (*iter)->getFrame()->getPoc() < iMinOutputPoc )
-    {
-      iMinOutputPoc  = (*iter)->getFrame()->getPoc();
-      pcElemToRemove  = (*iter);
-    }
-  }
-  ROF( pcElemToRemove ); // error, nothing can be removed
-
-  //===== copy all output elements to temporary list =====
-  DPBUnitList cOutputList;
-  Int iMaxPoc = iMinOutputPoc;
-  Int iMinPoc = MSYS_INT_MAX;
-  iter        = m_cUsedDPBUnitList.begin();
-  for( ; iter != end; iter++ )
-  {
-    const Bool bOutput = ( (*iter)->getFrame()->getPoc() <= iMinOutputPoc && !(*iter)->isOutputted() );
-    if( bOutput )
-    {
-      if( !(*iter)->isOutputted() )
-      {
-        RNOK( (*iter)->markOutputted() );
-      }
-      if( (*iter)->isExisting() && !(*iter)->isBaseRep() )
-      {
-        cOutputList.push_back( *iter );
-        if( (*iter)->getFrame()->getPoc() < iMinPoc )
-        {
-          iMinPoc = (*iter)->getFrame()->getPoc();
-        }
-      }
-    }
-  }
-
-  //===== real output =====
-  for( Int iPoc = iMinPoc; iPoc <= iMaxPoc; iPoc++ )
-  {
-    iter = cOutputList.begin();
-    end  = cOutputList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->getFrame()->getPoc() == iPoc )
-      {
-        DPBUnit* pcDPBUnit = *iter;
-        cOutputList.remove( pcDPBUnit );
-
-        //----- output -----
-        ROT( m_cPicBufferList.empty() );
-        PicBuffer*  pcPicBuffer = m_cPicBufferList.popFront();
-        if( pcPicBuffer->isUsed() )
-        {
-          pcPicBuffer->setUnused(); 
-        }
-        pcDPBUnit->getFrame()->store( pcPicBuffer );
-        rcOutputList.push_back( pcPicBuffer );
-        rcUnusedList.push_back( pcPicBuffer );
-        break; // only one picture per Poc
-      }
-    }
-  }
-  ROT( cOutputList.size() );
-
-  //===== clear buffer =====
-  RNOK( xClearBuffer() );
-
-  //===== check =====
-  ROT( m_cFreeDPBUnitList.empty() ); // this should never happen
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-DecodedPicBuffer::xClearOutputAll( PicBufferList&   rcOutputList,
-                                   PicBufferList&   rcUnusedList,
-                                   Bool             bFinal )
-{
-  //===== create output list =====
-  DPBUnitList cOutputList;
-  Int         iMinPoc = MSYS_INT_MAX;
-  Int         iMaxPoc = MSYS_INT_MIN;
-  DPBUnitList::iterator iter =  m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end  =  m_cUsedDPBUnitList.end  ();
-  for( ; iter != end; iter++ )  
-  {
-    const Bool bOutput = ( !(*iter)->isOutputted() && (*iter)->isExisting() && !(*iter)->isBaseRep() );
-    if(  bOutput )
-    {
-      cOutputList.push_back( *iter );
-      if( (*iter)->getFrame()->getPoc() < iMinPoc ) iMinPoc = (*iter)->getFrame()->getPoc();
-      if( (*iter)->getFrame()->getPoc() > iMaxPoc ) iMaxPoc = (*iter)->getFrame()->getPoc();
-    }
-  }
-
-  //===== real output =====
-  for( Int iPoc = iMinPoc; iPoc <= iMaxPoc; iPoc++ )
-  {
-    iter = cOutputList.begin();
-    end  = cOutputList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->getFrame()->getPoc() == iPoc )
-      {
-        DPBUnit* pcDPBUnit = *iter;
-        cOutputList.remove( pcDPBUnit );
-
-        //----- output -----
-        ROT( m_cPicBufferList.empty() );
-        PicBuffer*  pcPicBuffer = m_cPicBufferList.popFront();
-        pcDPBUnit->getFrame()->store( pcPicBuffer );
-        rcOutputList.push_back( pcPicBuffer );
-        rcUnusedList.push_back( pcPicBuffer );
-        if(pcPicBuffer->isUsed())
-        {
-          pcPicBuffer->setUnused();
-        }
-        pcDPBUnit->getCtrlData().setSliceHeader(NULL);
-        break; // only one picture per Poc
-      }
-    }
-  }
-  ROT( cOutputList.size() );
-
-  //===== uninit all elements and move to free list =====
-  while( m_cUsedDPBUnitList.size() )
-  {
-    DPBUnit* pcDPBUnit = m_cUsedDPBUnitList.popFront();
-    RNOK( pcDPBUnit->uninit() );
-    AOT( pcDPBUnit == NULL)
-    m_cFreeDPBUnitList.push_back( pcDPBUnit );
-  }
-  ROTRS( ! bFinal , Err::m_nOK );
-
-  // release remaining buffers
-  while( m_cPicBufferList.size() )
-  {
-    rcUnusedList.push_back( m_cPicBufferList.popFront() );
-  }
-  return Err::m_nOK;
-}
-
-
-ErrVal DecodedPicBuffer::xUpdateDPBUnitList(DPBUnit *pcDPBUnit)
-{
-  ROF( pcDPBUnit == m_pcCurrDPBUnit ); // check
-  DPBUnit*  pcElemToReplace  = 0;
-  DPBUnitList::iterator iter =  m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end  =  m_cUsedDPBUnitList.end  ();
-  for( ; iter != end; iter++ )
-  {
-    if( !(*iter)->isBaseRep() && (*iter)->getFrame()->getPoc() == pcDPBUnit->getFrame()->getPoc() && (*iter)->getQualityId()+1 == pcDPBUnit->getQualityId() )
-    {
-      pcElemToReplace  = (*iter);
-      m_cUsedDPBUnitList.remove(pcElemToReplace);
-      m_cFreeDPBUnitList.push_back(pcElemToReplace);
-      m_cUsedDPBUnitList.push_back(pcDPBUnit);   
-      RNOK( pcDPBUnit->switchMbDataCtrlBL( pcElemToReplace ) );
-      break;
-    }
-  }
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
-                                 PicBufferList& rcOutputList,
-                                 PicBufferList& rcUnusedList,
-                                 Bool           bTreatAsIdr,
-                                 Bool           bFrameMbsOnlyFlag,
-                                 Bool           bRef )
-                                 
-{
-  ROF( pcDPBUnit == m_pcCurrDPBUnit );
-
-  if( pcDPBUnit->isExisting() && pcDPBUnit->getCtrlData().getSliceHeader()->isH264AVCCompatible() )
-  {
-    MbDataCtrl* pcMbDataCtrl = pcDPBUnit->getCtrlData().getMbDataCtrl();
-    ROF( pcMbDataCtrl );
-    RNOK( pcDPBUnit->storeMbDataCtrlBL( pcMbDataCtrl ) );
-  }
-
-  //---- fill border ----
-  RNOK( m_pcYuvBufferCtrl->initMb() );
-  RNOK( pcDPBUnit->getFrame()->extendFrame( NULL, pcDPBUnit->getFrame()->getPicType(), bFrameMbsOnlyFlag ) );
-
-  if( !bRef )
-  {
-    if( bTreatAsIdr )
-    {
-      //===== IDR pictures =====
-      RNOK( xClearOutputAll( rcOutputList, rcUnusedList, false ) );       // clear and output all pictures
-      m_cUsedDPBUnitList.push_back( pcDPBUnit );                          // store current picture
-    }
-    else
-    {
-      //===== non-IDR picture =====
-      m_cUsedDPBUnitList.push_back( pcDPBUnit );                          // store current picture
-      RNOK( xUpdateMemory( pcDPBUnit->getCtrlData().getSliceHeader() ) ); // memory update 
-      RNOK( xOutput( rcOutputList, rcUnusedList ) );                      // output
-    }
-    RNOK( xDumpDPB() );
-
-    m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                      // new current DPB unit
-  }
-  else
-  {
-    //replace previous version of current frame in usedDPBUnit by the new version
-    RNOK( xUpdateDPBUnitList(pcDPBUnit));
-    RNOK( xUpdateMemory( pcDPBUnit->getCtrlData().getSliceHeader() ) );   // memory update 
-    RNOK( xOutput( rcOutputList, rcUnusedList ) );                        // output
-    m_pcCurrDPBUnit = m_cFreeDPBUnitList.popBack();      
-  }
-  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-DecodedPicBuffer::xCheckMissingPics( const SliceHeader*   pcSliceHeader,
-                                     PicBufferList& rcOutputList,
-                                     PicBufferList& rcUnusedList )
-{
-  ROTRS( pcSliceHeader->getIdrFlag(), Err::m_nOK );
-  ROTRS( ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ) == pcSliceHeader->getFrameNum(), Err::m_nOK );
-
-  UInt  uiMissingFrames = pcSliceHeader->getFrameNum() - m_uiLastRefFrameNum - 1;
-  if( pcSliceHeader->getFrameNum() <= m_uiLastRefFrameNum )
-  {
-    uiMissingFrames += m_uiMaxFrameNum;
-  }
-
-  if( ! pcSliceHeader->getSPS().getGapsInFrameNumValueAllowedFlag() )
-  {
-    printf("\nLOST PICTURES = %d\n", uiMissingFrames );
-    RERR();
-  }
-  else
-  {
-    for( UInt uiIndex = 1; uiIndex <= uiMissingFrames; uiIndex++ )
-    {
-      const Bool  bTreatAsIdr = ( m_cUsedDPBUnitList.empty() );
-      const Int   iPoc        = ( bTreatAsIdr ? 0 : m_cUsedDPBUnitList.back()->getFrame()->getPoc() );
-      const UInt  uiFrameNum  = ( m_uiLastRefFrameNum + uiIndex ) % m_uiMaxFrameNum;
-
-      RNOK( m_pcCurrDPBUnit->initNonEx( iPoc, uiFrameNum ) );
-      RNOK( xStorePicture( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, bTreatAsIdr, pcSliceHeader->getSPS().getFrameMbsOnlyFlag(), false ) ); 
-    }
-  }
-
-  m_uiLastRefFrameNum = ( m_uiLastRefFrameNum + uiMissingFrames ) % m_uiMaxFrameNum;
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-DecodedPicBuffer::xDumpDPB()
-{
-#if 1 // NO_DEBUG 
-  return Err::m_nOK;
-#endif
-
-  printf("\nDECODED PICTURE BUFFER (Layer %d)\n", m_uiLayer );
-  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-  for( Int iIndex = 0; iter != end; iter++, iIndex++ )
-  {
-    printf("\tPOS=%d:\tFN=%d\tPoc=%d\t%s\t", iIndex, (*iter)->getFrameNum(), (*iter)->getFrame()->getPoc(), ((*iter)->isNeededForRef()?"REF":"   ") );
-    
-    if(  (*iter)->isOutputted() )   printf("Outputted  ");
-    if( !(*iter)->isExisting () )   printf("NotExisting   ");
-    if(  (*iter)->isBaseRep  () )   printf("BasRep   ");
-
-    printf("\n");
-  }
-  printf("\n");
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::xInitPrdListPSlice( RefFrameList& rcList0,
-                                      Frame*     pcCurrentFrame,
-																		  PicType       ePicType,
-																			SliceType     eSliceType )
-{
-  rcList0.reset();
-
-  const Bool  bBaseRep        = m_pcCurrDPBUnit->useBasePred();
-  const UInt  uiCurrFrameNum  = m_pcCurrDPBUnit->getFrameNum();
-
-  //----- generate decreasing frame num wrap list -----
-  Bool bPicTypeModified = false;
-  if ( ePicType != FRAME && m_pcCurrDPBUnit->getPicType() == FRAME && m_pcCurrDPBUnit->isNeededForRef() )
-  {
-    m_pcCurrDPBUnit->setPicType( PicType( FRAME ^ ePicType ) );
-    bPicTypeModified = true;
-    rcList0.add( m_pcCurrDPBUnit->getFrame() ); // insert unit of first field
-  }
-  for( Int iMaxPicNum = (Int)uiCurrFrameNum; true; )
-  {
-    DPBUnit*              pNext = NULL;
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->isNeededForRef() &&
-          (*iter)->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum) < iMaxPicNum &&
-          ( !pNext || (*iter)->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum)  > pNext->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum) 
-                   ||((*iter)->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum) == pNext->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum) && 
-                   (*iter)->isBaseRep() == bBaseRep) ) )
-      {
-        pNext = (*iter);
-      }
-    }
-    if( !pNext )
-    {
-      break;
-    }
-    iMaxPicNum = pNext->getPicNum(uiCurrFrameNum,m_uiMaxFrameNum);
-    RNOK( rcList0.add( pNext->getFrame() ) );
-  }
-
-  if( ePicType!=FRAME )
-  {
-    RNOK( xSetInitialRefFieldList( rcList0, pcCurrentFrame, ePicType, eSliceType ) ) ;
-  }
-  
-  if( bPicTypeModified )
-  {
-    m_pcCurrDPBUnit->setPicType( FRAME );
-  }
-
-  return Err::m_nOK;
-}
-
-
-Void 
-DecodedPicBuffer::xSetIdentifier( UInt& uiNum, PicType& rePicType, const PicType eCurrentPicType )
-{
-  if( eCurrentPicType==FRAME )
-  {
-    rePicType = FRAME;
-  }
-  else
-  {
-    if( uiNum % 2 ) 
-    {
-      rePicType = eCurrentPicType;
-    }
-    else if( eCurrentPicType==TOP_FIELD )
-    {
-      rePicType = BOT_FIELD;
-    }
-    else
-    {
-      rePicType = TOP_FIELD;
-    }
-    uiNum /= 2;
-  }
-}
-
-
-ErrVal 
-DecodedPicBuffer::xSetInitialRefFieldList( RefFrameList& rcList, Frame* pcCurrentFrame, PicType eCurrentPicType, SliceType eSliceType ) 
-{
-  RefFrameList cTempList = rcList; 
-  rcList.reset();
-
-  const PicType eOppositePicType  = ( eCurrentPicType==TOP_FIELD ? BOT_FIELD : TOP_FIELD );
-
-  //----- initialize field list for short term pictures -----
-  UInt uiCurrentParityIndex  = 0;
-  UInt uiOppositeParityIndex = 0;
-
-  while( uiCurrentParityIndex < cTempList.getSize() || uiOppositeParityIndex < cTempList.getSize() )
-  {
-    //--- current parity ---
-    while( uiCurrentParityIndex < cTempList.getSize() )
-    {
-      Frame* pcFrame = cTempList.getEntry( uiCurrentParityIndex++ );
-      if( pcFrame->getDPBUnit()->getPicType() & eCurrentPicType )
-      {
-        RNOK( rcList.add( pcFrame->getPic( eCurrentPicType ) ) );
-        break;
-      }
-    }
-    //--- opposite parity ---
-    while( uiOppositeParityIndex < cTempList.getSize() )
-    {
-      Frame* pcFrame = cTempList.getEntry( uiOppositeParityIndex++ );
-      if( pcFrame->getDPBUnit()->getPicType() & eOppositePicType )
-      {
-        RNOK( rcList.add( pcFrame->getPic( eOppositePicType ) ) );
-        break;
-      }
-    }
-  }
-
-  return Err::m_nOK;
-}
-
-ErrVal
-DecodedPicBuffer::xInitPrdListsBSlice( RefFrameList&  rcList0,
-                                       RefFrameList&  rcList1,
-                                       Frame*         pcCurrentFrame,
-																			 PicType        eCurrentPicType,
-																			 SliceType      eSliceType )
-{
-  rcList0.reset();
-  rcList1.reset();
-
-  RefFrameList  cDecreasingPocList;
-  RefFrameList  cIncreasingPocList;
-  const Bool  bBaseRep    = m_pcCurrDPBUnit->useBasePred();
-  const Int   iCurrPoc    = m_pcCurrDPBUnit->getFrame()->getPic( eCurrentPicType )->getPoc();
-
-  Int   iCurrFramePoc   = 0;
-  Bool  bCurrUnitAdded  = false;
-  if( eCurrentPicType != FRAME && m_pcCurrDPBUnit->getPicType() == FRAME && m_pcCurrDPBUnit->isNeededForRef() )
-  {
-    //----- temporarily add current DPB to DPB unit list -----
-    iCurrFramePoc = m_pcCurrDPBUnit->getFrame()->getPoc();
-    if( eCurrentPicType == TOP_FIELD )  m_pcCurrDPBUnit->getFrame()->setPoc( m_pcCurrDPBUnit->getFrame()->getBotFieldPoc() );
-    else                                m_pcCurrDPBUnit->getFrame()->setPoc( m_pcCurrDPBUnit->getFrame()->getTopFieldPoc() );
-    m_pcCurrDPBUnit->setPicType( PicType ( FRAME ^ eCurrentPicType ) );
-    m_cUsedDPBUnitList.push_back( m_pcCurrDPBUnit );
-    bCurrUnitAdded = true;
-  }
-
-  //----- generate decreasing POC list -----
-  for( Int iMaxPoc = iCurrPoc; true; )
-  {
-    DPBUnit*              pNext = NULL;
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->isNeededForRef() &&
-          (*iter)->getFrame()->getPoc() < iMaxPoc && 
-          ( !pNext || (*iter)->getFrame()->getPoc() > pNext->getFrame()->getPoc() ) &&
-          (*iter)->isBaseRep() == bBaseRep )
-      {
-        pNext = (*iter);
-      }
-    }
-    if( !pNext )
-    {
-      break;
-    }
-    iMaxPoc = pNext->getFrame()->getPoc();
-    RNOK( cDecreasingPocList.add( pNext->getFrame() ) );
-  }
-
-  //----- generate increasing POC list -----
-  for( Int iMinPoc = iCurrPoc; true; )
-  {
-    DPBUnit*              pNext = NULL;
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->isNeededForRef() &&
-          (*iter)->getFrame()->getPoc() > iMinPoc && 
-          ( ! pNext || (*iter)->getFrame()->getPoc() < pNext->getFrame()->getPoc() ) &&
-          (*iter)->isBaseRep() == bBaseRep )
-      {
-        pNext = (*iter);
-      }
-    }
-    if( !pNext )
-    {
-      break;
-    }
-    iMinPoc = pNext->getFrame()->getPoc();
-    RNOK( cIncreasingPocList.add( pNext->getFrame() ) );
-  }
-
-  //----- list 0 and list 1 -----
-  UInt uiPos;
-  for( uiPos = 0; uiPos < cDecreasingPocList.getSize(); uiPos++ )
-  {
-    RNOK( rcList0.add( cDecreasingPocList.getEntry( uiPos ) ) );
-  }
-  for( uiPos = 0; uiPos < cIncreasingPocList.getSize(); uiPos++ )
-  {
-    RNOK( rcList0.add( cIncreasingPocList.getEntry( uiPos ) ) );
-    RNOK( rcList1.add( cIncreasingPocList.getEntry( uiPos ) ) );
-  }
-  for( uiPos = 0; uiPos < cDecreasingPocList.getSize(); uiPos++ )
-  {
-    RNOK( rcList1.add( cDecreasingPocList.getEntry(uiPos) ) );
-  }
-
-  if( eCurrentPicType!=FRAME )
-  {
-		RNOK( xSetInitialRefFieldList( rcList0, pcCurrentFrame, eCurrentPicType, eSliceType ) );
-    RNOK( xSetInitialRefFieldList( rcList1, pcCurrentFrame, eCurrentPicType, eSliceType ) );
-  }
-
-  //----- check for element switching -----
-  if( rcList1.getActive() >= 2 && rcList0.getActive() == rcList1.getActive() )
-  {
-    Bool bSwitch = true;
-    for( uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
-    {
-      if( rcList0.getEntry(uiPos) != rcList1.getEntry(uiPos) )
-      {
-        bSwitch = false;
-        break;
-      }
-    }
-    if( bSwitch )
-    {
-      rcList1.switchFirst();
-    }
-  }
-
-  if( bCurrUnitAdded )
-  {
-    m_cUsedDPBUnitList.pop_back();
-    m_pcCurrDPBUnit->getFrame()->setPoc( iCurrFramePoc );
-    m_pcCurrDPBUnit->setPicType( FRAME );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
-                                      ListIdx         eListIdx,
-                                      SliceHeader*    pcSliceHeader )
-{
-  ROTRS( 0 == rcList.getSize(), Err::m_nOK );
-
-  ROF( pcSliceHeader );
-  const RefPicListReOrdering& rcRplrBuffer = pcSliceHeader->getRefPicListReordering( eListIdx );
-
-  //===== re-odering =====
-  if( rcRplrBuffer.getRefPicListReorderingFlag() )
-  {
-    const PicType eCurrentPicType = pcSliceHeader->getPicType();
-    UInt    uiPicNumPred          = ( eCurrentPicType==FRAME ? pcSliceHeader->getFrameNum() : 
-                                                               pcSliceHeader->getFrameNum()*2+1 );
-    UInt    uiMaxPicNum           = ( eCurrentPicType==FRAME ? m_uiMaxFrameNum : 2*m_uiMaxFrameNum );
-
-    Bool  bBaseRep          = pcSliceHeader->getUseRefBasePicFlag();
-    UInt  uiIndex           = 0;
-    ReOrderingOfPicNumsIdc  uiCommand;
-    UInt  uiIdentifier      = 0;
-
-    while( RPLR_END != ( uiCommand = rcRplrBuffer.get(uiIndex).getCommand(uiIdentifier) ) )
-    {
-      Frame* pcFrame = NULL;
-
-      if( uiCommand == RPLR_LONG )
-      {
-        //===== long term index =====
-        RERR(); // long-term indices are currently not supported by the software
+        ROT( pcDPBUnitBase );
+        pcDPBUnitBase = *iter;
       }
       else
       {
-        //===== short term index =====
-        UInt  uiAbsDiff = uiIdentifier + 1;
-        
-        //----- set short-term index (pic num) -----
-        if( uiCommand == RPLR_NEG )
-        {
-          if( uiPicNumPred < uiAbsDiff )
-          {
-            uiPicNumPred -= ( uiAbsDiff - uiMaxPicNum );
-          }
-          else
-          {
-            uiPicNumPred -=   uiAbsDiff;
-          }
-        }
-        else // uiCommand == RPLR_POS
-        {
-          if( uiPicNumPred + uiAbsDiff > uiMaxPicNum - 1 )
-          {
-            uiPicNumPred += ( uiAbsDiff - uiMaxPicNum );
-          }
-          else
-          {
-            uiPicNumPred +=   uiAbsDiff;
-          }
-        }
-        uiIdentifier = uiPicNumPred;
-        
-				PicType ePicType;
-        xSetIdentifier( uiIdentifier, ePicType, eCurrentPicType );
-
-        //----- get frame -----
-        DPBUnitList::iterator iter = m_cUsedDPBUnitList.begin();
-        DPBUnitList::iterator end  = m_cUsedDPBUnitList.end  ();
-        for( ; iter != end; iter++ )
-        {
-          if( (*iter)->isNeededForRef() &&
-              (*iter)->getFrameNum() == uiIdentifier &&
-              (!pcFrame || (*iter)->isBaseRep() == bBaseRep ) )
-          {
-            pcFrame = (*iter)->getFrame()->getPic( ePicType );
-          }
-        }
-        if( !pcFrame )
-        {
-          fprintf( stderr, "\nERROR: MISSING PICTURE !!!!\n\n");
-          RERR();
-        }
-        //----- find picture in reference list -----
-        UInt uiRemoveIndex = MSYS_UINT_MAX;
-        for( UInt uiPos = uiIndex; uiPos < rcList.getActive(); uiPos++ ) // active is equal to size !!!
-        {
-          if( rcList.getEntry( uiPos ) == pcFrame )
-          {
-            uiRemoveIndex = uiPos;
-            break;
-          }
-        }
-
-        //----- reference list re-ordering -----
-        RNOK( rcList.setElementAndRemove( uiIndex, uiRemoveIndex, pcFrame ) );
-        uiIndex++;
-      } // short-term RPLR
-    } // while command
-  }
-
-  //===== set final size =====
-  //EIDR JVT-Q065
- // ROT( pcSliceHeader->getNumRefIdxActive( eListIdx ) > rcList.getActive() );
-	rcList.setActive( pcSliceHeader->getNumRefIdxActive( eListIdx ) );
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::xDumpRefList( RefFrameList& rcList,
-                                ListIdx       eListIdx)
-{
-#if 1 // NO_DEBUG
-  return Err::m_nOK;
-#endif
-
-  printf("LIST_%d={", eListIdx );
-  for( UInt uiIndex = 1; uiIndex <= rcList.getActive(); uiIndex++ )
-  {
-		const PicType ePicType = rcList[uiIndex]->getPicType();
-		printf(" %s POC=%4d,", ePicType==FRAME ? "FRAME" : ( ePicType==TOP_FIELD ? "TOP_FIELD" : "BOT_FIELD" ), rcList[uiIndex]->getPoc() );
-  }
-  printf(" }\n");
-  return Err::m_nOK;
-}
-
-ErrVal
-DecodedPicBuffer::initPicCurrDPBUnit( PicBuffer*&    rpcPicBuffer,
-                                      Bool           bRef)
-{
-  ROF( m_bInitDone );
-  if( ! bRef )
-  {
-    //===== insert pic buffer in list =====
-    m_cPicBufferList.push_back( rpcPicBuffer );
-    rpcPicBuffer = 0;
-  }
-  m_pcCurrDPBUnit->getCtrlData().clear();
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
-                                   SliceHeader*   pcSliceHeader,
-                                   PicBufferList& rcOutputList,
-                                   PicBufferList& rcUnusedList,
-                                   Bool           bFirstSliceInLayerRepresentation )
-{
-  ROF( m_bInitDone );
-
-  Bool bNewFrame = true;
-  if( NULL != m_pcLastDPBUnit )
-  {
-     bNewFrame = ! pcSliceHeader->isFieldPair( m_pcLastDPBUnit->getFrameNum(), m_pcLastDPBUnit->getPicType(), m_pcLastDPBUnit->isNalRefIdc() );
-  }
-  if( ! bNewFrame )
-  {
-    // reuse the DPBUnit in case of second field
-    m_cFreeDPBUnitList.push_back( m_pcCurrDPBUnit );
-		DPBUnitList::iterator iter = m_cUsedDPBUnitList.find( m_pcLastDPBUnit );
-    if( iter != m_cUsedDPBUnitList.end() )
-		{
-			m_cUsedDPBUnitList.erase( iter );
-		}
-    m_pcCurrDPBUnit = m_pcLastDPBUnit;
-  }
-
-  if( pcSliceHeader->getQualityId() == 0 && bFirstSliceInLayerRepresentation && bNewFrame )
-  {
-    //===== check missing pictures =====
-	  RNOK( xCheckMissingPics( pcSliceHeader, rcOutputList, rcUnusedList ) );
-  }
-
-  //===== initialize current DPB unit =====
-  RNOK( m_pcCurrDPBUnit->init( *pcSliceHeader ) );
-
-  ROT( pcSliceHeader->getUseRefBasePicFlag() && !pcSliceHeader->getNalRefIdc() ); // just a check
-  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( pcSliceHeader );
-  if( bFirstSliceInLayerRepresentation )
-  {
-    if( bNewFrame )
-    {
-      m_pcCurrDPBUnit->setPicType( pcSliceHeader->getPicType() );
-    }
-    else
-    {
-      m_pcCurrDPBUnit->setPicType( FRAME );
+        ROT( pcDPBUnit );
+        pcDPBUnit = *iter;
+      }
     }
   }
-  m_pcCurrDPBUnit->setNalRefIdc( pcSliceHeader->getNalRefIdc() );
-
-  //===== set DPB unit =====
-  rpcCurrDPBUnit = m_pcCurrDPBUnit;
-  m_pcLastDPBUnit = m_pcCurrDPBUnit;
-  return Err::m_nOK;
+  //===== mark pictures =====
+  ROF   ( pcDPBUnit );
+  RNOK  ( pcDPBUnit     ->markLongTerm( ePicTypeX, iLongTermFrameIdx ) );
+  ROFRS ( pcDPBUnitBase,  Err::m_nOK );
+  RNOK  ( pcDPBUnitBase ->markLongTerm( ePicTypeX, iLongTermFrameIdx ) );
+  return  Err::m_nOK;
 }
-
-
 
 ErrVal
-DecodedPicBuffer::clear( PicBufferList& rcOutputList,
-                         PicBufferList& rcUnusedList )
+DecodedPicBuffer::xSetMaxLongTermIndex( UInt uiMaxLongTermFrameIdxPlus1 )
 {
-  RNOK( xClearOutputAll( rcOutputList, rcUnusedList, true ) ); // clear and output all pictures
-  ROF ( m_cPicBufferList.empty() );
-  return Err::m_nOK;
-}
-
-
-
-DPBUnit*
-DecodedPicBuffer::getLastUnit()
-{
-  ROTRS( m_cUsedDPBUnitList.empty(), 0 );
-  return m_cUsedDPBUnitList.back();
-}
-
-
-ErrVal
-DecodedPicBuffer::setPrdRefLists( DPBUnit* pcCurrDPBUnit )
-{
-  ROF( m_pcCurrDPBUnit == pcCurrDPBUnit );
-  ROF( m_pcCurrDPBUnit->getCtrlData().getSliceHeader() );
-  SliceHeader* pcSliceHeader = m_pcCurrDPBUnit->getCtrlData().getSliceHeader();
-	ROF( pcSliceHeader );
-  const PicType   ePicType   = pcSliceHeader->getPicType  ();
-	const SliceType eSliceType = pcSliceHeader->getSliceType();
-
-  RefFrameList& rcList0 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_0 );
-  RefFrameList& rcList1 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_1 );
-  MbDataCtrl*   pcMbDataCtrl0L1 = 0;
-
-	Frame* pcCurrentFrame = m_pcCurrDPBUnit->getFrame();
-  
-  if( pcSliceHeader->isIntraSlice() )
+  m_iMaxLongTermFrameIdx = (Int)uiMaxLongTermFrameIdxPlus1 - 1;
+  //===== mark long-term pictures with higher index as "unused for reference" =====
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
   {
+    if( (*iter)->isLongTermUnit   ()                          &&
+        (*iter)->getLongTermIndex () > m_iMaxLongTermFrameIdx   )
+    {
+      RNOK( (*iter)->markUnusedForRef( FRAME ) );
+    }
   }
-  else if( pcSliceHeader->isPSlice() )
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xReset( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHeader )
+{
+  //===== check maximum POC of all required pictures =====
+  Int                   iMaxPoc = MSYS_INT_MIN;
+  DPBUnitList::iterator iter    = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end     = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
   {
-    RNOK( xInitPrdListPSlice( rcList0, pcCurrentFrame, ePicType, eSliceType ) );
-    RNOK( xPrdListRemapping ( rcList0, LIST_0, pcSliceHeader                ) );
-    RNOK( xDumpRefList      ( rcList0, LIST_0                               ) );
+    if( (*iter)->isRequired() )
+    {
+      Int iPoc  = (*iter)->getMaxPoc( rcSliceHeader.getSPS().getPicOrderCntType() == 0 );
+      iMaxPoc   = max( iMaxPoc, iPoc );
+    }
+  }
+  ROF( m_pcCurrDPBUnit->getPoc() > iMaxPoc );
+  //===== mark all pictures as "unused for reference" =====
+  RNOK( xMarkAllUnusedForRef() );
+  //===== reset PocCalculator and POC values in slice Header =====
+  RNOK( rcPocCalculator .resetMMCO5 ( rcSliceHeader ) );
+  //===== update parameters in current DPB unit =====
+  ROF ( m_pcCurrDPBUnit->isCompleted() );
+  RNOK( m_pcCurrDPBUnit->resetMMCO5 ( rcSliceHeader ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xStoreCurrentLongTerm( UInt uiLongTermFrameIndex, Bool bStoreRefBasePic )
+{
+  Int  iLongTermFrameIdx  = (Int)uiLongTermFrameIndex;
+  ROF( iLongTermFrameIdx <= m_iMaxLongTermFrameIdx );
+  //===== mark long-term pictures with specified index as "unused for reference" =====
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isLongTermUnit   ()                      &&
+        (*iter)->getLongTermIndex () == iLongTermFrameIdx   )
+    {
+      if( xIs2ndFieldOfCompFieldPair( bStoreRefBasePic ) )
+      {
+        ROF( *iter == ( bStoreRefBasePic ? m_pcLastDPBUnitRefBasePic : m_pcLastDPBUnit ) );
+      }
+      else
+      {
+        RNOK( (*iter)->markUnusedForRef( FRAME ) );
+      }
+    }
+  }
+  //===== mark current picture as long-term =====
+  RNOK( m_pcCurrDPBUnit->markLongTerm( m_pcCurrDPBUnit->getPicStatus(), uiLongTermFrameIndex ) );
+  //===== store current picture =====
+  if( xIs2ndFieldOfCompFieldPair() )
+  {
+    RNOK( m_pcCurrDPBUnit->store    ( *m_pcLastDPBUnit ) );
   }
   else
   {
-    RNOK( xInitPrdListsBSlice( rcList0, rcList1, pcCurrentFrame, ePicType, eSliceType ) );
-    RNOK( xPrdListRemapping  ( rcList0, LIST_0, pcSliceHeader                         ) );
-    RNOK( xPrdListRemapping  ( rcList1, LIST_1, pcSliceHeader                         ) );
-    RNOK( xDumpRefList       ( rcList0, LIST_0                                        ) );
-    RNOK( xDumpRefList       ( rcList1, LIST_1                                        ) );
-
-    if( pcSliceHeader->isH264AVCCompatible() )
+    RNOK( xInsertCurrentInNewBuffer (  m_pcLastDPBUnit ) );
+  }
+  //===== store reference base picture =====
+  if( bStoreRefBasePic )
+  {
+    if( xIs2ndFieldOfCompFieldPair( true ) )
     {
-      const Frame*          pcFrame0L1  = rcList1[1];
-      DPBUnitList::iterator iter        = m_cUsedDPBUnitList.begin ();
-      DPBUnitList::iterator end         = m_cUsedDPBUnitList.end   ();
-      for( ; iter != end; iter++ )
-      {
-        DPBUnit*    pcDPBUnit     = (*iter);
-        Frame*      pcFrame       = pcDPBUnit->getFrame()->getPic( pcFrame0L1->getPicType() );
-        MbDataCtrl* pcMbDataCtrl  = pcDPBUnit->getMbDataCtrlBL();
-
-        if( pcFrame == pcFrame0L1 )
-        {
-          pcMbDataCtrl0L1 = pcMbDataCtrl;
-        }
-      }
-      ROF( pcMbDataCtrl0L1 );
+      RNOK( m_pcCurrDPBUnit->store    ( *m_pcLastDPBUnitRefBasePic, true ) );
+    }
+    else
+    {
+      RNOK( xInsertCurrentInNewBuffer (  m_pcLastDPBUnitRefBasePic, true ) );
     }
   }
+  else
+  {
+    m_pcLastDPBUnitRefBasePic = 0;
+  }
+  return Err::m_nOK;
+}
 
-  m_pcCurrDPBUnit->getCtrlData().setMbDataCtrl0L1( pcMbDataCtrl0L1 );
+Bool
+DecodedPicBuffer::xExistsRefBasePicShortTerm( UInt uiFrameNum )
+{
+  DPBUnitList::iterator iter = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end  = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    ROTRS( (*iter)->isShortTermUnit() && (*iter)->isRefBasePicUnit() && (*iter)->getFrameNum() == uiFrameNum, true );
+  }
+  return false;
+}
 
+Bool
+DecodedPicBuffer::xExistsRefBasePicLongTerm ( Int iLongTermFrameIdx )
+{
+  DPBUnitList::iterator iter = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end  = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    ROTRS( (*iter)->isLongTermUnit() && (*iter)->isRefBasePicUnit() && (*iter)->getLongTermIndex() == iLongTermFrameIdx, true );
+  }
+  return false;
+}
+
+Bool
+DecodedPicBuffer::xIsAvailableForRefLists( const DPBUnit* pcDPBUnit, Bool bFieldPicture, Bool bExcludeNonExisting, Bool bUseRefBasePic )
+{
+  AOF  ( pcDPBUnit );
+  ROFRS( bFieldPicture       ||  pcDPBUnit->isRefFrame(), false );
+  ROTRS( bExcludeNonExisting && !pcDPBUnit->isExisting(), false );
+  if( !bUseRefBasePic )
+  {
+    ROTRS( pcDPBUnit->isUsedForRef () && ! pcDPBUnit->isRefBasePicUnit(), true );
+    return false;
+  }
+  ROTRS( pcDPBUnit->isShortTermUnit() && ( pcDPBUnit->isRefBasePicUnit() || !xExistsRefBasePicShortTerm( pcDPBUnit->getFrameNum     () ) ), true );
+  ROTRS( pcDPBUnit->isLongTermUnit () && ( pcDPBUnit->isRefBasePicUnit() || !xExistsRefBasePicLongTerm ( pcDPBUnit->getLongTermIndex() ) ), true );
+  return false;
+}
+
+ErrVal
+DecodedPicBuffer::xCreateOrderedDPBUnitLists( DPBUnitList& rcOrderedShortTermList0, 
+                                              DPBUnitList& rcOrderedShortTermList1, 
+                                              DPBUnitList& rcOrderedLongTermList, 
+                                              Bool&        rbShortTermListIdentical,
+                                              SliceHeader& rcSliceHeader )
+{
+  rcOrderedShortTermList0 .clear();
+  rcOrderedShortTermList1 .clear();
+  rcOrderedLongTermList   .clear();
+  rbShortTermListIdentical                  = false;
+  Int                   iCurrPoc            = rcSliceHeader.getPoc              ();
+  UInt                  uiCurrFrameNum      = rcSliceHeader.getFrameNum         ();
+  Bool                  bBSlice             = rcSliceHeader.isBSlice            ();
+  Bool                  bFieldPicture       = rcSliceHeader.getFieldPicFlag     ();
+  Bool                  bUseRefBasePicFlag  = rcSliceHeader.getUseRefBasePicFlag();
+  Bool                  bExcludeNonExisting = ( bBSlice && rcSliceHeader.getSPS ().getPicOrderCntType() == 0 );
+  DPBUnitList::iterator iter                = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end                 = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( xIsAvailableForRefLists( *iter, bFieldPicture, bExcludeNonExisting, bUseRefBasePicFlag ) )
+    {
+      if( (*iter)->isLongTermUnit() )
+      {
+        DPBUnitList::iterator iterLTI = rcOrderedLongTermList.begin();
+        DPBUnitList::iterator endLTI  = rcOrderedLongTermList.end  ();
+        for( ; iterLTI != endLTI && (*iter)->getLongTermIndex() > (*iterLTI)->getLongTermIndex(); iterLTI++ );
+        rcOrderedLongTermList.insert( iterLTI, *iter );
+      }
+      else if( !bBSlice )
+      {
+        DPBUnitList::iterator iterFNW = rcOrderedShortTermList0.begin();
+        DPBUnitList::iterator endFNW  = rcOrderedShortTermList0.end  ();
+        for( ; iterFNW != endFNW && (*iter)->getFrameNumWrap( uiCurrFrameNum, m_uiMaxFrameNum ) < (*iterFNW)->getFrameNumWrap( uiCurrFrameNum, m_uiMaxFrameNum ); iterFNW++ );
+        rcOrderedShortTermList0.insert( iterFNW, *iter );
+      }
+      else
+      {
+        DPBUnitList::iterator iterPOC = rcOrderedShortTermList0.begin();
+        DPBUnitList::iterator endPOC  = rcOrderedShortTermList0.end  ();
+        for( ; iterPOC != endPOC && (*iter)->getPoc() < (*iterPOC)->getPoc(); iterPOC++ );
+        rcOrderedShortTermList0.insert( iterPOC, *iter );
+      }
+    }
+  }
+  ROT( rcOrderedShortTermList0.empty() && rcOrderedLongTermList.empty() );
+  if( bBSlice )
+  {
+    DPBUnitList cDPBUnitsWithGreaterPocList;
+    while( !rcOrderedShortTermList0.empty() && rcOrderedShortTermList0.front()->getPoc() >= iCurrPoc )
+    {
+      cDPBUnitsWithGreaterPocList.push_front( rcOrderedShortTermList0.popFront() );
+    }
+    rbShortTermListIdentical = ( rcOrderedShortTermList0.empty() || cDPBUnitsWithGreaterPocList.empty() );
+    rcOrderedShortTermList1  = cDPBUnitsWithGreaterPocList;
+    rcOrderedShortTermList1 += rcOrderedShortTermList0;
+    rcOrderedShortTermList0 += cDPBUnitsWithGreaterPocList;
+  }
+  return Err::m_nOK;
+}
+
+DPBUnit*
+DecodedPicBuffer::xGetDPBEntry( DPBUnitList& rcDPBUnitList, UInt uiIndex )
+{
+  ROFRS( uiIndex < rcDPBUnitList.size(), 0 );
+  DPBUnitList::iterator iter = rcDPBUnitList.begin();
+  for( ; uiIndex; uiIndex--, iter++ );
+  return *iter;
+}
+
+ErrVal
+DecodedPicBuffer::xGetRefPicEntryList( RefPicEntryList& rcRefPicEntryList, DPBUnitList& rcDPBUnitList, PicType eCurrPicType )
+{
+  ROF( eCurrPicType );
+  rcRefPicEntryList.clear();
+  //===== get frame list =====
+  if( eCurrPicType == FRAME )
+  {
+    while( rcDPBUnitList.size() )
+    {
+      rcRefPicEntryList.push_back( RefPicEntry( FRAME, rcDPBUnitList.popFront() ) );
+    }
+    return Err::m_nOK;
+  }
+  //===== get field list =====
+  PicType eCurrentParity      = eCurrPicType;
+  PicType eOppositeParity     = PicType( FRAME - eCurrentParity );
+  UInt    uiCurrentParityIdx  = 0;
+  UInt    uiOppositeParityIdx = 0;
+  UInt    uiFrameListSize     = rcDPBUnitList.size();
+  while( uiCurrentParityIdx < uiFrameListSize || uiOppositeParityIdx < uiFrameListSize )
+  {
+    // current parity
+    while( uiCurrentParityIdx < uiFrameListSize )
+    {
+      DPBUnit* pcDPBUnit = xGetDPBEntry( rcDPBUnitList, uiCurrentParityIdx++ );
+      if( pcDPBUnit->isRefPic( eCurrentParity ) )
+      {
+        rcRefPicEntryList.push_back( RefPicEntry( eCurrentParity, pcDPBUnit ) );
+        break;
+      }
+    }
+    // opposite parity
+    while( uiOppositeParityIdx < uiFrameListSize )
+    {
+      DPBUnit* pcDPBUnit = xGetDPBEntry( rcDPBUnitList, uiOppositeParityIdx++ );
+      if( pcDPBUnit->isRefPic( eOppositeParity ) )
+      {
+        rcRefPicEntryList.push_back( RefPicEntry( eOppositeParity, pcDPBUnit ) );
+        break;
+      }
+    }
+  }
   return Err::m_nOK;
 }
 
 ErrVal
-DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
-                         PicBufferList&   rcOutputList,
-                         PicBufferList&   rcUnusedList,
-                         Frame*           pcFrameBaseRep )
+DecodedPicBuffer::xCreateInitialRefPicLists( RefPicEntryList& rcRefPicEntryList0,
+                                             RefPicEntryList& rcRefPicEntryList1,
+                                             SliceHeader&     rcSliceHeader )
 {
-  Bool bRef = ( rpcDPBUnit->getCtrlData().getSliceHeader()->getQualityId() > 0 );
+  ROT( rcSliceHeader.isIntraSlice() );
+  //===== get DPBUnit lists =====
+  DPBUnitList     cShortTermDPBUnitList0;
+  DPBUnitList     cShortTermDPBUnitList1;
+  DPBUnitList     cLongTermDPBUnitList;
+  RefPicEntryList cLongTermList;
+  PicType         ePicType                  = rcSliceHeader.getPicType();
+  Bool            bBSlice                   = rcSliceHeader.isBSlice  ();
+  Bool            bShortTermListsIdentical  = false;
+  RNOK ( xCreateOrderedDPBUnitLists( cShortTermDPBUnitList0, cShortTermDPBUnitList1, cLongTermDPBUnitList, bShortTermListsIdentical, rcSliceHeader ) );
+  //===== create reference picture entry list 0 =====
+  RNOK ( xGetRefPicEntryList( rcRefPicEntryList0, cShortTermDPBUnitList0, ePicType ) );
+  RNOK ( xGetRefPicEntryList( cLongTermList,      cLongTermDPBUnitList,   ePicType ) );
+  rcRefPicEntryList0 += cLongTermList;
+  ROT  ( rcRefPicEntryList0.empty() );
+  ROFRS( bBSlice, Err::m_nOK );
+  //===== create reference picture entry list 1 =====
+  RNOK ( xGetRefPicEntryList( rcRefPicEntryList1, cShortTermDPBUnitList1, ePicType ) );
+  rcRefPicEntryList1 += cLongTermList;
+  ROT  ( rcRefPicEntryList1.empty() );
+  ROFRS( rcRefPicEntryList1.size () > 1 && bShortTermListsIdentical, Err::m_nOK );
+  //===== switch first entries of reference picture entry list 1
+  RefPicEntry c2ndEntry = rcRefPicEntryList1.popFront();
+  RefPicEntry c1stEntry = rcRefPicEntryList1.popFront();
+  rcRefPicEntryList1.push_front( c2ndEntry );
+  rcRefPicEntryList1.push_front( c1stEntry );
+  return Err::m_nOK;
+}
 
-	if( rpcDPBUnit->isNeededForRef() || rpcDPBUnit->getCtrlData().getSliceHeader()->getOutputFlag() )
-	{
-		RNOK( xStorePicture(  rpcDPBUnit, rcOutputList, rcUnusedList,
-			                    rpcDPBUnit->getCtrlData().getSliceHeader()->getIdrFlag(),
-			                    rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef ) );
-  	if( !rpcDPBUnit->getCtrlData().getSliceHeader()->getOutputFlag() )
-		{
-			rpcDPBUnit->markOutputted();
-		}
-	}
-  
-  if( rpcDPBUnit->isNeededForRef() )
+ErrVal
+DecodedPicBuffer::xModifyRefPicList( RefPicEntryList& rcRefPicEntryList, UInt& ruiRefIdx, Bool bLongTerm, PicType ePicType, UInt uiFrameNumOrLTIdx )
+{
+  ROF( ruiRefIdx <= rcRefPicEntryList.size() );
+  //===== find specified picture in list =====
+  RefPicEntryList::iterator iter      = rcRefPicEntryList.begin();
+  RefPicEntryList::iterator end       = rcRefPicEntryList.end  ();
+  UInt                      uiLastIdx = 0;
+  for( ; iter != end; iter++, uiLastIdx++ )
   {
-    m_uiLastRefFrameNum = rpcDPBUnit->getFrameNum();
-  }
-
-  ROFRS( pcFrameBaseRep, Err::m_nOK );
-  ROTRS( bRef,           Err::m_nOK );
-
-  // Do not store the base representation if not specified in the stream
-  ROFRS( rpcDPBUnit->getCtrlData().getSliceHeader()->getStoreRefBasePicFlag(), Err::m_nOK );
-
-  //===== store base representation =====
-  //--- get DPB unit ---
-  if( m_cFreeDPBUnitList.empty() )
-  {
-    // not sure whether this always works ...
-    RNOK( xOutput( rcOutputList, rcUnusedList ) );
-  }
-  DPBUnit* pcBaseRep = NULL;
-  DPBUnitList::iterator iter1 = m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end1  = m_cUsedDPBUnitList.end  ();
-  for( ; iter1 != end1; iter1++ )
-  {
-    if( ((*iter1)->getFrameNum() == rpcDPBUnit->getFrameNum() ) &&
-      (  (*iter1)->isBaseRep  ()))
+    if( (*iter).getPicType() == ePicType )
     {
-      pcBaseRep = (*iter1);
-      m_cUsedDPBUnitList.erase( iter1 );
-      break;
-    }
-  }
-
-  if( NULL == pcBaseRep )
-  {
-    pcBaseRep = m_cFreeDPBUnitList.popFront();
-  }
-
-  //--- init unit and extend picture ---
-	const PicType ePicType          = rpcDPBUnit->getCtrlData().getSliceHeader()->getPicType();
- 	const Bool    bFrameMbsOnlyFlag = rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
-  RNOK( pcBaseRep->initBase( *rpcDPBUnit, pcFrameBaseRep ) );
-  RNOK( m_pcYuvBufferCtrl->initMb() );
-  RNOK( pcBaseRep->getFrame()->extendFrame( NULL, ePicType, bFrameMbsOnlyFlag ) );
-  if( !bRef )
-  {
-    //--- store just before normal representation of the same picture
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter) == rpcDPBUnit )
+      UInt uiIdentifier  = ( bLongTerm ? (UInt)(*iter).getDPBUnit()->getLongTermIndex() : (*iter).getDPBUnit()->getFrameNum() );
+      if(  uiIdentifier == uiFrameNumOrLTIdx )
       {
         break;
       }
     }
-    ROT( iter == end );
-    m_cUsedDPBUnitList.insert( iter, pcBaseRep );
-
-    RNOK( xDumpDPB() );
-
-    //===== reset DPB unit =====
-    rpcDPBUnit = 0;
-  } 
-
+  }
+  ROT(   iter == end );                       // specified picture was not found
+  ROF( (*iter).getDPBUnit()->isExisting() );  // specified picture is a non-existing picture
+  //===== modify list =====
+  if( uiLastIdx != ruiRefIdx )
+  {
+    RefPicEntry cRefPicEntry = *iter;
+    //----- remove entry from old position -----
+    if( uiLastIdx > ruiRefIdx )
+    {
+      rcRefPicEntryList.erase( iter );
+    }
+    //----- insert at new position -----
+    iter = rcRefPicEntryList.begin();
+    for( UInt uiIdx = 0; uiIdx < ruiRefIdx; uiIdx++, iter++ );
+    rcRefPicEntryList.insert( iter, cRefPicEntry );
+  }
+  //===== update reference index position =====
+  ruiRefIdx++;
   return Err::m_nOK;
 }
 
-
+ErrVal
+DecodedPicBuffer::xRefPicListModification( RefPicEntryList& rcRefPicEntryList, SliceHeader& rcSliceHeader, ListIdx eListIdx )
+{
+  ROFRS( rcSliceHeader.getRefPicListReordering( eListIdx ).getRefPicListReorderingFlag(), Err::m_nOK );
+  RefPicListReOrdering&   rcRefPicListReordering  = rcSliceHeader.getRefPicListReordering( eListIdx );
+  PicType                 eCurrPicType            = rcSliceHeader.getPicType  ();
+  UInt                    uiFrameNum              = rcSliceHeader.getFrameNum ();
+  Int                     iMaxPicNum              = ( eCurrPicType == FRAME ? (Int)m_uiMaxFrameNum : 2*(Int)m_uiMaxFrameNum );
+  Int                     iPicNumPred             = ( eCurrPicType == FRAME ? (Int)uiFrameNum      : 2*(Int)uiFrameNum + 1  );
+  UInt                    uiRefIdx                = 0;
+  ReOrderingOfPicNumsIdc  eCommand                = RPLR_END;
+  UInt                    uiIdentifier            = 0;
+  UInt                    uiCommandIndex          = 0;
+  while( RPLR_END != ( eCommand = rcRefPicListReordering.get( uiCommandIndex++ ).getCommand( uiIdentifier ) ) )
+  {
+    if( eCommand == RPLR_NEG || eCommand == RPLR_POS )
+    {
+      Int     iPicNumDiff = (Int)uiIdentifier + 1;
+      if( eCommand == RPLR_NEG )
+      {
+        iPicNumPred      -= iPicNumDiff - ( iPicNumPred <               iPicNumDiff ? iMaxPicNum : 0 );
+      }
+      else
+      {
+        iPicNumPred      += iPicNumDiff - ( iPicNumPred >= iMaxPicNum - iPicNumDiff ? iMaxPicNum : 0 );
+      }
+      PicType ePicTypeX   = ( eCurrPicType == FRAME ? FRAME             : ( iPicNumPred % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
+      UInt    uiFrameNumX = ( eCurrPicType == FRAME ? (UInt)iPicNumPred : (UInt)iPicNumPred >> 1 );
+      RNOK( xModifyRefPicList( rcRefPicEntryList, uiRefIdx, false, ePicTypeX, uiFrameNumX ) );
+    }
+    else
+    {
+      ROF( eCommand == RPLR_LONG );
+      PicType ePicTypeX   = ( eCurrPicType == FRAME ? FRAME             : ( uiIdentifier % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
+      UInt    uiLTIndexX  = ( eCurrPicType == FRAME ? uiIdentifier      : uiIdentifier >> 1 );
+      RNOK( xModifyRefPicList( rcRefPicEntryList, uiRefIdx, true,  ePicTypeX, uiLTIndexX ) );
+    }
+  }
+  return Err::m_nOK;
+}
 
 ErrVal
-DecodedPicBuffer::update( DPBUnit*  pcDPBUnit )
+DecodedPicBuffer::xSetReferencePictureList( RefFrameList& rcRefFrameList, RefPicEntryList& rcRefPicEntryList, UInt uiNumActiveEntries )
 {
+  ROF( uiNumActiveEntries );
+  ROF( uiNumActiveEntries <= rcRefPicEntryList.size() );
+  rcRefFrameList.reset();
+  RefPicEntryList::iterator iter = rcRefPicEntryList.begin();
+  for( UInt uiRefIdx = 0; uiRefIdx < uiNumActiveEntries; uiRefIdx++, iter++ )
+  {
+    ROF( (*iter).getDPBUnit() );
+    ROF( (*iter).getDPBUnit()->getFrame() );
+    PicType   ePicType  = (*iter)   .getPicType     ();
+    DPBUnit*  pcDPBUnit = (*iter)   .getDPBUnit     ();
+    Frame*    pcFrame   = pcDPBUnit->getFrame       ();
+    Frame*    pcPic     = pcFrame  ->getPic         ( ePicType );
+    pcFrame->setLongTerm( pcDPBUnit->isLongTermUnit () );
+    RNOK( rcRefFrameList.add( pcPic ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xSetMbDataCtrlEntry0( MbDataCtrl*& rpcMbDataCtrl, RefPicEntryList& rcRefPicEntryList )
+{
+  ROT( rcRefPicEntryList.empty() );
+  DPBUnit*  pcDPBUnit = (*rcRefPicEntryList.begin()).getDPBUnit();
   ROF( pcDPBUnit );
+  rpcMbDataCtrl       = pcDPBUnit->getMbDataCtrlBase();
+  ROF( rpcMbDataCtrl );
+  return Err::m_nOK;
+}
 
-  //---- fill border ----
-  RNOK( m_pcYuvBufferCtrl->initMb() );
-	const PicType ePicType          = pcDPBUnit->getCtrlData().getSliceHeader()->getPicType();
-	const Bool    bFrameMbsOnlyFlag = pcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
-  RNOK( pcDPBUnit->getFrame()->extendFrame( NULL, ePicType, bFrameMbsOnlyFlag ) );
+ErrVal
+DecodedPicBuffer::xDumpDPB( const Char* pcString )
+{
+  ROFRS( m_bDebugOutput, Err::m_nOK );
+  printf( "\nDPB [D=%d, S=%d, MR=%d, MLT=%d]", m_uiDependencyId, m_uiDPBSizeInFrames, m_uiMaxNumRefFrames, m_iMaxLongTermFrameIdx );
+  if( pcString )  printf( " : %s\n", pcString );
+  else            printf( "\n" );
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( UInt uiIdx = 0; iter != end; iter++, uiIdx++ )
+  {
+    RNOK( (*iter)->dump( uiIdx, uiIdx == 0, true ) );
+  }
+  printf( "\n" );
+  return Err::m_nOK;
+}
 
+ErrVal
+DecodedPicBuffer::xDumpRefPicList( RefFrameList& rcRefFrameList, ListIdx eListIdx, const Char* pcString )
+{
+  ROFRS( m_bDebugOutput, Err::m_nOK );
+  printf( "\nList %d [active = %d]", (Int)eListIdx, rcRefFrameList.getActive() );
+  if( pcString )  printf( " : %s\n", pcString );
+  else            printf( "\n" );
+  const Char*     apcTypeString[3] = { "TOP-FLD", "BOT-FLD", "FRAME  " };
+  printf( "------------------------------\n" );
+  for( UInt uiRefIdx = 0; uiRefIdx < rcRefFrameList.getActive(); uiRefIdx++ )
+  {
+    Frame*      pcFrame   = rcRefFrameList[uiRefIdx+1];
+    PicType     ePicType  = pcFrame->getPicType();
+    Int         iPoc      = pcFrame->getPoc    ();
+    printf("#%3u: %s  POC=%- 11d\n", uiRefIdx, apcTypeString[ePicType-1], iPoc );
+  }
+  printf( "------------------------------\n\n" );
   return Err::m_nOK;
 }
 
@@ -1806,11 +2299,10 @@ LayerDecoder::processSliceData( PicBuffer*         pcPicBuffer,
 
 ErrVal
 LayerDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
-                           PicBufferList&  rcPicBufferUnusedList )
+                             PicBufferList&  rcPicBufferUnusedList )
 {
-  ROF( m_bInitialized );
-  
-  RNOK ( m_pcDecodedPictureBuffer->clear( rcPicBufferOutputList, rcPicBufferUnusedList ) );
+  ROF  ( m_bInitialized );
+  RNOK ( m_pcDecodedPictureBuffer->finish( rcPicBufferOutputList, rcPicBufferUnusedList ) );
   while( m_cSliceHeaderList.size() )
   {
     SliceHeader*  pcSliceHeader = m_cSliceHeaderList.popFront();
@@ -1819,6 +2311,14 @@ LayerDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
   return Err::m_nOK;
 }
 
+ErrVal
+LayerDecoder::updateDPB( PicBufferList& rcPicBufferOutputList, 
+                         PicBufferList& rcPicBufferUnusedList )
+{
+  ROF ( m_bInitialized );
+  RNOK( m_pcDecodedPictureBuffer->updateBuffer( *m_pcPocCalculator, rcPicBufferOutputList, rcPicBufferUnusedList ) );
+  return Err::m_nOK;
+}
 
 ErrVal
 LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
@@ -1843,7 +2343,7 @@ LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
   RNOK( xInitSPS                  ( *rpcSliceHeader ) );
   m_cSliceHeaderList.push_back    (  rpcSliceHeader );
 
-  //===== init DPB unit (when required) =====
+  //===== init DPB unit =====
   RNOK( xInitDPBUnit              ( *rpcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList ) );
 
   //===== init resize parameters =====  ---> write new function xInitResizeParameters, which is somewhat nicer 
@@ -1884,9 +2384,9 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   Bool          bReconstructAll     = rcSliceDataNalUnit.isDQIdMax();
   Bool          bReconstructMCMbs   = bReconstructAll || ( rcSliceDataNalUnit.isDependencyIdMax() && bReconstructBaseRep );
   PicType       ePicType            = rcSliceHeader.getPicType();
-  ControlData&  rcControlData       = m_pcCurrDPBUnit->getCtrlData();
-  Frame*        pcFrame             = m_pcCurrDPBUnit->getFrame   ();
-  Frame*        pcBaseRepFrame      = m_apcFrameTemp[0];
+  ControlData&  rcControlData       = m_pcCurrDPBUnit->getCtrlData  ();
+  Frame*        pcFrame             = m_pcCurrDPBUnit->getFrame     ();
+  Frame*        pcBaseRepFrame      = m_pcCurrDPBUnit->getRefBasePic();
   Frame*        pcRecFrame          = ( bReconstructBaseRep ? pcBaseRepFrame : pcFrame );
   MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl ();
 
@@ -1957,15 +2457,17 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
                                           BinDataList&            rcBinDataList )
 {
   ROF( m_pcCurrDPBUnit );
-  Bool          bReconstructBaseRep = rcSliceHeader.getStoreRefBasePicFlag() && ! rcSliceHeader.getQualityId();
-  Bool          bReconstructAll     = rcSliceDataNalUnit.isDQIdMax();
+  Bool          bDepRepFinished     = rcSliceDataNalUnit.isLastSliceInDependencyRepresentation();
+  Bool          bDPBUpdate          = rcSliceDataNalUnit.isDQIdMax();
   ControlData&  rcControlData       = m_pcCurrDPBUnit->getCtrlData();
-  Frame*        pcBaseRepFrame      = m_apcFrameTemp[0];
   MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl ();
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 #else
   Frame*        pcFrame             = m_pcCurrDPBUnit->getFrame   ();
+  Frame*        pcBaseRepFrame      = m_pcCurrDPBUnit->getRefBasePic();
   PicType       ePicType            = rcSliceHeader.getPicType();
+  Bool          bReconstructBaseRep = rcSliceHeader.getStoreRefBasePicFlag() && ! rcSliceHeader.getQualityId();
+  Bool          bReconstructAll     = rcSliceDataNalUnit.isDQIdMax();
 #endif
 
   //===== check for missing slices =====
@@ -2006,25 +2508,10 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
 #endif
 
   //===== store picture =====
-  if( bReconstructBaseRep )
+  RNOK( m_pcDecodedPictureBuffer->storeCurrDPBUnit( bDepRepFinished ) );
+  if( bDPBUpdate )
   {
-    //----- store in DPB with base representation -----
-    RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcPicBufferOutputList, rcPicBufferUnusedList, pcBaseRepFrame ) );
-  }
-  else
-  {
-    RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcPicBufferOutputList, rcPicBufferUnusedList ) );
-  }
-  if( rcSliceHeader.getStoreRefBasePicFlag() && bReconstructAll )
-  {
-    if( rcSliceHeader.getDecRefPicMarking().getAdaptiveRefPicMarkingModeFlag() )
-    {
-      RNOK( m_pcDecodedPictureBuffer->MMCOBase( &rcSliceHeader, rcSliceHeader.getFrameNum() ) );
-    }
-    else
-    {
-      RNOK( m_pcDecodedPictureBuffer->slidingWindowBase( rcSliceHeader.getFrameNum() ) );
-    }
+    RNOK( m_pcH264AVCDecoder->updateDPB( m_uiDependencyId, rcPicBufferOutputList, rcPicBufferUnusedList ) );
   }
 
   DTRACE_NEWFRAME;
@@ -2244,9 +2731,6 @@ LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUn
   ROF( rcSliceHeader.getDependencyId() == m_uiDependencyId );
   ROF( rcSliceHeader.getQualityId   () == m_uiQualityId    );
 
-  //===== init picture order count =====
-  RNOK( m_pcPocCalculator->calculatePoc( rcSliceHeader ) );
-
   //===== infer slice header parameters =====
   if( rcSliceHeader.getQualityId() )
   {
@@ -2336,9 +2820,6 @@ LayerDecoder::xInitSPS( const SliceHeader& rcSliceHeader )
   RNOK( xDeleteData() );
   RNOK( xCreateData( rcSliceHeader.getSPS() ) );
 
-  //===== initialize DPB =====
-  RNOK( m_pcDecodedPictureBuffer->initSPS( rcSliceHeader.getSPS(), m_uiDependencyId ) );
-
   //===== set initialization status =====
   m_bSPSInitialized = true;
   return Err::m_nOK;
@@ -2350,12 +2831,11 @@ LayerDecoder::xInitDPBUnit( SliceHeader&   rcSliceHeader,
                             PicBufferList& rcPicBufferOutputList, 
                             PicBufferList& rcPicBufferUnusedList )
 {
-  if( ! m_bLayerRepresentationInitialized )
-  {
-    RNOK( m_pcDecodedPictureBuffer->initPicCurrDPBUnit( pcPicBuffer, m_bDependencyRepresentationInitialized ) );
-  }
-  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, &rcSliceHeader, rcPicBufferOutputList, rcPicBufferUnusedList, !m_bLayerRepresentationInitialized ) );
-  
+  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, pcPicBuffer, rcSliceHeader, 
+                                                   *m_pcPocCalculator, rcPicBufferOutputList, rcPicBufferUnusedList,
+                                                   !m_bDependencyRepresentationInitialized, 
+                                                   !m_bLayerRepresentationInitialized ) );
+
   m_pcCurrDPBUnit->getCtrlData().setBaseLayerRec      ( 0 );
   m_pcCurrDPBUnit->getCtrlData().setBaseLayerSbb      ( 0 );
   m_pcCurrDPBUnit->getCtrlData().setBaseLayerCtrl     ( 0 );
@@ -2374,10 +2854,9 @@ ErrVal
 LayerDecoder::getBaseSliceHeader( SliceHeader*& rpcSliceHeader )
 {
   ROF( m_bInitialized );
-
-  DPBUnit* pcBaseDPBUnit = m_pcDecodedPictureBuffer->getLastUnit();
+  CurrDPBUnit* pcBaseDPBUnit  = m_pcDecodedPictureBuffer->getILPredDPBUnit();
   ROF( pcBaseDPBUnit );
-  rpcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader();
+  rpcSliceHeader              = pcBaseDPBUnit->getSliceHeader();
   ROF( rpcSliceHeader );
   return Err::m_nOK;
 }
@@ -2392,10 +2871,10 @@ LayerDecoder::getBaseLayerData( SliceHeader&      rcELSH,
 {
   ROF( m_bInitialized );
 
-  DPBUnit*      pcBaseDPBUnit   = m_pcDecodedPictureBuffer->getLastUnit();
+  CurrDPBUnit*  pcBaseDPBUnit   = m_pcDecodedPictureBuffer->getILPredDPBUnit();
   ROF( pcBaseDPBUnit );
-  pcMbDataCtrl                  = pcBaseDPBUnit->getCtrlData().getMbDataCtrl ();
-  SliceHeader*  pcSliceHeader   = pcBaseDPBUnit->getCtrlData().getSliceHeader();
+  pcMbDataCtrl                  = pcBaseDPBUnit->getMbDataCtrl ();
+  SliceHeader*  pcSliceHeader   = pcBaseDPBUnit->getSliceHeader();
   pcFrame                       = m_pcILPrediction;
   pcResidual                    = m_pcResidual;
   ROF( pcMbDataCtrl );
@@ -2552,53 +3031,38 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
 
 
   //===== set crop window flag: in current macroblock data (we don't need the base layer here) =====
-  if( m_cResizeParameters.getRestrictedSpatialResolutionChangeFlag() )
-  {
-    Int iMbOrigX  = m_cResizeParameters.m_iLeftFrmOffset      / 16;
-    Int iMbOrigY  = m_cResizeParameters.m_iTopFrmOffset       / 16;
-    Int iMbEndX   = m_cResizeParameters.m_iScaledRefFrmWidth  / 16 + iMbOrigX;
-    Int iMbEndY   = m_cResizeParameters.m_iScaledRefFrmHeight / 16 + iMbOrigY;
-    for( Int iMbY = iMbOrigY; iMbY < iMbEndY; iMbY++ )
-    for( Int iMbX = iMbOrigX; iMbX < iMbEndX; iMbX++ )
+  Int iScaledBaseOrigX  = m_cResizeParameters.m_iLeftFrmOffset;
+  Int iScaledBaseOrigY  = m_cResizeParameters.m_iTopFrmOffset;
+  Int iScaledBaseWidth  = m_cResizeParameters.m_iScaledRefFrmWidth;
+  Int iScaledBaseHeight = m_cResizeParameters.m_iScaledRefFrmHeight;
+     
+	if( ! m_cResizeParameters.m_bIsMbAffFrame && ! m_cResizeParameters.m_bFieldPicFlag )
+	{
+    for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY++ )
+    for( Int iMbX = 0; iMbX < (Int)m_uiFrameWidthInMb;  iMbX++ )
     {
-      rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
-    }
-  }
-  else
-  {
-    Int iScaledBaseOrigX  = m_cResizeParameters.m_iLeftFrmOffset;
-    Int iScaledBaseOrigY  = m_cResizeParameters.m_iTopFrmOffset;
-    Int iScaledBaseWidth  = m_cResizeParameters.m_iScaledRefFrmWidth;
-    Int iScaledBaseHeight = m_cResizeParameters.m_iScaledRefFrmHeight;
-       
-		if( ! m_cResizeParameters.m_bIsMbAffFrame && ! m_cResizeParameters.m_bFieldPicFlag )
-		{
-      for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY++ )
-      for( Int iMbX = 0; iMbX < (Int)m_uiFrameWidthInMb;  iMbX++ )
+      if( ( iMbX >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
+          ( iMbY >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
       {
-        if( ( iMbX >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
-            ( iMbY >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
-        {
-          rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
-        }
+        rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
       }
-		}
-		else
+    }
+	}
+	else
+	{
+		AOT( m_uiFrameHeightInMb % 2 );
+		for( Int iMbY0 = 0; iMbY0 < (Int)m_uiFrameHeightInMb; iMbY0+=2 )
+		for( Int iMbX  = 0; iMbX  < (Int)m_uiFrameWidthInMb;  iMbX ++  )
 		{
-			AOT( m_uiFrameHeightInMb % 2 );
-			for( Int iMbY0 = 0; iMbY0 < (Int)m_uiFrameHeightInMb; iMbY0+=2 )
-			for( Int iMbX  = 0; iMbX  < (Int)m_uiFrameWidthInMb;  iMbX ++  )
+      Int   iMbY1  = iMbY0 + 1;
+			if( ( iMbX  >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX  < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
+					( iMbY0 >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY1 < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
 			{
-        Int   iMbY1  = iMbY0 + 1;
-				if( ( iMbX  >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX  < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
-						( iMbY0 >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY1 < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
-				{
-					rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY0*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
-					rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY1*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
-				}
+				rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY0*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
+				rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY1*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
 			}
 		}
-  }
+	}
 
   return Err::m_nOK;
 }

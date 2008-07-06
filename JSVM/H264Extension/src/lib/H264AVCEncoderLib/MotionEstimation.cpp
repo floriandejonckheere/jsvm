@@ -102,6 +102,7 @@ MotionEstimation::MotionEstimation() :
   m_iMaxLogStep( 0 ),
   m_pcMvSpiralSearch( NULL ),
   m_uiSpiralSearchEntries(0)
+  ,m_bELWithBLMv(false)
 {
 }
 
@@ -360,7 +361,17 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   {
     if( uiSearchRange )
     {
-      xPelBlockSearch     ( pcRefPelData[0], cMv, uiMinSAD, uiSearchRange );
+      if( m_cParams.getFastBiSearch() )
+      {
+        m_acMvPredictors[0] = cMv;
+        m_acMvPredictors[1] = cMv;
+        m_acMvPredictors[2] = cMv;
+        xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv, uiSearchRange );
+      }
+      else
+      {
+        xPelBlockSearch( pcRefPelData[0], cMv, uiMinSAD, uiSearchRange );
+      }
     }
     else
     {
@@ -390,7 +401,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
       case 4:
         {
           rcMbDataAccess.getMvPredictors( m_acMvPredictors );
-          xTZSearch( pcRefPelData[0], cMv, uiMinSAD );
+          xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv );
         }
         break;
       default:
@@ -441,6 +452,8 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   ruiBits        += uiMvBits;
   ruiCost         = (UInt)floor( fWeight * (Double)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
   rcMv            = cMv;
+
+  m_bELWithBLMv = false;
 
   return Err::m_nOK;
 }
@@ -1235,12 +1248,18 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
 
 }
 
-Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange )
+Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bEL, Int iSearchRange )
 {
   TZ_SEARCH_CONFIGURATION
 
   // limit search range
-  if( ! iSearchRange ) { iSearchRange = m_cParams.getSearchRange(); }
+  if( ! iSearchRange )
+  {
+    if( bEL )
+      iSearchRange = m_cParams.getELSearchRange();
+    else
+      iSearchRange = m_cParams.getSearchRange(); 
+  }
   rcMv.limitComponents(MotionCompensation::m_cMin, MotionCompensation::m_cMax );
   SearchRect cSearchRect;
   rcMv >>= 2;

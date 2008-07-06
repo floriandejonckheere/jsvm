@@ -104,7 +104,7 @@ H264AVC_NAMESPACE_BEGIN
 class H264AVCENCODERLIB_API EncoderConfigLineBase
 {
 protected:
-  EncoderConfigLineBase(Char* pcTag, UInt uiType ) : m_cTag( pcTag ), m_uiType( uiType ) {}
+  EncoderConfigLineBase( const Char* pcTag, UInt uiType ) : m_cTag( pcTag ), m_uiType( uiType ) {}
   EncoderConfigLineBase() {}
 public:
   virtual ~EncoderConfigLineBase() {}
@@ -118,25 +118,39 @@ protected:
 class H264AVCENCODERLIB_API MotionVectorSearchParams
 {
 public:
-  MotionVectorSearchParams() :  m_uiSearchMode(FAST_SEARCH),  m_uiFullPelDFunc(DF_SAD), m_uiSubPelDFunc(DF_SAD), m_uiSearchRange(64), m_uiDirectMode(0) {}
+  MotionVectorSearchParams()
+    : m_uiSearchMode      ( FAST_SEARCH )
+    , m_uiFullPelDFunc    ( DF_SAD )
+    , m_uiSubPelDFunc     ( DF_SAD )
+    , m_uiSearchRange     ( 64 )
+    , m_uiDirectMode      ( 0 ) 
+    , m_uiELSearchRange   ( 0 )
+    , m_uiFastBiSearch    ( 0 )
+    , m_bELSearch         ( false )
+  {}
 
-  ErrVal check() const;
+  ErrVal check();
 
-  const SearchMode getSearchMode()                const { return (SearchMode)m_uiSearchMode; }
-  const DFunc getFullPelDFunc()                   const { return (DFunc)m_uiFullPelDFunc; }
-  const DFunc getSubPelDFunc()                    const { return (DFunc)m_uiSubPelDFunc; }
-  const UInt getSearchRange()                     const { return m_uiSearchRange; }
-  UInt        getNumMaxIter     ()                const { return m_uiNumMaxIter; }
-  UInt        getIterSearchRange()                const { return m_uiIterSearchRange; }
-  const UInt getDirectMode()                      const { return m_uiDirectMode; }
+  SearchMode  getSearchMode     ()  const { return (SearchMode)m_uiSearchMode; }
+  DFunc       getFullPelDFunc   ()  const { return (DFunc)m_uiFullPelDFunc; }
+  DFunc       getSubPelDFunc    ()  const { return (DFunc)m_uiSubPelDFunc; }
+  UInt        getSearchRange    ()  const { return m_uiSearchRange; }
+  UInt        getNumMaxIter     ()  const { return m_uiNumMaxIter; }
+  UInt        getIterSearchRange()  const { return m_uiIterSearchRange; }
+  UInt        getDirectMode     ()  const { return m_uiDirectMode; }
+  UInt        getELSearchRange  ()  const { return m_uiELSearchRange; }
+  UInt        getFastBiSearch   ()  const { return m_uiFastBiSearch; }
+  Bool        getELSearch       ()  const { return m_bELSearch; }
 
-  Void setSearchMode( UInt uiSearchMode )               { m_uiSearchMode   = uiSearchMode; }
-  Void setFullPelDFunc( UInt uiFullPelDFunc )           { m_uiFullPelDFunc = uiFullPelDFunc; }
-  Void setSubPelDFunc( UInt uiSubPelDFunc )             { m_uiSubPelDFunc  = uiSubPelDFunc; }
-  Void setSearchRange ( UInt uiSearchRange)             { m_uiSearchRange = uiSearchRange; }
-  Void setNumMaxIter        ( UInt uiNumMaxIter      )  { m_uiNumMaxIter      = uiNumMaxIter;       }
-  Void setIterSearchRange   ( UInt uiIterSearchRange )  { m_uiIterSearchRange = uiIterSearchRange;  }
-  Void setDirectMode( UInt uiDirectMode)                { m_uiDirectMode = uiDirectMode; }
+  Void setSearchMode      ( UInt uiSearchMode )       { m_uiSearchMode  = uiSearchMode; }
+  Void setFullPelDFunc    ( UInt uiFullPelDFunc )     { m_uiFullPelDFunc = uiFullPelDFunc; }
+  Void setSubPelDFunc     ( UInt uiSubPelDFunc )      { m_uiSubPelDFunc = uiSubPelDFunc; }
+  Void setSearchRange     ( UInt uiSearchRange )      { m_uiSearchRange = uiSearchRange; }
+  Void setNumMaxIter      ( UInt uiNumMaxIter )       { m_uiNumMaxIter = uiNumMaxIter; }
+  Void setIterSearchRange ( UInt uiIterSearchRange )  { m_uiIterSearchRange = uiIterSearchRange; }
+  Void setDirectMode      ( UInt uiDirectMode)        { m_uiDirectMode = uiDirectMode; }
+  Void setELSearchRange   ( UInt ui )                 { m_uiELSearchRange = ui; }
+  Void setFastBiSearch    ( UInt ui )                 { m_uiFastBiSearch = ui; }
 
 public:
   UInt        m_uiSearchMode;
@@ -146,6 +160,9 @@ public:
   UInt        m_uiNumMaxIter;
   UInt        m_uiIterSearchRange;
   UInt        m_uiDirectMode;    // 0 temporal, 1 spatial
+  UInt        m_uiELSearchRange;
+  UInt        m_uiFastBiSearch;
+  Bool        m_bELSearch;
 };
 
 
@@ -176,22 +193,24 @@ const unsigned CodParMAXNumSliceGroupsMinus1 =8; // the same as MAXNumSliceGroup
 
 
 
-
+class CodingParameter;
 
 
 class H264AVCENCODERLIB_API LayerParameters
 {
 public:
   LayerParameters()
-    : m_uiDependencyId                         (0)
-    , m_uiFrameWidth                      (352)
-    , m_uiFrameHeight                     (288)
+    : m_uiLayerId                         (MSYS_UINT_MAX)
+    , m_uiDependencyId                    (0)
+    , m_uiFrameWidthInSamples             (352)
+    , m_uiFrameHeightInSamples            (288)
     , m_dInputFrameRate                   (7.5)
     , m_dOutputFrameRate                  (7.5)
     , m_cInputFilename                    ("none")
     , m_cOutputFilename                   ("none")
     , m_uiEntropyCodingModeFlag           (1)
-    , m_uiAdaptiveTransform               (0)
+    , m_uiEnable8x8Trafo                  (0)
+    , m_uiScalingMatricesPresent          (0)
     , m_uiMaxAbsDeltaQP                   (1)
     , m_dBaseQpResidual                   (26.0)
     , m_uiInterLayerPredictionMode        (0)
@@ -211,7 +230,6 @@ public:
 		, m_uiUseRedundantKeySlice            (0)   //JVT-W049
 // JVT-Q065 EIDR{
 	  , m_iIDRPeriod						  (0)
-	  , m_bBLSkipEnable					  ( false )
   // JVT-Q065 EIDR}
     , m_uiMGSVectorMode                      ( 0 )
     , m_dQpModeDecisionLP ( 0.00 )
@@ -249,7 +267,21 @@ public:
     , m_uiQLDiscardable       ( MAX_QUALITY_LEVELS )
 //~DS_FIX_FT_09_2007
 //JVT-T054}
-    , m_uiExplicitQPCascading( 0 )
+    , m_uiExplicitQPCascading ( 0 )
+    , m_uiIPCMRate            ( 0 )
+    , m_uiBiPred8x8Disable    ( 0 )
+    , m_uiMCBlks8x8Disable    ( 0 )
+    , m_uiBotFieldFirst       ( 0 )
+    , m_uiUseLongTerm         ( 0 )
+    , m_uiPicCodingType       ( 0 )
+    , m_uiNumDependentDId     ( 0 )
+    , m_uiProfileIdc          ( 0 )
+    , m_uiLevelIdc            ( 0 )
+    , m_bIntraOnly            ( false )
+    , m_bConstrainedSetFlag0  ( false )
+    , m_bConstrainedSetFlag1  ( false )
+    , m_bConstrainedSetFlag2  ( false )
+    , m_bConstrainedSetFlag3  ( false )
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiMGSVect, 0x00, 16*sizeof(UInt) );
@@ -257,6 +289,10 @@ public:
     for( UInt uiTTL = 0; uiTTL < MAX_TEMP_LEVELS; uiTTL++ )
     {
       m_adDeltaQPTLevel[uiTTL] = 0.0;
+    }
+    for( UInt uiSM = 0; uiSM < 8; uiSM++ )
+    {
+      ::memset( &(m_aaucScalingMatrices[uiSM][0]), 0x00, 64*sizeof(UChar) );
     }
   }
 
@@ -291,17 +327,27 @@ public:
     // JVT-S054 (ADD) <-
   }
 
+  ErrVal  setAndCheckProfile( CodingParameter* pcCodingParameter );
+  ErrVal  updateWithLevel   ( CodingParameter* pcCodingParameter, UInt& ruiLevelIdc );
 
   //===== get =====
-  UInt                            getDependencyId                        () const {return m_uiDependencyId; }
-  UInt                            getFrameWidth                     () const {return m_uiFrameWidth; }
-  UInt                            getFrameHeight                    () const {return m_uiFrameHeight; }
+  UInt                            getLayerId                        () const {return m_uiLayerId; }
+  UInt                            getDependencyId                   () const {return m_uiDependencyId; }
+  Bool                            isInterlaced                      () const {return ( m_uiMbAff != 0 || m_uiPAff != 0 ); }
+  UInt                            getFrameWidthInSamples            () const {return m_uiFrameWidthInSamples; }
+  UInt                            getFrameHeightInSamples           () const {return m_uiFrameHeightInSamples; }
+  UInt                            getFrameWidthInMbs                () const {return ( m_uiFrameWidthInSamples + 15 ) >> 4; }
+  UInt                            getFrameHeightInMbs               () const {return ( isInterlaced() ? ( ( m_uiFrameHeightInSamples + 31 ) >> 5 ) << 1 : ( m_uiFrameHeightInSamples + 15 ) >> 4 ); }
+  UInt                            getFrameHeightInMapUnits          () const {return ( isInterlaced() ?   ( m_uiFrameHeightInSamples + 31 ) >> 5        : ( m_uiFrameHeightInSamples + 15 ) >> 4 ); }
+  UInt                            getHorPadding                     () const {return 16*getFrameWidthInMbs () - getFrameWidthInSamples (); }
+  UInt                            getVerPadding                     () const {return 16*getFrameHeightInMbs() - getFrameHeightInSamples(); }
   Double                          getInputFrameRate                 () const {return m_dInputFrameRate; }
   Double                          getOutputFrameRate                () const {return m_dOutputFrameRate; }
   const std::string&              getInputFilename                  () const {return m_cInputFilename; }
   const std::string&              getOutputFilename                 () const {return m_cOutputFilename; }
   Bool                            getEntropyCodingModeFlag          () const {return m_uiEntropyCodingModeFlag == 1; }
-  UInt                            getAdaptiveTransform              () const {return m_uiAdaptiveTransform; }
+  UInt                            getEnable8x8Trafo                 () const {return m_uiEnable8x8Trafo; }
+  UInt                            getScalingMatricesPresent         () const {return m_uiScalingMatricesPresent; }
   UInt                            getMaxAbsDeltaQP                  () const {return m_uiMaxAbsDeltaQP; }
   Double                          getBaseQpResidual                 () const {return m_dBaseQpResidual; }
   Double                          getQpModeDecision          (UInt ui) const {return m_adQpModeDecision[ui]; }
@@ -358,6 +404,7 @@ public:
   UInt getMGSVect                        (UInt uiNum) const { return m_uiMGSVectorMode ? m_uiMGSVect[uiNum] : (uiNum == 0 ? 16 : 0); }
   Bool getTCoeffLevelPredictionFlag ()               const { return m_bAVCRewriteFlag==1; }
   Bool getAVCAdaptiveRewriteFlag ()       const { return m_bAVCAdaptiveRewriteFlag==1; }
+  Void setAVCRewrite( UInt ui ) { m_bAVCRewriteFlag = ui; }
   
   UInt getSliceSkip() const { return m_uiSliceSkip; }
   UInt getSliceSkipTLevelStart()  const { return m_uiSliceSkipTLevelStart; }
@@ -365,15 +412,17 @@ public:
   Void setSliceSkipTLevelStart( UInt ui )  { m_uiSliceSkipTLevelStart = ui; }
 
   //===== set =====
-  Void setDependencyId                         (UInt   p) { m_uiDependencyId                        = p; }
-  Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
-  Void setFrameHeight                     (UInt   p) { m_uiFrameHeight                    = p; }
+  Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
+  Void setDependencyId                    (UInt   p) { m_uiDependencyId                   = p; }
+  Void setFrameWidthInSamples             (UInt   p) { m_uiFrameWidthInSamples            = p; }
+  Void setFrameHeightInSamples            (UInt   p) { m_uiFrameHeightInSamples           = p; }
   Void setInputFrameRate                  (Double p) { m_dInputFrameRate                  = p; }
   Void setOutputFrameRate                 (Double p) { m_dOutputFrameRate                 = p; }
   Void setInputFilename                   (Char*  p) { m_cInputFilename                   = p; }
   Void setOutputFilename                  (Char*  p) { m_cOutputFilename                  = p; }
   Void setEntropyCodingModeFlag           (Bool   p) { m_uiEntropyCodingModeFlag          = p; }
-  Void setAdaptiveTransform               (UInt   p) { m_uiAdaptiveTransform              = p; }
+  Void setEnable8x8Trafo                  (UInt   p) { m_uiEnable8x8Trafo                 = p; }
+  Void setScalingMatricesPresent          (UInt   p) { m_uiScalingMatricesPresent         = p; }
   Void setMaxAbsDeltaQP                   (UInt   p) { m_uiMaxAbsDeltaQP                  = p; }
   Void setBaseQpResidual                  (Double p) { m_dBaseQpResidual                  = p; }
   Void setQpModeDecision                  (UInt   n,
@@ -402,8 +451,6 @@ public:
 
 // JVT-Q065 EIDR{
   Int				  getIDRPeriod			   () { return m_iIDRPeriod; }
-  Bool				  getBLSkipEnable		   () { return m_bBLSkipEnable; }
-  Void				  setBLSkipEnable( Bool b )   { m_bBLSkipEnable = b; }
 // JVT-Q065 EIDR}
 
   UInt                getPLR                   () { return m_uiPLR; } //JVT-R057 LA-RDO
@@ -451,20 +498,61 @@ public:
   Void    setDeltaQPTLevel        ( UInt    tl,
                                     Double  d  )           { m_adDeltaQPTLevel[tl] = d; }
 
-  Void    setInterlaced( Bool b ) { m_bInterlaced = b; }
-  Bool    isInterlaced() const { return m_bInterlaced; }
+  Void    setIPCMRate( UInt ui ) { m_uiIPCMRate = ui; }
+  UInt    getIPCMRate() const    { return m_uiIPCMRate; }
+  const UChar* getScalMatrixBuffer() const { return m_aaucScalingMatrices[0]; }
+  UInt  getBiPred8x8Disable() const     { return m_uiBiPred8x8Disable; }
+  Void  setBiPred8x8Disable( UInt ui )  { m_uiBiPred8x8Disable = ui; }
+  UInt  getMCBlks8x8Disable() const     { return m_uiMCBlks8x8Disable; }
+  Void  setMCBlks8x8Disable( UInt ui )  { m_uiMCBlks8x8Disable = ui; }
+
+  UInt  getBotFieldFirst()    const     { return m_uiBotFieldFirst; }
+  Void  setBotFieldFirst( UInt ui )     { m_uiBotFieldFirst = ui; }
+  UInt  getPicCodingType()    const     { return m_uiPicCodingType; }
+  Void  setPicCodingType( UInt ui )     { m_uiPicCodingType = ui; }
+
+  Void  setProfileIdc( UInt ui )          { m_uiProfileIdc = ui; }
+  UInt  getProfileIdc         ()  const   { return m_uiProfileIdc; }
+  UInt  getLevelIdc           ()  const   { return m_uiLevelIdc; }
+  Bool  isIntraOnly           ()  const   { return m_bIntraOnly; }
+  Bool  getConstrainedSet0Flag()  const   { return m_bConstrainedSetFlag0; }
+  Bool  getConstrainedSet1Flag()  const   { return m_bConstrainedSetFlag1; }
+  Bool  getConstrainedSet2Flag()  const   { return m_bConstrainedSetFlag2; }
+  Bool  getConstrainedSet3Flag()  const   { return m_bConstrainedSetFlag3; }
+
+  Void  setUseLongTerm  ( UInt ui )       { m_uiUseLongTerm = ui; }
+  UInt  getUseLongTerm  ()          const { return m_uiUseLongTerm; }
+
+  protected:
+    Bool    xIsBaselineProfile            ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceBaselineProfile         ( CodingParameter*  pcCodingParameter );
+    Bool    xIsMainProfile                ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceMainProfile             ( CodingParameter*  pcCodingParameter );
+    Bool    xIsExtendedProfile            ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceExtendedProfile         ( CodingParameter*  pcCodingParameter );
+    Bool    xIsHighProfile                ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceHighProfile             ( CodingParameter*  pcCodingParameter );
+    Bool    xIsIntraOnly                  ( CodingParameter*  pcCodingParameter );
+    
+    Bool    xHasRestrictedESS             ( CodingParameter*  pcCodingParameter );
+    Bool    xIsScalableBaselineProfile    ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceScalableBaselineProfile ( CodingParameter*  pcCodingParameter );
+    Bool    xIsScalableHighProfile        ( CodingParameter*  pcCodingParameter );
+    ErrVal  xForceScalableHighProfile     ( CodingParameter*  pcCodingParameter );
 
 public:
+  UInt                      m_uiLayerId;
   UInt                      m_uiDependencyId;
-  UInt                      m_uiFrameWidth;
-  UInt                      m_uiFrameHeight;
+  UInt                      m_uiFrameWidthInSamples;
+  UInt                      m_uiFrameHeightInSamples;
   Double                    m_dInputFrameRate;
   Double                    m_dOutputFrameRate;
   std::string               m_cInputFilename;
   std::string               m_cOutputFilename;
 
   UInt                      m_uiEntropyCodingModeFlag;
-  UInt                      m_uiAdaptiveTransform;
+  UInt                      m_uiEnable8x8Trafo;
+  UInt                      m_uiScalingMatricesPresent;
 
   UInt                      m_uiMaxAbsDeltaQP;
   Double                    m_dBaseQpResidual;
@@ -546,7 +634,6 @@ public:
 
 // JVT-Q065 EIDR{
   Int						m_iIDRPeriod;
-  Bool						m_bBLSkipEnable;
 // JVT-Q065 EIDR}
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
@@ -571,7 +658,22 @@ public:
   UInt    m_uiExplicitQPCascading;
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 
-  Bool    m_bInterlaced;
+  UInt    m_uiIPCMRate;
+  std::string m_acScalMatFiles      [8];
+  UChar       m_aaucScalingMatrices [8][64];
+  UInt  m_uiBiPred8x8Disable;
+  UInt  m_uiMCBlks8x8Disable;
+  UInt  m_uiBotFieldFirst;
+  UInt  m_uiUseLongTerm;
+  UInt  m_uiPicCodingType;
+  UInt  m_uiNumDependentDId;
+  UInt  m_uiProfileIdc;
+  UInt  m_uiLevelIdc;
+  Bool  m_bIntraOnly;
+  Bool  m_bConstrainedSetFlag0;
+  Bool  m_bConstrainedSetFlag1;
+  Bool  m_bConstrainedSetFlag2;
+  Bool  m_bConstrainedSetFlag3;
 };
 
 
@@ -612,6 +714,8 @@ class H264AVCENCODERLIB_API SampleWeightingParams
 
 class H264AVCENCODERLIB_API CodingParameter
 {
+  friend class LayerParameters;
+
 public:
   CodingParameter()
     : m_dMaximumFrameRate                 ( 0.0 )
@@ -628,7 +732,8 @@ public:
     , m_uiFrameWidth                      ( 0 )
     , m_uiFrameHeight                     ( 0 )
     , m_uiSymbolMode                      ( 0 )
-    , m_ui8x8Mode                         ( 0 )
+    , m_uiEnable8x8Trafo                  ( 0 )
+    , m_uiScalingMatricesPresent          ( 0 )
     , m_dBasisQp                          ( 0 )
     , m_uiDPBSize                         ( 0 )
     , m_uiNumDPBRefFrames                 ( 0 )
@@ -673,7 +778,13 @@ public:
     , m_uiRateControlEnable               ( 0 )
     , m_uiAdaptInitialQP                  ( 0 )
 // JVT-W043 }
+    , m_uiBiPred8x8Disable                ( 0 )
+    , m_uiMCBlks8x8Disable                ( 0 )
   {
+    for( UInt uiLayerId = 0; uiLayerId < MAX_LAYERS; uiLayerId++ )
+    {
+      m_acLayerParameters[uiLayerId].setLayerId( uiLayerId );
+    }
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
       m_adDeltaQpLayer[uiLayer] = 0;
@@ -699,7 +810,6 @@ public:
   SampleWeightingParams&           getSampleWeightingParams(UInt uiLayerId)  {return m_cSampleWeightingParams[uiLayerId];}
 //TMM_WP
   
-  
   const std::string&              getInputFile            ()              const   { return m_cInputFile; }
   Double                          getMaximumFrameRate     ()              const   { return m_dMaximumFrameRate; }
   Double                          getMaximumDelay         ()              const   { return m_dMaximumDelay; }
@@ -722,33 +832,34 @@ public:
   UInt getBMode()                   const { return m_uiBMode; }
 //TMM_WP
 
-  UInt                            getAVCmode              ()              const   { return m_uiAVCmode; }
-  UInt                            getFrameWidth           ()              const   { return m_uiFrameWidth; }
-  UInt                            getFrameHeight          ()              const   { return m_uiFrameHeight; }
-  UInt                            getSymbolMode           ()              const   { return m_uiSymbolMode; }
-  UInt                            get8x8Mode              ()              const   { return m_ui8x8Mode; }
-  Double                          getBasisQp              ()              const   { return m_dBasisQp; }
-  UInt                            getDPBSize              ()              const   { return m_uiDPBSize; }
-  UInt                            getNumDPBRefFrames      ()              const   { return m_uiNumDPBRefFrames; }
-  UInt                            getLog2MaxFrameNum      ()              const   { return m_uiLog2MaxFrameNum; }
-  UInt                            getLog2MaxPocLsb        ()              const   { return m_uiLog2MaxPocLsb; }
-  std::string                     getSequenceFormatString ()              const   { return m_cSequenceFormatString; }
-  Double                          getDeltaQpLayer         ( UInt ui )     const   { return m_adDeltaQpLayer[ui]; }
-  UInt                            getMaxRefIdxActiveBL0   ()              const   { return m_uiMaxRefIdxActiveBL0; }
-  UInt                            getMaxRefIdxActiveBL1   ()              const   { return m_uiMaxRefIdxActiveBL1; }
-  UInt                            getMaxRefIdxActiveP     ()              const   { return m_uiMaxRefIdxActiveP; }
+  UInt                            getAVCmode                ()              const   { return m_uiAVCmode; }
+  UInt                            getFrameWidth             ()              const   { return m_uiFrameWidth; }
+  UInt                            getFrameHeight            ()              const   { return m_uiFrameHeight; }
+  UInt                            getSymbolMode             ()              const   { return m_uiSymbolMode; }
+  UInt                            getEnable8x8Trafo         ()              const   { return m_uiEnable8x8Trafo; }
+  UInt                            getScalingMatricesPresent ()              const   { return m_uiScalingMatricesPresent; }
+  Double                          getBasisQp                ()              const   { return m_dBasisQp; }
+  UInt                            getDPBSize                ()              const   { return m_uiDPBSize; }
+  UInt                            getNumDPBRefFrames        ()              const   { return m_uiNumDPBRefFrames; }
+  UInt                            getLog2MaxFrameNum        ()              const   { return m_uiLog2MaxFrameNum; }
+  UInt                            getLog2MaxPocLsb          ()              const   { return m_uiLog2MaxPocLsb; }
+  std::string                     getSequenceFormatString   ()              const   { return m_cSequenceFormatString; }
+  Double                          getDeltaQpLayer           ( UInt ui )     const   { return m_adDeltaQpLayer[ui]; }
+  UInt                            getMaxRefIdxActiveBL0     ()              const   { return m_uiMaxRefIdxActiveBL0; }
+  UInt                            getMaxRefIdxActiveBL1     ()              const   { return m_uiMaxRefIdxActiveBL1; }
+  UInt                            getMaxRefIdxActiveP       ()              const   { return m_uiMaxRefIdxActiveP; }
 
-  Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
+  Void                            setInputFile              ( Char*   p )   { m_cInputFile            = p; }
 
-  UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
-  UInt														getEssRPChkEnable				()							const		{	return m_uiEssRPChkEnable;}
-  UInt														getMVThres							()							const		{	return m_uiMVThres;}
+  UInt                            getLARDOEnable            ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
+  UInt														getEssRPChkEnable				  ()							const		{	return m_uiEssRPChkEnable;}
+  UInt														getMVThres							  ()							const		{	return m_uiMVThres;}
 
-  UInt							              getPreAndSuffixUnitEnable	  ()		      const	  { return m_uiPreAndSuffixUnitEnable;} //prefix unit
-	UInt							              getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt							              getPreAndSuffixUnitEnable	()		          const	  { return m_uiPreAndSuffixUnitEnable;} //prefix unit
+	UInt							              getMMCOBaseEnable		      ()			        const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
   // JVT-T073 {
-  UInt                            getNestingSEIEnable     ()              const   { return m_uiNestingSEIEnable; }
-  UInt                            getSceneInfoEnable      ()              const   { return m_uiSceneInfoEnable; }
+  UInt                            getNestingSEIEnable       ()              const   { return m_uiNestingSEIEnable; }
+  UInt                            getSceneInfoEnable        ()              const   { return m_uiSceneInfoEnable; }
   // JVT-T073 }
 
 	UInt														getIntegrityCheckSEIEnable()						const   { return m_uiIntegrityCheckSEIEnable; }//JVT-W052
@@ -769,37 +880,38 @@ public:
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
  JVT-S036 lsj */
-  Void                            setFrameWidth           ( UInt    p )   { m_uiFrameWidth          = p; }
-  Void                            setFrameHeight          ( UInt    p )   { m_uiFrameHeight         = p; }
-  Void                            setSymbolMode           ( UInt    p )   { m_uiSymbolMode          = p; }
-  Void                            set8x8Mode              ( UInt    p )   { m_ui8x8Mode             = p; }
-  Void                            setBasisQp              ( Double  p )   { m_dBasisQp              = p; }
-  Void                            setDPBSize              ( UInt    p )   { m_uiDPBSize             = p; }
-  Void                            setNumDPBRefFrames      ( UInt    p )   { m_uiNumDPBRefFrames     = p; }
-  Void                            setLog2MaxFrameNum      ( UInt    p )   { m_uiLog2MaxFrameNum     = p; }
-  Void                            setLog2MaxPocLsb        ( UInt    p )   { m_uiLog2MaxPocLsb       = p; }
-  Void                            setSequenceFormatString ( Char*   p )   { m_cSequenceFormatString = p; }
-  Void                            setDeltaQpLayer         ( UInt    n,
-                                                            Double  p )   { m_adDeltaQpLayer[n]     = p; }
-  Void                            setMaxRefIdxActiveBL0   ( UInt    p )   { m_uiMaxRefIdxActiveBL0  = p; }
-  Void                            setMaxRefIdxActiveBL1   ( UInt    p )   { m_uiMaxRefIdxActiveBL1  = p; }
-  Void                            setMaxRefIdxActiveP     ( UInt    p )   { m_uiMaxRefIdxActiveP    = p; }
+  Void                            setFrameWidth             ( UInt    p )   { m_uiFrameWidth              = p; }
+  Void                            setFrameHeight            ( UInt    p )   { m_uiFrameHeight             = p; }
+  Void                            setSymbolMode             ( UInt    p )   { m_uiSymbolMode              = p; }
+  Void                            setEnable8x8Trafo         ( UInt    p )   { m_uiEnable8x8Trafo          = p; }
+  Void                            setScalingMatricesPresent ( UInt    p )   { m_uiScalingMatricesPresent  = p; }
+  Void                            setBasisQp                ( Double  p )   { m_dBasisQp                  = p; }
+  Void                            setDPBSize                ( UInt    p )   { m_uiDPBSize                 = p; }
+  Void                            setNumDPBRefFrames        ( UInt    p )   { m_uiNumDPBRefFrames         = p; }
+  Void                            setLog2MaxFrameNum        ( UInt    p )   { m_uiLog2MaxFrameNum         = p; }
+  Void                            setLog2MaxPocLsb          ( UInt    p )   { m_uiLog2MaxPocLsb           = p; }
+  Void                            setSequenceFormatString   ( Char*   p )   { m_cSequenceFormatString     = p; }
+  Void                            setDeltaQpLayer           ( UInt    n,
+                                                              Double  p )   { m_adDeltaQpLayer[n]         = p; }
+  Void                            setMaxRefIdxActiveBL0     ( UInt    p )   { m_uiMaxRefIdxActiveBL0      = p; }
+  Void                            setMaxRefIdxActiveBL1     ( UInt    p )   { m_uiMaxRefIdxActiveBL1      = p; }
+  Void                            setMaxRefIdxActiveP       ( UInt    p )   { m_uiMaxRefIdxActiveP        = p; }
 
-  ErrVal                          check                   ();
+  ErrVal                          check                     ();
   
-  Int					              		  getNonRequiredEnable    ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
+  Int					              		  getNonRequiredEnable      ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
 
 //JVT-T054{
-  UInt                            getCGSSNRRefinement     ()              const   { return m_uiCGSSNRRefinementFlag;}
-  Void                            setCGSSNRRefinement     ( UInt    b )   { m_uiCGSSNRRefinementFlag = b; }
+  UInt                            getCGSSNRRefinement       ()              const   { return m_uiCGSSNRRefinementFlag;}
+  Void                            setCGSSNRRefinement       ( UInt    b )   { m_uiCGSSNRRefinementFlag = b; }
 //JVT-T054}
 // JVT-U085 LMI {
-  Bool                            getTlevelNestingFlag    ()              const   { return m_uiTlevelNestingFlag > 0 ? true : false; }
-  Void                            setTlevelNestingFlag    ( UInt  ui )    { m_uiTlevelNestingFlag = ui; }
+  Bool                            getTlevelNestingFlag      ()              const   { return m_uiTlevelNestingFlag > 0 ? true : false; }
+  Void                            setTlevelNestingFlag      ( UInt  ui )    { m_uiTlevelNestingFlag = ui; }
 // JVT-U085 LMI }
 // JVT-U116 W062 LMI {
-  Bool                            getTl0DepRepIdxSeiEnable        ()              const   { return m_uiTl0DepRepIdxSeiEnable > 0 ? true : false; }
-  Void                            setTl0DepRepIdxSeiEnable        ( UInt  ui )    { m_uiTl0DepRepIdxSeiEnable = ui; }
+  Bool                            getTl0DepRepIdxSeiEnable  ()              const   { return m_uiTl0DepRepIdxSeiEnable > 0 ? true : false; }
+  Void                            setTl0DepRepIdxSeiEnable  ( UInt  ui )    { m_uiTl0DepRepIdxSeiEnable = ui; }
 // JVT-U116 W062 LMI }
 
   //JVT-U106 Behaviour at slice boundaries{
@@ -830,13 +942,15 @@ public:
   //JVT-W049 {
   Bool getEnableRedundantKeyPic() {return m_uiRedundantKeyPic == 0 ? false:true; }
   //JVT-W049 }
-	//JVT-X046 {
-  UInt getSliceMode               ()                   { return m_uiSliceMode; }
-  UInt getSliceArgument           ()                   { return m_uiSliceArgument; }
-  //JVT-X046 }
+  UInt  getBiPred8x8Disable       ()  const           { return m_uiBiPred8x8Disable; }
+  Void  setBiPred8x8Disable       ( UInt ui )         { m_uiBiPred8x8Disable = ui; }
+  UInt  getMCBlks8x8Disable       () const            { return m_uiMCBlks8x8Disable; }
+  Void  setMCBlks8x8Disable       ( UInt ui )         { m_uiMCBlks8x8Disable = ui; }
+
 private:
-  UInt                            getLogFactor            ( Double  r0,
-                                                            Double  r1 );
+  UInt    getLogFactor( Double  r0, Double  r1 );
+
+  ErrVal  xCheckAndSetProfiles();
 
 
 protected:
@@ -866,7 +980,8 @@ protected:
   UInt                      m_uiFrameWidth;
   UInt                      m_uiFrameHeight;
   UInt                      m_uiSymbolMode;
-  UInt                      m_ui8x8Mode;
+  UInt                      m_uiEnable8x8Trafo;
+  UInt                      m_uiScalingMatricesPresent;
   Double                    m_dBasisQp;
   UInt                      m_uiDPBSize;
   UInt                      m_uiNumDPBRefFrames;
@@ -925,10 +1040,8 @@ protected:
 	//JVT-W049 {
   UInt    m_uiRedundantKeyPic;
   //JVT-W049 }
-	//JVT-X046 {
-  UInt    m_uiSliceMode;
-  UInt    m_uiSliceArgument;
-  //JVT-X046 }
+  UInt    m_uiBiPred8x8Disable;
+  UInt    m_uiMCBlks8x8Disable;
 
   // JVT-W043
   public:

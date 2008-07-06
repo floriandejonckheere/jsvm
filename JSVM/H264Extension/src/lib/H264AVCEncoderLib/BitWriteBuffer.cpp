@@ -287,12 +287,12 @@ ErrVal BitWriteBuffer::flushBuffer()
 
 
 
-ErrVal BitWriteBuffer::samples( const Pel* pPel, UInt uiNumberOfSamples )
+ErrVal 
+BitWriteBuffer::pcmSamples( const TCoeff* pCoeff, UInt uiNumberOfSamples )
 {
-  // can be done in a faster way
   for( UInt n = 0; n < uiNumberOfSamples; n++)
   {
-    RNOK( write( pPel[n], 8) );
+    RNOK( write( pCoeff[n].getLevel(), 8) );
   }
   return Err::m_nOK;
 }

@@ -118,9 +118,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
-NonVCLNALUnit::NonVCLNALUnit( BinData* pcBinData, BinData* pcBinDataPrefix )
+NonVCLNALUnit::NonVCLNALUnit( BinData* pcBinData )
 : m_pcBinData       ( pcBinData )
-, m_pcBinDataPrefix ( pcBinDataPrefix )
 , m_eNalUnitType    ( NalUnitType( pcBinData->data()[ 0 ] & 0x1F ) )
 {
   setInstance( this );
@@ -133,18 +132,12 @@ NonVCLNALUnit::~NonVCLNALUnit()
     m_pcBinData->deleteData();
     delete m_pcBinData;
   }
-  if( m_pcBinDataPrefix )
-  {
-    m_pcBinDataPrefix->deleteData();
-    delete m_pcBinDataPrefix;
-  }
 }
 
 Void
 NonVCLNALUnit::destroyNALOnly()
 {
   m_pcBinData       = 0;
-  m_pcBinDataPrefix = 0;
   delete this;
 }
 
@@ -339,15 +332,7 @@ AccessUnit::update( BinData* pcBinData )
 
   if( pcBinData )
   {
-    BinData* pcBinDataPrefix = 0;
-    if( m_pcLastPrefixHeader && NalUnitType( pcBinData->data()[ 0 ] & 0x1F ) == NAL_UNIT_FILLER_DATA )
-    {
-      NALUnit*        pcLastNALUnit   = m_cNalUnitList.popBack();
-      NonVCLNALUnit*  pcPrefixNALUnit = (NonVCLNALUnit*)pcLastNALUnit->getInstance();
-      pcBinDataPrefix                 = pcPrefixNALUnit->getBinData();
-      pcPrefixNALUnit->destroyNALOnly();
-    }
-    NonVCLNALUnit* pcNonVCLNALUnit = new NonVCLNALUnit( pcBinData, pcBinDataPrefix );
+    NonVCLNALUnit* pcNonVCLNALUnit = new NonVCLNALUnit( pcBinData );
     ROF( pcNonVCLNALUnit );
     m_cNalUnitList.push_back( pcNonVCLNALUnit );
     bEOS = ( pcNonVCLNALUnit->getNalUnitType() == NAL_UNIT_END_OF_STREAM );
@@ -784,8 +769,7 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    RNOK( m_apcDecodedPicBuffer[uiLayer]->init ( m_apcYuvFullPelBufferCtrl [uiLayer],
-                                                 uiLayer ) );
+    RNOK( m_apcDecodedPicBuffer[uiLayer]->init ( m_apcYuvFullPelBufferCtrl [uiLayer], uiLayer ) );
 #ifdef SHARP_AVC_REWRITE_OUTPUT
     RNOK( m_apcLayerDecoder    [uiLayer]->init ( uiLayer,
                                                  m_pcH264AVCDecoder,

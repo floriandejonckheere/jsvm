@@ -114,7 +114,7 @@ public:
   virtual ~BitCounter();
   ErrVal write( UInt uiBits, UInt uiNumberOfBits = 1)     { m_uiBitCounter += uiNumberOfBits; return Err::m_nOK; }
 
-  ErrVal samples( const Pel* pPel, UInt uiNumberOfSamples ) { m_uiBitCounter+=8*uiNumberOfSamples; return Err::m_nERR; }
+  ErrVal pcmSamples( const TCoeff* pCoeff, UInt uiNumberOfSamples ) { m_uiBitCounter+=8*uiNumberOfSamples; return Err::m_nERR; }
 
   UInt getNumberOfWrittenBits()                           { return m_uiBitCounter; }
 

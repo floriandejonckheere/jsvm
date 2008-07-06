@@ -180,6 +180,7 @@ MCTF::init( PreProcessorParameter*  pcParameter,
   m_pcPPS->setNumRefIdxActive           ( LIST_0, 1 );
   m_pcPPS->setNumRefIdxActive           ( LIST_1, 1 );
   m_pcPPS->setConstrainedIntraPredFlag  ( true );
+  m_pcPPS->setNumSliceGroupsMinus1      ( 0 );
 
   //----- init frame buffer controls -----
   RNOK( m_pcYuvFullPelBufferCtrl->initSPS( m_uiFrameHeightInMb<<4, m_uiFrameWidthInMb<<4, YUV_Y_MARGIN, YUV_X_MARGIN    ) );
@@ -357,15 +358,14 @@ MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
                                               NULL,
                                               *pcOrigFrame, 
                                               *m_pcFrameTemp,
-                                              false, 
+                                              32,
+                                              false,
+                                              false,
                                               4, 
                                               8, 
-                                              false, 
                                               rcControlData.getLambda(),
                                               dCost, 
-                                              true
-                                              ) );
-
+                                              true ) );
   }
 
   return Err::m_nOK;
@@ -398,19 +398,6 @@ MCTF::xMotionCompensation( Frame*        pcMCFrame,
                                                 false, false ) );
   }
 
-  return Err::m_nOK;
-}
-
-
-ErrVal
-MCTF::xGetConnections( Double&  rdL0Rate,
-                       Double&  rdL1Rate,
-                       Double&  rdBiRate )
-{
-  //=== just a guess ===
-  rdL0Rate = 0.2;
-  rdL1Rate = 0.2;
-  rdBiRate = 0.6;
   return Err::m_nOK;
 }
 
@@ -602,6 +589,9 @@ MCTF::xInitSliceHeader( UInt uiTemporalLevel,
   RNOK( pcSliceHeader->getPredWeightTable(LIST_1).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
   RNOK( pcSliceHeader->getPredWeightTable(LIST_0).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
 
+  pcSliceHeader->setSliceGroupChangeCycle(1);
+  pcSliceHeader->FMOInit();
+
   return Err::m_nOK;
 }
 
@@ -621,7 +611,9 @@ MCTF::xSetScalingFactors( UInt uiBaseLevel )
   //===== get connection data =====
   for( iFrame = 1; iFrame <= iLowPassSize; iFrame += 2 )
   {
-    RNOK( xGetConnections( adRateL0[iFrame], adRateL1[iFrame], adRateBi[iFrame] ) );
+    adRateL0[iFrame]  = 0.2;
+    adRateL1[iFrame]  = 0.2;
+    adRateBi[iFrame]  = 0.6;
   }
 
   //===== get low-pass scaling =====

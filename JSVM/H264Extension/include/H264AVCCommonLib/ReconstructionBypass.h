@@ -114,8 +114,10 @@ public:
                       UInt               uiSliceId = MSYS_UINT_MAX );
 
 private:
-  ErrVal xPadRecMb      ( YuvMbBufferExtension* pcBuffer, UInt uiMask );
-  ErrVal xPadRecMb_MbAff( YuvMbBufferExtension* pcBuffer, UInt uiMask );
+  ErrVal xPadRecMb        ( YuvMbBufferExtension* pcBuffer, UInt uiMask );
+  ErrVal xPadRecMb_MbAff  ( YuvMbBufferExtension* pcBuffer, UInt uiMask );
+  ErrVal xPad8x8Blk_MbAff ( YuvMbBufferExtension* pcBuffer, UInt ui8x8Blk, Bool bV0, Bool bV1, Bool bH, Bool bC0, Bool bC1 );
+  ErrVal xPadBlock_MbAff  ( YuvMbBufferExtension* pcBuffer, LumaIdx cIdx, Bool bVer, Bool bHor, Bool bCorner, Bool bHalfYSize, Bool bFromAbove, Bool bFromLeft );
 };
 
 H264AVC_NAMESPACE_END

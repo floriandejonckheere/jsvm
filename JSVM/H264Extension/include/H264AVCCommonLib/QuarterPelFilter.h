@@ -152,10 +152,6 @@ protected:
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
 };
 
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-#define SIGNED_ROUNDING(x, o, s)    ( ( (x) >= 0 ) ? ( ( (x) + (o) ) >> s ) : -( ( -(x) + (o) ) >> s ) )
-#endif
-
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_INTERPOLATIONFILTER_H__79B49DF9_A41E_4043_AD0E_CAAC3A0A9DA1__INCLUDED_)

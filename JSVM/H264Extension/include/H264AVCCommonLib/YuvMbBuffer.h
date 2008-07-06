@@ -165,27 +165,26 @@ protected:
 class H264AVCCOMMONLIB_API YuvMbBufferExtension : public YuvMbBuffer
 {
 public:
-  Void loadSurrounding( YuvPicBuffer* pcSrcBuffer );
+  Void loadSurrounding      ( YuvPicBuffer* pcSrcBuffer );
   Void loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask );//TMM_INTERLACE
 
-  Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent );
-  Void mergeRightBelow    ( LumaIdx cIdx, Bool bCornerMbPresent );
-  Void mergeFromRightAbove( LumaIdx cIdx, Bool bCornerMbPresent );
-  Void mergeLeftBelow     ( LumaIdx cIdx, Bool bCornerMbPresent );
+  Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
+  Void mergeFromRightBelow( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
+  Void mergeFromRightAbove( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
+  Void mergeFromLeftBelow ( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
 
-  Void copyFromBelow      ( LumaIdx cIdx );
+  Void copyFromBelow      ( LumaIdx cIdx, Bool bHalfYSize = false );
   Void copyFromLeft       ( LumaIdx cIdx );
-  Void copyFromAbove      ( LumaIdx cIdx );
+  Void copyFromAbove      ( LumaIdx cIdx, Bool bHalfYSize = false );
   Void copyFromRight      ( LumaIdx cIdx );
 
-  Void copyFromLeftAbove  ( LumaIdx cIdx );
-  Void copyFromRightAbove ( LumaIdx cIdx );
-  Void copyFromLeftBelow  ( LumaIdx cIdx );
-  Void copyFromRightBelow ( LumaIdx cIdx );
+  Void copyFromLeftAbove  ( LumaIdx cIdx, Bool bHalfYSize = false );
+  Void copyFromRightAbove ( LumaIdx cIdx, Bool bHalfYSize = false );
+  Void copyFromLeftBelow  ( LumaIdx cIdx, Bool bHalfYSize = false );
+  Void copyFromRightBelow ( LumaIdx cIdx, Bool bHalfYSize = false );
 
-  Void xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV );
-  Void xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent );
-
+  Void xFill  ( LumaIdx cIdx, XPel cY, XPel cU, XPel cV, Bool bHalfYSize, Bool bLowerHalf );
+  Void xMerge ( Int xDir, Int yDir, Int iSize, XPel* puc, Int iStride, Bool bCornerMbPresent, Bool bHalfYSize );
 };
 
 

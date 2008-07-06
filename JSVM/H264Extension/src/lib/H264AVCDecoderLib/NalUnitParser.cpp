@@ -156,9 +156,14 @@ NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
   ROF( rcBinDataAccessor.size() );
   ROF( rcBinDataAccessor.data() );
 
+  //===== remove zeros at end =====
+  while( rcBinDataAccessor.size() > 1 && rcBinDataAccessor.data()[ rcBinDataAccessor.size() - 1 ] == 0 )
+  {
+    rcBinDataAccessor.decreaseEndPos( 1 );
+  }
+
   //===== determine NAL unit type =====
   UChar       ucFirstByte   = rcBinDataAccessor.data()[ 0 ];
-  NalRefIdc   eNalRefIdc    = NalRefIdc   ( ( ucFirstByte & 0x7F ) >> 5 );
   NalUnitType eNalUnitType  = NalUnitType (   ucFirstByte & 0x1F );
   Bool        bTrailingBits = true;
   switch( eNalUnitType )
@@ -194,7 +199,7 @@ NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
     break;
   case NAL_UNIT_PREFIX:
     DTRACE_HEADER( "PREFIX" );
-    bTrailingBits = ( eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST );
+    bTrailingBits = ( rcBinDataAccessor.size() > 4 );
     break;
   case NAL_UNIT_CODED_SLICE:
   case NAL_UNIT_CODED_SLICE_DATAPART_A:

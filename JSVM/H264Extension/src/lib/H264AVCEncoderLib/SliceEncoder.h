@@ -138,9 +138,9 @@ public:
                                         Frame*     pcRecSubband,
                                         Frame*     pcPredSignal,
                                         ControlData&  rcControlData,
+                                        Bool          bMCBlks8x8Disable,
                                         UInt          uiMbInRow,
                                         RefFrameList& rcRefFrameList,
-                                        RefFrameList& rcRefFrameListBase,
 																				PicType       ePicType );
 
   ErrVal      encodeHighPassPicture   ( UInt&         ruiMbCoded,
@@ -191,15 +191,16 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
                                         Frame*     pcRecSubband,
                                         Frame*     pcPredSignal,
                                         ControlData&  rcControlData,
+                                        Bool          bMCBlks8x8Disable,
                                         UInt          uiMbInRow,
-                                        RefFrameList& rcRefFrameList,
-                                        RefFrameList& rcRefFrameListBase );
+                                        RefFrameList& rcRefFrameList );
 // TMM_INTERLACE}
   ErrVal      encodeSlice             ( SliceHeader&  rcSliceHeader,
-                                        Frame*     pcFrame,
+                                        Frame*        pcFrame,
                                         MbDataCtrl*   pcMbDataCtrl,
                                         RefFrameList& rcList0,
                                         RefFrameList& rcList1,
+                                        Bool          bMCBlks8x8Disable,
                                         UInt          uiMbInRow,
                                         Double        dlambda );
 

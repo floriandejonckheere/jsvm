@@ -142,7 +142,22 @@ ScalingMatrix::read( HeaderSymbolReadIf*  pcReadIf,
   return Err::m_nOK;
 }
 
+ErrVal
+ScalingMatrix::init( const UChar* pucScaleMatrixBuffer )
+{
+  m_acScalingMatrix4x4.get( 0 ).init( pucScaleMatrixBuffer+0*64, 0 );
+  m_acScalingMatrix4x4.get( 1 ).init( pucScaleMatrixBuffer+1*64, pucScaleMatrixBuffer+0*64 );
+  m_acScalingMatrix4x4.get( 2 ).init( pucScaleMatrixBuffer+2*64, pucScaleMatrixBuffer+1*64 );
 
+  m_acScalingMatrix4x4.get( 3 ).init( pucScaleMatrixBuffer+3*64, 0 );
+  m_acScalingMatrix4x4.get( 4 ).init( pucScaleMatrixBuffer+4*64, pucScaleMatrixBuffer+3*64 );
+  m_acScalingMatrix4x4.get( 5 ).init( pucScaleMatrixBuffer+5*64, pucScaleMatrixBuffer+4*64 );
+
+  m_acScalingMatrix8x8.get( 0 ).init( pucScaleMatrixBuffer+6*64, 0 );
+  m_acScalingMatrix8x8.get( 1 ).init( pucScaleMatrixBuffer+7*64, 0 );
+
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END
 

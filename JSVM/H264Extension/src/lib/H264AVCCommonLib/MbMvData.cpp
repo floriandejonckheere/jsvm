@@ -198,7 +198,7 @@ RefPicIdc::isValid() const
   ROTRS( m_ePicType == NOT_SPECIFIED,                         false );
   const Frame* pcFrame = m_pcFrame->getPic( m_ePicType );
   AOF  ( pcFrame );
-  ROFRS( m_pcFrame->getPic( m_ePicType )->getPoc() == m_iPoc, false );
+  ROFRS( pcFrame->getPoc() == m_iPoc,                         false );
   return true; 
 }
 

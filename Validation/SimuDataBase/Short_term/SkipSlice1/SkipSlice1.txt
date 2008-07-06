@@ -80,8 +80,8 @@
             	        width       => 176,
             	        height      => 144,
             	        framerate   => 30,
-            	        bitrate     => 363,
-            	        psnr        => 35.74,
+            	        bitrate     => 340,
+            	        psnr        => 35.35,
             	        encdecmatch => 1,
             	      },
 		      #----------#
@@ -93,8 +93,8 @@
             	        width       => 176,
             	        height      => 144,
             	        framerate   => 15,
-            	        bitrate     => 288,
-            	        psnr        => 36.53,
+            	        bitrate     => 263,
+            	        psnr        => 35.91,
             	      },
 		      #----------#
                       # Test   2 #
@@ -105,8 +105,8 @@
             	        width       => 176,
             	        height      => 144,
             	        framerate   => 15,
-            	        bitrate     => 285,
-            	        psnr        => 36.53,
+            	        bitrate     => 261,
+            	        psnr        => 35.91,
             	      },
 		      #----------#
                       # Test   3 #
@@ -117,8 +117,8 @@
             	        width       => 352,
             	        height      => 288,
             	        framerate   => 30,
-            	        bitrate     => 1406,
-            	        psnr        => 33.81,
+            	        bitrate     => 1311,
+            	        psnr        => 34.34,
             	        encdecmatch => 1,
             	      },
 		      #----------#
@@ -130,8 +130,8 @@
             	        width       => 352,
             	        height      => 288,
             	        framerate   => 30,
-            	        bitrate     => 1390,
-            	        psnr        => 33.81,
+            	        bitrate     => 1303,
+            	        psnr        => 34.34,
             	        encdecmatch => 1,
             	      },
             	      #----------#    		              

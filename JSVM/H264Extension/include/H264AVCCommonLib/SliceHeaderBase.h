@@ -238,6 +238,7 @@ public:
   ErrVal  write ( HeaderSymbolWriteIf&      rcWriteIf ) const;
   ErrVal  read  ( HeaderSymbolReadIf&       rcReadIf );
 
+  Bool    hasMMCO5                          ()                                  const;
   Bool    isDecRefBasePicMarking            ()                                  const   { return m_bDecRefBasePicMarking; }
   Bool    getAdaptiveRefPicMarkingModeFlag  ()                                  const   { return m_bAdaptiveRefPicMarkingModeFlag; }
 

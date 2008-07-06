@@ -112,8 +112,8 @@ public:
   TCoeff*       get8x8( B8x8Idx   c8x8Idx )           { return &m_aaiLevel[4*c8x8Idx.b8x8Index()][0]; }
   const TCoeff* get8x8( B8x8Idx   c8x8Idx )     const { return &m_aaiLevel[4*c8x8Idx.b8x8Index()][0]; }
 
-  Pel*          getPelBuffer()                        { return (Pel*) &m_aaiLevel[0][0]; }
-  const Pel*    getPelBuffer()                  const { return (Pel*) &m_aaiLevel[0][0]; }
+  TCoeff*       getTCoeffBuffer()                     { return &m_aaiLevel[0][0]; }
+  const TCoeff* getTCoeffBuffer()               const { return &m_aaiLevel[0][0]; }
 
   UInt calcCoeffCount( LumaIdx cLumaIdx, Bool bIs8x8, Bool bInterlaced, UInt uiStart, UInt uiStop ) const;
   UInt calcCoeffCount( ChromaIdx cChromaIdx, const UChar *pucScan, UInt uiStart, UInt uiStop ) const;

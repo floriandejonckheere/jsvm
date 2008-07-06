@@ -453,9 +453,6 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcMotionEstimation,
 										                        m_pcReconstructionBypass,
                                            &m_apcScheduler ) );
-  
-  //EIDR bug-fix
-	m_apcLayerEncoder[uiLayer]->setIDRAccessPeriod(m_pcCodingParameter->getLayerParameters(0).getIDRPeriod()); 
   }
 
   //Bug_Fix JVT-R057{

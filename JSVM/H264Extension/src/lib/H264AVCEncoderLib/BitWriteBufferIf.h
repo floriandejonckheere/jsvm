@@ -112,7 +112,7 @@ public:
   virtual ErrVal writeAlignZero() = 0;
   virtual ErrVal writeAlignOne() = 0;
   virtual ErrVal flushBuffer() = 0;
-  virtual ErrVal samples( const Pel* pPel, UInt uiNumberOfSamples ) = 0;
+  virtual ErrVal pcmSamples( const TCoeff* pCoeff, UInt uiNumberOfSamples ) = 0;
   virtual ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
 	//JVT-X046 {
 	virtual void loadBitWriteBuffer(BitWriteBufferIf* pcBitWriteBufferIf) = 0;

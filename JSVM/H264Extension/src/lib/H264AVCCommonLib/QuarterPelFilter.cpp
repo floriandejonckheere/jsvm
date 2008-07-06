@@ -450,11 +450,6 @@ Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2];
       iTemp += pucSrc[x + 3];
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-        pucDest[x] =  SIGNED_ROUNDING( iTemp, 16, 5 );
-      else
-#endif
       pucDest[x] = xClip( (iTemp + 16) / 32 );
     }
     pucDest += iDestStride;
@@ -480,22 +475,8 @@ Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2];
       iTemp += pucSrc[x + 3];
-
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-      {
-        iTemp     += pucSrc[ x + iDx] << 5;
-        pucDest[x] = SIGNED_ROUNDING( iTemp,  32, 6 );
-      }
-      else
-      {
-        iTemp = xClip( (iTemp + 16) / 32 );
-        pucDest[x] = (iTemp + pucSrc[ x + iDx] + 1) / 2;
-      }
-#else
       iTemp = xClip( (iTemp + 16) / 32 );
       pucDest[x] = (iTemp + pucSrc[ x + iDx] + 1) / 2;
-#endif
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -518,11 +499,6 @@ Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2*iSrcStride];
       iTemp += pucSrc[x + 3*iSrcStride];
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-        pucDest[x] = SIGNED_ROUNDING( iTemp, 16, 5 );
-      else
-#endif
       pucDest[x] = xClip( (iTemp + 16) / 32 );
     }
     pucDest += iDestStride;
@@ -547,21 +523,8 @@ Void QuarterPelFilter::xPredDx0Dy13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2*iSrcStride];
       iTemp += pucSrc[x + 3*iSrcStride];
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-      {
-        iTemp     += pucSrc[ x + iDy] << 5;
-        pucDest[x] = SIGNED_ROUNDING( iTemp, 32, 6 );
-      }
-      else
-      {
-        iTemp = xClip( (iTemp + 16) / 32 );
-        pucDest[x] = (iTemp + pucSrc[ x + iDy] + 1)/2;
-      }
-#else
       iTemp = xClip( (iTemp + 16) / 32 );
       pucDest[x] = (iTemp + pucSrc[ x + iDy] + 1)/2;
-#endif
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -618,12 +581,6 @@ Void QuarterPelFilter::xPredDx2Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += psTemp[-0x20 + iIndex];
       iTemp += psTemp[ 0x30 + iIndex];
-
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-        pucDest[x] = SIGNED_ROUNDING( iTemp, 512, 10 );
-      else
-#endif
       pucDest[x] = xClip( (iTemp + 512) / 1024 );
     }
     psTemp  += 0x10;
@@ -655,21 +612,8 @@ Void QuarterPelFilter::xPredDx2Dy13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += psTemp[-0x20 + iIndex];
       iTemp += psTemp[ 0x30 + iIndex];
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-      {
-        iTemp     += psTemp[iDy + iIndex] << 5;
-        pucDest[x] = SIGNED_ROUNDING( iTemp, 1024, 11 );
-      }
-      else
-      {
-        iTemp = xClip( (iTemp + 512) / 1024 );
-        pucDest[x] = (iTemp + xClip( (psTemp[iDy + iIndex] + 16) / 32 ) + 1) / 2;
-      }
-#else
       iTemp = xClip( (iTemp + 512) / 1024 );
       pucDest[x] = (iTemp + xClip( (psTemp[iDy + iIndex] + 16) / 32 ) + 1) / 2;
-#endif
     }
     psTemp  += 0x10;
     pucDest += iDestStride;
@@ -703,21 +647,8 @@ Void QuarterPelFilter::xPredDy2Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       {
         iTemp += aiTemp[n+x]*g_aiTapCoeff[n];
       }
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-      {
-        iTemp     += aiTemp[x+iDx] << 5;
-        pucDest[x] = SIGNED_ROUNDING( iTemp, 1024, 11 );
-      }
-      else
-      {
-        iTemp = xClip( (iTemp + 512) / 1024 );
-        pucDest[x] = (iTemp + xClip( (aiTemp[x+iDx] + 16) / 32 ) + 1) / 2;
-      }
-#else
       iTemp = xClip( (iTemp + 512) / 1024 );
       pucDest[x] = (iTemp + xClip( (aiTemp[x+iDx] + 16) / 32 ) + 1) / 2;
-#endif
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -747,9 +678,7 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
       iTempX += iTempX << 2;
       iTempX += pucSrcX[x - 2];
       iTempX += pucSrcX[x + 3];
-#if ! AR_FGS_COMPENSATE_SIGNED_FRAME
       iTempX = xClip( (iTempX + 16) / 32 );
-#endif
 
       Int iTempY;
       iTempY  = pucSrcY[x - 0*iSrcStride];
@@ -760,21 +689,8 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
       iTempY += iTempY << 2;
       iTempY += pucSrcY[x - 2*iSrcStride];
       iTempY += pucSrcY[x + 3*iSrcStride];
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      if( ! m_bClip )
-      {
-        pucDest[x] = SIGNED_ROUNDING( iTempX + iTempY, 32, 6 );
-      }
-      else
-      {
-        iTempX = xClip( (iTempX + 16) / 32 );
-        iTempY = xClip( (iTempY + 16) / 32 );
-        pucDest[x] = (iTempX + iTempY + 1) >> 1;
-      }
-#else
       iTempY = xClip( (iTempY + 16) / 32 );
       pucDest[x] = (iTempX + iTempY + 1) >> 1;
-#endif
     }
     pucDest += iDestStride;
     pucSrcX += iSrcStride;

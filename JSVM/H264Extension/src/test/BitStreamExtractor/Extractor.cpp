@@ -3426,9 +3426,9 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 
 // HS: packet trace
 ErrVal
-Extractor::xReadLineExtractTrace( Char* pcFormatString,
-                                  UInt* puiStart,
-                                  UInt* puiLength )
+Extractor::xReadLineExtractTrace( const Char* pcFormatString,
+                                  UInt*       puiStart,
+                                  UInt*       puiLength )
 {
   if( NULL != puiStart && NULL != puiLength )
   {
@@ -3749,7 +3749,6 @@ Extractor::GetAndCheckBaseLayerPackets( Double& dRemainingBytes )
 ErrVal
 Extractor::xGetExtParameters()
 {
-
   UInt uiLayer,uiLevel;
   const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
   ROT( rcExtList.size() != 1 );
@@ -3760,7 +3759,7 @@ Extractor::xGetExtParameters()
   UInt                                              uiExtLevel  = MSYS_UINT_MAX;
   //----- layer -----
   //modif Nathalie
-  for( uiLayer = m_cScalableStreamDescription.getNumberOfLayers()-1; uiLayer >= 0; uiLayer-- )
+  for( uiLayer = m_cScalableStreamDescription.getNumberOfLayers()-1; (Int)uiLayer >= 0; uiLayer-- )
   {
     if( rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer) &&
         rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer)    )

@@ -114,7 +114,7 @@ public:
   static ErrVal enable      ();
 
   static ErrVal initTrace   ();
-  static ErrVal openTrace   ( Char* pucBaseFilename );
+  static ErrVal openTrace   ( const Char* pucBaseFilename );
   static ErrVal closeTrace  ();
   static ErrVal setLayer    ( UInt  uiLayerId );
 
@@ -124,7 +124,7 @@ public:
   static ErrVal startSlice  ();
   static ErrVal startMb     ( Int   iMbAddress  );
 
-  static ErrVal printHeading( Char* pcString    );
+  static ErrVal printHeading( const Char* pcString    );
 
   static ErrVal countBits   ( UInt  uiBitCount );
   static ErrVal printPos    ();
@@ -138,7 +138,7 @@ public:
   static ErrVal printBits   ( UInt  uiVal, UInt uiLength );
   static ErrVal printCode   ( UInt  uiVal );
   static ErrVal printCode   ( Int   iVal );
-  static ErrVal printType   ( Char* pcString);
+  static ErrVal printType   ( const Char* pcString);
 
   static ErrVal newLine();
 	

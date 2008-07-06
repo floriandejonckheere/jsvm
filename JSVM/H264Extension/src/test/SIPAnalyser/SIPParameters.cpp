@@ -112,7 +112,7 @@ ErrVal SIPParameters::xReadConfigFile(FILE *pFile)
   return Err::m_nOK;
 }
 
-ErrVal SIPParameters::xReadLine( FILE* pFile, char* pcFormat, void* pPar )
+ErrVal SIPParameters::xReadLine( FILE* pFile, const char* pcFormat, void* pPar )
 {
   if( pPar )
   {

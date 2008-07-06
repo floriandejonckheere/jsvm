@@ -184,6 +184,9 @@ public:
 
   UInt    getRateCost           ( UInt                  uiBits,
                                   Bool                  bSad  )            { xGetMotionCost( bSad, 0 ); return xGetCost( uiBits ); }
+  Bool getELSearch() const { return m_cParams.getELSearch(); }
+  Void setEL( Bool b) { m_bELWithBLMv = b; }
+
   ErrVal  estimateBlockWithStart( const MbDataAccess&   rcMbDataAccess,
                                   const Frame&       rcRefFrame,
                                   Mv&                   rcMv,         // <-- MVSTART / --> MV
@@ -209,7 +212,7 @@ public:
 
 protected:
 
-  Void          xTZSearch             ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange = 0 );
+  Void          xTZSearch             ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bEL, Int iSearchRange = 0 );
   __inline Void xTZSearchHelp         ( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance );
   __inline Void xTZ2PointSearch       ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect );
   __inline Void xTZ8PointSquareSearch ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect, const Int iStartX, const Int iStartY, const Int iDist );
@@ -235,6 +238,7 @@ protected:
 //TMM_WP
   ListIdx m_eLstIdx;
 //TMM_WP
+  Bool  m_bELWithBLMv;
 };
 
 

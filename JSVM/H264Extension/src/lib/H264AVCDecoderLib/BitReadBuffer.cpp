@@ -251,7 +251,7 @@ BitReadBuffer::get( UInt& ruiBits, UInt uiNumberOfBits  )
 
 
 ErrVal 
-BitReadBuffer::samples( Pel* pPel, UInt uiNumberOfSamples )
+BitReadBuffer::pcmSamples ( TCoeff* pCoeff, UInt uiNumberOfSamples )
 {
   AOF_DBG( isByteAligned() );
   // can be done in a faster way
@@ -259,7 +259,7 @@ BitReadBuffer::samples( Pel* pPel, UInt uiNumberOfSamples )
   {
     UInt uiTemp;
     DECRNOK( get( uiTemp, 8) );
-    pPel[n] = uiTemp;
+    pCoeff[n].setLevel( uiTemp );
   }
   return Err::m_nOK;
 }

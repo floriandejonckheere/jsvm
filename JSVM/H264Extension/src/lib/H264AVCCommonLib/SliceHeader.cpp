@@ -96,7 +96,6 @@ H264AVC_NAMESPACE_BEGIN
 SliceHeader::SliceHeader()
 : m_eErrorConcealMode   ( EC_NONE )
 , m_bTrueSlice          ( true )
-, m_bInIDRAccess        ( false )
 , m_uiNumMbsInSlice     ( 0 )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
@@ -110,6 +109,7 @@ SliceHeader::SliceHeader()
 , m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
+, m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
@@ -123,7 +123,6 @@ SliceHeader::SliceHeader( const NalUnitHeader& rcNalUnitHeader )
 : SliceHeaderSyntax     ( rcNalUnitHeader )
 , m_eErrorConcealMode   ( EC_NONE )
 , m_bTrueSlice          ( true )
-, m_bInIDRAccess        ( false )
 , m_uiNumMbsInSlice     ( 0 )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
@@ -137,6 +136,7 @@ SliceHeader::SliceHeader( const NalUnitHeader& rcNalUnitHeader )
 , m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
+, m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
@@ -150,7 +150,6 @@ SliceHeader::SliceHeader( const PrefixHeader& rcPrefixHeader )
 : SliceHeaderSyntax     ( rcPrefixHeader )
 , m_eErrorConcealMode   ( EC_NONE )
 , m_bTrueSlice          ( true )
-, m_bInIDRAccess        ( false )
 , m_uiNumMbsInSlice     ( 0 )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
@@ -164,6 +163,7 @@ SliceHeader::SliceHeader( const PrefixHeader& rcPrefixHeader )
 , m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
+, m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
@@ -177,7 +177,6 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
 : SliceHeaderSyntax     ( rcSPS, rcPPS )
 , m_eErrorConcealMode   ( EC_NONE )
 , m_bTrueSlice          ( true )
-, m_bInIDRAccess        ( false )
 , m_uiNumMbsInSlice     ( 0 )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
@@ -191,6 +190,7 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
 , m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
+, m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
@@ -204,7 +204,6 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 : SliceHeaderSyntax         ( rcSliceHeader )
 , m_eErrorConcealMode       ( EC_NONE )
 , m_bTrueSlice              ( true )
-, m_bInIDRAccess            ( false )
 , m_uiNumMbsInSlice         ( 0 )
 , m_uiLastMbInSlice         ( rcSliceHeader.m_uiLastMbInSlice )
 , m_iTopFieldPoc            ( rcSliceHeader.m_iTopFieldPoc )
@@ -218,6 +217,7 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 , m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
+, m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 {
   ::memcpy( m_aapcRefFrameList, rcSliceHeader.m_aapcRefFrameList, sizeof( m_aapcRefFrameList ) );
@@ -235,12 +235,12 @@ SliceHeader::init( const SequenceParameterSet& rcSPS, const PictureParameterSet&
   RNOK( SliceHeaderSyntax::init( rcSPS, rcPPS ) );
   m_eErrorConcealMode   = EC_NONE;
   m_bTrueSlice          = true;
-  m_bInIDRAccess        = false;
   m_uiNumMbsInSlice     = 0;
   m_uiLastMbInSlice     = 0;
   m_iTopFieldPoc        = 0;
   m_iBotFieldPoc        = 0;
   m_bSCoeffResidualPred = false;
+  m_iLongTermFrameIdx   = -1;
   m_bReconstructionLayer= false;
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -256,12 +256,12 @@ SliceHeader::copy( const SliceHeader& rcSliceHeader )
   SliceHeaderSyntax::copy ( rcSliceHeader );
   m_eErrorConcealMode     = rcSliceHeader.m_eErrorConcealMode;
   m_bTrueSlice            = rcSliceHeader.m_bTrueSlice;
-  m_bInIDRAccess          = rcSliceHeader.m_bInIDRAccess;
   m_uiNumMbsInSlice       = rcSliceHeader.m_uiNumMbsInSlice;
   m_uiLastMbInSlice       = rcSliceHeader.m_uiLastMbInSlice;
   m_iTopFieldPoc          = rcSliceHeader.m_iTopFieldPoc;
   m_iBotFieldPoc          = rcSliceHeader.m_iBotFieldPoc;
   m_bSCoeffResidualPred   = rcSliceHeader.m_bSCoeffResidualPred;
+  m_iLongTermFrameIdx     = rcSliceHeader.m_iLongTermFrameIdx;
   m_bReconstructionLayer  = rcSliceHeader.m_bReconstructionLayer;
   m_cFMO                  = rcSliceHeader.m_cFMO;
   ::memcpy( m_aapcRefFrameList, rcSliceHeader.m_aapcRefFrameList, sizeof( m_aapcRefFrameList ) );
@@ -377,7 +377,7 @@ Int
 SliceHeader::getDistScaleFactorWP( const Frame* pcFrameL0, const Frame* pcFrameL1 ) const
 {
   Int iDiffPocD = pcFrameL1->getPoc() - pcFrameL0->getPoc();
-  if( iDiffPocD == 0 )
+  if( pcFrameL0->isLongTerm() || pcFrameL1->isLongTerm() || iDiffPocD == 0 )
   {
     return 1024;
   }
@@ -604,44 +604,6 @@ SliceHeader::getNumMbInSlice()
   return m_cFMO.getNumMbInSliceGroup(SliceID);
 }
 
-ErrVal
-SliceHeader::xInitScalingMatrix()
-{
-  ROF( parameterSetsInitialized() );
-
-  if( ! getSPS().getSeqScalingMatrixPresentFlag() && ! getPPS().getPicScalingMatrixPresentFlag() )
-  {
-    SliceHeaderSyntax::getScalingMatrix().setAll( 0 );
-    return Err::m_nOK;
-  }
-  for( UInt uiIndex = 0; uiIndex < SliceHeaderSyntax::getScalingMatrix().size(); uiIndex++ )
-  {
-    const UChar* puc = getPPS().getPicScalingMatrix().get( uiIndex );
-    if( ! puc )
-    {
-      puc = getSPS().getSeqScalingMatrix().get( uiIndex );
-    }
-    if( ! puc && ( uiIndex == 1 || uiIndex == 2 || uiIndex == 4 || uiIndex == 5 ) )
-    {
-      puc = SliceHeaderSyntax::getScalingMatrix().get( uiIndex - 1 );
-    }
-    if( ! puc )
-    {
-      switch( uiIndex )
-      {
-      case 0 : puc = g_aucScalingMatrixDefault4x4Intra; break;
-      case 3 : puc = g_aucScalingMatrixDefault4x4Inter; break;
-      case 6 : puc = g_aucScalingMatrixDefault8x8Intra; break;
-      case 7 : puc = g_aucScalingMatrixDefault8x8Inter; break;
-      default:
-        RERR();
-      }
-    }
-    SliceHeaderSyntax::getScalingMatrix().set( uiIndex, puc );
-  }
-  return Err::m_nOK;
-}
-
 
 Int
 SliceHeader::getDistScaleFactor( PicType eMbPicType,
@@ -651,7 +613,7 @@ SliceHeader::getDistScaleFactor( PicType eMbPicType,
   const Frame*  pcFrameL0 = getRefFrameList( eMbPicType, LIST_0 )->getEntry( sL0RefIdx - 1 );
   const Frame*  pcFrameL1 = getRefFrameList( eMbPicType, LIST_1 )->getEntry( sL1RefIdx - 1 );
   Int           iDiffPocD = pcFrameL1->getPoc() - pcFrameL0->getPoc();
-  if( iDiffPocD == 0 )
+  if( pcFrameL0->isLongTerm() || iDiffPocD == 0 )
   {
     return 1024;
   }

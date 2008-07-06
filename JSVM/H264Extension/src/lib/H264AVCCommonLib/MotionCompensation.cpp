@@ -314,11 +314,7 @@ __inline Void MotionCompensation::xPredChromaPel( XPel* pucDest, Int iDestStride
     {
       for( x = 0; x < iSizeX; x++ )
       {
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-        pucDest[x  ] = SIGNED_ROUNDING( yF0 * pucSrc[x  ] + yF1 * pucSrc[x+iSrcStride  ], 4, 3 );
-#else
         pucDest[x  ] = (yF0 * pucSrc[x  ] + yF1 * pucSrc[x+iSrcStride  ] + 4) >> 3;
-#endif
       }
       pucDest += iDestStride;
       pucSrc  += iSrcStride;
@@ -335,11 +331,7 @@ __inline Void MotionCompensation::xPredChromaPel( XPel* pucDest, Int iDestStride
     {
       for( x = 0; x < iSizeX; x++ )
       {
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-        pucDest[x] = SIGNED_ROUNDING( xF0 * pucSrc[x] + xF1 * pucSrc[x+1], 4, 3 );
-#else
         pucDest[x] = (xF0 * pucSrc[x] + xF1 * pucSrc[x+1] + 4) >> 3;
-#endif
       }
       pucDest += iDestStride;
       pucSrc  += iSrcStride;
@@ -356,11 +348,7 @@ __inline Void MotionCompensation::xPredChromaPel( XPel* pucDest, Int iDestStride
     {
       Int b = yF0 * pucSrc[x+1] + yF1 * pucSrc[iSrcStride+x+1];
       Int c = xF1 * b;
-#if AR_FGS_COMPENSATE_SIGNED_FRAME
-      pucDest[x]   = SIGNED_ROUNDING( a + c, 0x20, 6 );
-#else
       pucDest[x]   = (a + c + 0x20) >> 6;
-#endif
       a = (b<<3) - c;
     }
     pucDest += iDestStride;
@@ -1242,7 +1230,21 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
       {
         if( bCalcMv )
         {
-          xCalcSDirect( rcMbDataAccess, NULL );
+          RefFrameList* pcL0  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_0 );
+          RefFrameList* pcL1  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_1 );
+          if( rcMbDataAccess.getSH().isH264AVCCompatible() )
+          {
+            B8x8Idx c8x8Idx1;
+            Bool    bOneMv;
+            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
+            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
+            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
+            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); 
+          }
+          else
+          {
+            RNOK( rcMbDataAccess.setSVCDirectModeMvAndRef( *pcL0, *pcL1 ) );
+          }
         }
 
         B8x8Idx c8x8Idx;

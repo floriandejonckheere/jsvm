@@ -36,6 +36,14 @@ layers      => [
                  height       => 288,
                  framerate    =>  30,
                 },
+                #----------#
+                # Layer  2 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
+                 framerate    =>  30,
+                },
                ],
    
 #==========================================================#
@@ -54,8 +62,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  	bitrate     => 262,
-                  	psnr        => 34.87,
+                  	bitrate     => 212,
+                  	psnr        => 33.96,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -67,8 +75,20 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  	bitrate     => 1203,
-                  	psnr        => 34.78,
+                  	bitrate     => 1150,
+                  	psnr        => 34.60,
+                       },
+                       #----------#
+                       # Test   2 #
+                       #----------#
+                       {
+                        name        => "L2",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                  	bitrate     => 1555,
+                  	psnr        => 35.52,
                         encdecmatch => 1,
                        },
                       ],

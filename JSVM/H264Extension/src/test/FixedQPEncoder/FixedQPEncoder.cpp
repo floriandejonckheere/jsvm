@@ -258,17 +258,16 @@ void encode( EncoderParameters& rcEncoderParameters )
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
   {
     LayerParameters& rcLayer = rcEncoderParameters.acLayerParameters[uiLayer];
-			sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %d ",
-				uiLayer, rcLayer.cOrgFile.c_str(), 
-				uiLayer, rcLayer.cRecFile.c_str(), 
-				uiLayer, rcLayer.dQpModeDecision, 
-				uiLayer, rcLayer.dBaseQpResidual,
-				uiLayer, rcLayer.dBaseQpResidual,
-				uiLayer, rcLayer.uiEntropyCodingModFlag,
-				uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
-				uiLayer,
-				uiLayer, rcLayer.uiInterLayerPredictionMode,
-				uiLayer, rcLayer.iBaseLayerId );
+    sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -ilpred %u %u -blid %u %d ",
+      uiLayer, rcLayer.cOrgFile.c_str(), 
+      uiLayer, rcLayer.cRecFile.c_str(), 
+      uiLayer, rcLayer.dQpModeDecision, 
+      uiLayer, rcLayer.dBaseQpResidual,
+      uiLayer, rcLayer.dBaseQpResidual,
+      uiLayer, rcLayer.uiEntropyCodingModFlag,
+      uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
+      uiLayer, rcLayer.uiInterLayerPredictionMode,
+      uiLayer, rcLayer.iBaseLayerId );
     cCommandLineString  += acTempString;
   }
 
@@ -444,7 +443,7 @@ encode_layer( EncoderParameters& rcEncoderParameters )
 #define ROF(x)  {if(!x)return 1;}
 
 int
-read_line( FILE* pFile, char* pcFormat, void* pPar )
+read_line( FILE* pFile, const char* pcFormat, void* pPar )
 {
   if( pPar )
   {

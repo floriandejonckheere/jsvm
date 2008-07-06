@@ -306,6 +306,23 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
   return Err::m_nOK;
 }
 
+ErrVal
+PocCalculator::resetMMCO5( SliceHeader& rcSliceHeader )
+{
+  PicType ePicType    = rcSliceHeader.getPicType();
+  Int     iTempPOC    = ( ePicType == TOP_FIELD ? rcSliceHeader.getTopFieldPoc() : 
+                          ePicType == BOT_FIELD ? rcSliceHeader.getBotFieldPoc() : 
+                          min( rcSliceHeader.getTopFieldPoc(), rcSliceHeader.getBotFieldPoc() ) );
+  Int     iTopFldPoc  = rcSliceHeader.getTopFieldPoc() - iTempPOC;
+  Int     iBotFldPoc  = rcSliceHeader.getBotFieldPoc() - iTempPOC;
+  m_iPrevRefPocMsb    = 0;
+  m_iPrevRefPocLsb    = ( ePicType == BOT_FIELD ? iTopFldPoc : 0 );
+  m_iFrameNumOffset   = 0;
+  m_iPrevFrameNum     = 0;
+  rcSliceHeader.setTopFieldPoc( iTopFldPoc );
+  rcSliceHeader.setBotFieldPoc( iBotFldPoc );
+  return Err::m_nOK;
+}
 
 ErrVal
 PocCalculator::xInitSPS( const SequenceParameterSet& rcSPS )
@@ -324,7 +341,7 @@ PocCalculator::xInitSPS( const SequenceParameterSet& rcSPS )
       m_iFrameNumOffset = 0;
       m_iRefOffsetSum   = 0;
       for( UInt uiIndex = 0; uiIndex < rcSPS.getNumRefFramesInPicOrderCntCycle(); uiIndex++ )
-    {
+      {
         m_iRefOffsetSum+= rcSPS.getOffsetForRefFrame( uiIndex );
       }
     }
@@ -343,24 +360,17 @@ PocCalculator::xInitSPS( const SequenceParameterSet& rcSPS )
 
 
 ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
-                              Int           iContFrameNumber )
+                              Int           iContNumber )
 {
-  ROTRS( iContFrameNumber > ( INT_MAX - 1 ), Err::m_nERR );
-
-	//const UInt iCurrFieldNum = ( iContFrameNumber /*<< 1*/ ) + (m_iTop2BotOffset?1:0) + ( rcSliceHeader.getBottomFieldFlag() ? m_iTop2BotOffset : 0 );
-  const UInt iCurrFieldNum = iContFrameNumber + rcSliceHeader.getBottomFieldFlag();
+  ROTRS( iContNumber > ( INT_MAX - 1 ), Err::m_nERR );
 
   if( rcSliceHeader.getIdrFlag() )
   {
     m_iBitsLsb          = rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb();
-		// JVT-Q065 EIDR
-	//m_iLastIdrFrameNum  = iContFrameNumber; 
-    //if(rcSliceHeader.getInIDRAccess())
-     m_iLastIdrFieldNum  = iCurrFieldNum;
+    m_iLastIdrFieldNum  = iContNumber;
   }
-
 	
-	Int iCurrPoc = iCurrFieldNum - m_iLastIdrFieldNum;
+  Int iCurrPoc = iContNumber - m_iLastIdrFieldNum;
 
 	if( rcSliceHeader.getPicType() & TOP_FIELD )
 	{

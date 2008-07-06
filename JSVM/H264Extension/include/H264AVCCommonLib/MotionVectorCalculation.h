@@ -112,7 +112,6 @@ public:
   ErrVal  calcMvSubMb ( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
 protected:
-  Void xCalcSDirect( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   Void xCalc16x16( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   Void xCalc16x8( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   Void xCalc8x16( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );

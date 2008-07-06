@@ -31,7 +31,7 @@ protected:
 
   ErrVal            xReadConfigFile(FILE* pFile);
   void              xPrintUsage();
-  ErrVal            xReadLine( FILE* pFile, char* pcFormat, void* pPar );
+  ErrVal            xReadLine( FILE* pFile, const char* pcFormat, void* pPar );
   ErrVal            xCheck();
 public:
 

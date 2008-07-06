@@ -104,8 +104,9 @@ public:
   ErrVal  copy            ( PocCalculator*& rpcPocCalculator );
   ErrVal  destroy         ();
 
-  ErrVal  setPoc          ( SliceHeader& rcSliceHeader, Int iContFrameNumber );
+  ErrVal  setPoc          ( SliceHeader& rcSliceHeader, Int iContNumber );
   ErrVal  calculatePoc    ( SliceHeader& rcSliceHeader );
+  ErrVal  resetMMCO5      ( SliceHeader& rcSliceHeader );
 
 protected:
   ErrVal  xInitSPS        ( const SequenceParameterSet& rcSPS );

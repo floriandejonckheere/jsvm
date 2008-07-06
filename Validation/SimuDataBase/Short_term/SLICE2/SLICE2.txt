@@ -47,14 +47,14 @@ tests              => [
                        #   Test 0  #
                        #----------#
                        {
-            		        name => "L0",
+            		name => "L0",
                         mode        => 1,
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  			bitrate     => 194,
-                  			psnr        => 33.40,
-            		        encdecmatch => 1,
+                  	bitrate     => 168,
+                  	psnr        => 32.62,
+            		encdecmatch => 1,
                        },                                                                  
                        #----------#
                        #   Test 1  #
@@ -65,9 +65,9 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 635,
-                  			psnr        => 31.14,
-            		        encdecmatch => 1,
+                  	bitrate     => 603,
+                  	psnr        => 31.15,
+            		encdecmatch => 1,
                        },                                                                  
                       ],
 }

@@ -55,38 +55,38 @@ tests              => [
                        #   Test 0  #
                        #----------#
                        {
-            		        name => "L0",
+            		name => "L0",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 661,
-                  			psnr        => 30.98,
+                  	bitrate     => 577,
+                  	psnr        => 31.16,
                        },                                                                  
                        #----------#
                        #   Test 1  #
                        #----------#
                        {
-            		        name => "L1",
+            		name => "L1",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1800,
-                  			psnr        => 35.94,
+                  	bitrate     => 1584,
+                  	psnr        => 36.00,
                        },                                                                  
                        #----------#
                        #   Test 2  #
                        #----------#
                        {
-            		        name => "L2",
+            		name => "L2",
                         mode        => 11,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 3166,
-                  			psnr        => 38.48,
-            		        encdecmatch => 1,
+                  	bitrate     => 2805,
+                  	psnr        => 38.50,
+            		encdecmatch => 1,
                        },                                                                  
                       ],
 }

@@ -119,7 +119,7 @@ public:
 
   UInt getNumberOfWrittenBits() { return  m_uiBitsWritten; }
 
-  ErrVal samples( const Pel* pPel, UInt uiNumberOfSamples );
+  ErrVal pcmSamples( const TCoeff* pCoeff, UInt uiNumberOfSamples );
 
   ErrVal flushBuffer();
   ErrVal writeAlignZero();

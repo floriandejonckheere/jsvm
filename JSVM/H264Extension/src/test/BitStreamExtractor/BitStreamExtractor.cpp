@@ -84,7 +84,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "BStreamExtractor.h"
 #include "Extractor.h"
 
-
 int main( int argc, char** argv)
 {
   Extractor*          pcExtractor = NULL;

@@ -87,6 +87,7 @@ int main(int argc, char **argv)
 {
   printf( "JSVM Quality Assigner\n\n" );
   printf( "Info: This tool relies on the scalable SEI message\n"
+          "      This tool requires prefix NAL units in front of each H.264 NAL unit\n"
           "      This tool assumes a fixed GOP size (non-AGS) throughout a sequence\n\n\n" );
 
   QualityLevelParameter*  pcParameter = 0;

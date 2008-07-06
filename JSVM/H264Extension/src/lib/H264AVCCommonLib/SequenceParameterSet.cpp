@@ -94,58 +94,58 @@ H264AVC_NAMESPACE_BEGIN
 
 const SequenceParameterSet::LevelLimit SequenceParameterSet::m_aLevelLimit[52] =
 {
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //0
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //1
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //2
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //3
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //4
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //5
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //6
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //7
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //8
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //9
-  { 1,   1485,    99,    297*1024,     64,    175,  256, 2, MSYS_UINT_MAX },     //10
-  { 1,   3000,   396,    675*1024,    192,    500,  512, 2, MSYS_UINT_MAX },     //11
-  { 1,   6000,   396,   1782*1024,    384,   1000,  512, 2, MSYS_UINT_MAX },     //12
-  { 1,  11880,   396,   1782*1024,    768,   2000,  512, 2, MSYS_UINT_MAX },     //13
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //14
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //15
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //16
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //17
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //18
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //19
-  { 1,  11880,   396,   1782*1024,   2000,   2000,  512, 2, MSYS_UINT_MAX },     //20
-  { 1,  19800,   792,   3564*1024,   4000,   4000, 1024, 2, MSYS_UINT_MAX },     //21
-  { 1,  20250,  1620,   6075*1024,   4000,   4000, 1024, 2, MSYS_UINT_MAX },     //22
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //23
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //24
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //25
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //26
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //27
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //28
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //29
-  { 1,  40500,  1620,   6075*1024,  10000,  10000, 1024, 2, 32 },                //30
-  { 1, 108000,  3600,  13500*1024,  14000,  14000, 2048, 4, 16 },                //31
-  { 1, 216000,  5120,  15360*1024,  20000,  20000, 2048, 4, 16 },                //32
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //33
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //34
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //35
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //36
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //37
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //38
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //39
-  { 1, 245760,  8192,  24576*1024,  20000,  25000, 2048, 4, 16 },                //40
-  { 1, 245760,  8192,  24576*1024,  50000,  62500, 2048, 2, 16 },                //41
-  { 1, 491520,  8192,  24576*1024,  50000,  62500, 2048, 2, 16 },                //42
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //43
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //44
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //45
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //46
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //47
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //48
-  { 0,      0,     0,           0,      0,      0,    0, 0, 0 },                 //49
-  { 1, 589824, 22080,  82620*1024, 135000, 135000, 2048, 2, 16 },                //50
-  { 1, 983040, 36864, 138240*1024, 240000, 240000, 2048, 2, 16 }                 //51
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //0
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //1
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //2
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //3
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //4
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //5
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //6
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //7
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //8
+  { 1,   1485,    99,    297*1024,    128,    350,  256, 2, 64 },                 //9 (1b)
+  { 1,   1485,    99,    297*1024,     64,    175,  256, 2, 64 },                 //10
+  { 1,   3000,   396,    675*1024,    192,    500,  512, 2, 64 },                 //11
+  { 1,   6000,   396,   1782*1024,    384,   1000,  512, 2, 64 },                 //12
+  { 1,  11880,   396,   1782*1024,    768,   2000,  512, 2, 64 },                 //13
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //14
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //15
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //16
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //17
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //18
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //19
+  { 1,  11880,   396,   1782*1024,   2000,   2000,  512, 2, 64 },                 //20
+  { 1,  19800,   792,   3564*1024,   4000,   4000, 1024, 2, 64 },                 //21
+  { 1,  20250,  1620,   6075*1024,   4000,   4000, 1024, 2, 64 },                 //22
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //23
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //24
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //25
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //26
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //27
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //28
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //29
+  { 1,  40500,  1620,   6075*1024,  10000,  10000, 1024, 2, 32 },                 //30
+  { 1, 108000,  3600,  13500*1024,  14000,  14000, 2048, 4, 16 },                 //31
+  { 1, 216000,  5120,  15360*1024,  20000,  20000, 2048, 4, 16 },                 //32
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //33
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //34
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //35
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //36
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //37
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //38
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //39
+  { 1, 245760,  8192,  24576*1024,  20000,  25000, 2048, 4, 16 },                 //40
+  { 1, 245760,  8192,  24576*1024,  50000,  62500, 2048, 2, 16 },                 //41
+  { 1, 491520,  8192,  24576*1024,  50000,  62500, 2048, 2, 16 },                 //42
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //43
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //44
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //45
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //46
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //47
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //48
+  { 0,      0,     0,           0,      0,      0,    0, 0,  0 },                 //49
+  { 1, 589824, 22080,  82620*1024, 135000, 135000, 2048, 2, 16 },                 //50
+  { 1, 983040, 36864, 138240*1024, 240000, 240000, 2048, 2, 16 }                  //51
 };
 
 
@@ -274,8 +274,10 @@ SequenceParameterSet::getMaxDPBSize() const
 {
   const LevelLimit* pcLevelLimit = 0;
   UInt              uiFrameSize = 384*getMbInFrame();
-  ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
-  return pcLevelLimit->uiMaxDPBSizeX2 / ( 2*uiFrameSize );
+  ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
+  UInt uiNumDPBEntries  = pcLevelLimit->uiMaxDPBSizeX2 / ( 2*uiFrameSize );
+  uiNumDPBEntries       = min( uiNumDPBEntries, 16 );
+  return uiNumDPBEntries;
 }
 
 // JVT-V068 HRD {
@@ -288,7 +290,7 @@ UInt
 SequenceParameterSet::getMaxCPBSize() const
 {
   const LevelLimit* pcLevelLimit = 0;
-  ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
+  ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
   return pcLevelLimit->uiMaxCPBSize;
 }
 
@@ -296,11 +298,45 @@ UInt
 SequenceParameterSet::getMaxBitRate() const
 {
   const LevelLimit* pcLevelLimit = 0;
-  ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
+  ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
   return pcLevelLimit->uiMaxBitRate;
 }
 // JVT-V068 HRD }
 
+UInt
+SequenceParameterSet::getMaxSliceSize( Bool bFieldPic ) const
+{
+  ROTRS( m_uiFrameWidthInMbs * m_uiFrameHeightInMbs <= UInt( bFieldPic ? 3240 : 1620 ), MSYS_UINT_MAX );
+  const LevelLimit* pcLevelLimit = 0;
+  ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
+  return ( pcLevelLimit->uiMaxFrameSize >> 2 );
+}
+
+UInt
+SequenceParameterSet::getMaxMVsPer2Mb()  const
+{
+  const LevelLimit* pcLevelLimit = 0;
+  ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
+  return pcLevelLimit->uiMaxMvsPer2Mb;
+}
+
+Bool
+SequenceParameterSet::getBiPred8x8Disabled()  const
+{
+  if( m_eProfileIdc == MAIN_PROFILE || m_eProfileIdc == HIGH_PROFILE || ( ( m_eProfileIdc == BASELINE_PROFILE || m_eProfileIdc == EXTENDED_PROFILE ) && m_bConstrainedSet1Flag ) )
+  {
+    return ( m_uiLevelIdc >= 31 );
+  }
+  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE )
+  {
+    return true;
+  }
+  if( m_eProfileIdc == SCALABLE_HIGH_PROFILE )
+  {
+    return ( m_bConstrainedSet0Flag || m_uiLevelIdc >= 31 );
+  }
+  return false;
+}
 
 ErrVal
 SequenceParameterSet::xGetLevelLimit( const LevelLimit*& rpcLevelLimit, Int iLevelIdc )
@@ -311,15 +347,11 @@ SequenceParameterSet::xGetLevelLimit( const LevelLimit*& rpcLevelLimit, Int iLev
   return Err::m_nOK;
 }
 
-
 UInt
-SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbY, UInt uiRefLayerMbX )
-//SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic )
+SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbs )
 {
-  UInt refLayerMbs = uiRefLayerMbY * uiRefLayerMbX;
-  UInt uiFrameSize = uiMbY * uiMbX + ( ( refLayerMbs + 1 ) >> 1 );
-  //UInt uiFrameSize = uiMbY * uiMbX;
-  UInt uiMbPerSec  = uiFrameSize * uiOutFreq;
+  UInt uiFrameSize = uiMbY * uiMbX;
+  UInt uiMbPerSec  = ( uiFrameSize + ( ( uiRefLayerMbs + 1 ) >> 1 ) ) * uiOutFreq;
   UInt uiDPBSizeX2 = (uiFrameSize*16*16*3/2) * uiNumRefPic * 2;
 
   for( Int n = 0; n < 52; n++ )
@@ -334,7 +366,6 @@ SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt 
           ( pcLevelLimit->uiMaxMbPerSec   >= uiMbPerSec   ) &&
           ( pcLevelLimit->uiMaxFrameSize  >= uiFrameSize  ) &&
           ( pcLevelLimit->uiMaxDPBSizeX2  >= uiDPBSizeX2  ) &&
-
           ( pcLevelLimit->uiMaxVMvRange   >= uiMvRange    )    )
       {
         return n;

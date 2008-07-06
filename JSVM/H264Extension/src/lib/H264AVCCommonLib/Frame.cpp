@@ -100,12 +100,9 @@ Frame::Frame( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPel
   m_pcFrameTopField    ( NULL ),
   m_pcFrameBotField    ( NULL ),
   m_pcFrame               ( pcFrame ),
-  m_uiFrameIdInGop        ( 0 ),
   m_pcDPBUnit             ( NULL ),
-  m_bUnusedForRef         ( false), // JVT-Q065 EIDR
-	m_uiIdrPicId						(0 ), //EIDR 0619
   m_piChannelDistortion   ( 0 )     // JVT-R057 LA-RDO
- ,m_iFrameNum             ( 0 )  // TMM_INTERLACE
+ ,m_bLongTerm( false )
  ,m_bUnvalid( false )
 {
   if( m_pcFrame == 0 )
@@ -217,10 +214,12 @@ ErrVal Frame::load( PicBuffer* pcPicBuffer )
   return Err::m_nOK;
 }
 
-ErrVal Frame::store( PicBuffer* pcPicBuffer )
+ErrVal Frame::store( PicBuffer* pcPicBuffer, PicType ePicType )
 {
-  ASSERT( m_ePicType==FRAME );
-  RNOK( getFullPelYuvBuffer()->storeToPicBuffer( pcPicBuffer ) );
+  ASSERT( m_ePicType == FRAME );
+  RNOK  ( getFullPelYuvBuffer()->storeToPicBuffer     ( pcPicBuffer ) );
+  ROTRS ( ePicType   == FRAME, Err::m_nOK );
+  RNOK  ( getFullPelYuvBuffer()->interpolatedPicBuffer( pcPicBuffer, ePicType == TOP_FIELD ) );
   return Err::m_nOK;
 }
 
@@ -336,7 +335,7 @@ ErrVal Frame::addFieldBuffer( PicType ePicType )
     RNOK( m_pcFrameTopField->getFullPelYuvBuffer()->fillMargin() );
 
     m_pcFrameTopField->setPoc( m_iTopFieldPoc );
-    m_pcFrameTopField->setFrameNum( m_iFrameNum );
+    m_pcFrameTopField->setLongTerm( m_bLongTerm );
   }
   else if( ePicType == BOT_FIELD )
   {
@@ -358,7 +357,7 @@ ErrVal Frame::addFieldBuffer( PicType ePicType )
     RNOK( m_pcFrameBotField->getFullPelYuvBuffer()->fillMargin() );
 
     m_pcFrameBotField->setPoc( m_iBotFieldPoc );
-    m_pcFrameBotField->setFrameNum( m_iFrameNum );
+    m_pcFrameBotField->setLongTerm( m_bLongTerm );
   }
 
   return Err::m_nOK;
@@ -396,7 +395,7 @@ ErrVal Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePicTyp
 			if( NULL == m_pcFrameTopField || NULL == m_pcFrameBotField )
 			{
 				ROT( NULL != m_pcFrameTopField );
-				ROT( NULL != m_pcFrameTopField );
+        ROT( NULL != m_pcFrameBotField );
 				YuvBufferCtrl& rcYuvFullPelBufferCtrl = getFullPelYuvBuffer()->getBufferCtrl();
 				YuvBufferCtrl& rcYuvHalfPelBufferCtrl = getHalfPelYuvBuffer()->getBufferCtrl();
 
@@ -408,12 +407,13 @@ ErrVal Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePicTyp
 				RNOK( m_pcFrameTopField->getFullPelYuvBuffer()->init( pData ) );
 //TMM {
         m_pcFrameTopField->setPoc     ( m_iTopFieldPoc );
-        m_pcFrameTopField->setFrameNum( m_iFrameNum );
+        m_pcFrameTopField->setLongTerm( m_bLongTerm );
 //TMM }
+        pData = NULL;
 				RNOK( m_pcFrameBotField->getFullPelYuvBuffer()->init( pData ) );
 //TMM {
         m_pcFrameBotField->setPoc     ( m_iBotFieldPoc );
-        m_pcFrameBotField->setFrameNum( m_iFrameNum );
+        m_pcFrameBotField->setLongTerm( m_bLongTerm );
 //TMM }       
 			}
 		}
@@ -432,6 +432,7 @@ ErrVal Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePicTyp
 		{
 			XPel* pHPData = NULL;
 			RNOK( m_pcFrameTopField->initHalfPel( pHPData ) );
+      pHPData = NULL;
 			RNOK( m_pcFrameBotField->initHalfPel( pHPData ) );
 		}
 	}
@@ -618,7 +619,7 @@ Frame::xUpdatePicParameters()
       m_pcFrameBotField->m_cPicParametersBot  = m_cPicParametersBot;
     }
   }
-  else if( m_ePicType == TOP_FIELD )
+  else if( m_ePicType == BOT_FIELD )
   {
     ROF( m_pcFrame );
     m_pcFrame->m_cPicParameters     = m_cPicParameters;

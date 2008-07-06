@@ -80,8 +80,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 141,
-            		        psnr => 30.46,
+            		        bitrate => 142,
+            		        psnr => 30.34,
             		      },
             		      #----------#
                       # Test   1 #
@@ -92,7 +92,7 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 30,
-            		        bitrate => 465,
+            		        bitrate => 475,
             		        psnr => 27.24,
             		      },
     		              #----------#
@@ -104,8 +104,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 30,
-            		        bitrate => 732,
-            		        psnr => 29.25,
+            		        bitrate => 747,
+            		        psnr => 29.22,
             		        encdecmatch => 1,
             		      },
     		              #----------#
@@ -117,8 +117,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 318,
-            		        psnr => 34.27,
+            		        bitrate => 329,
+            		        psnr => 34.17,
             		        encdecmatch => 1,
             		      },
     		              #----------#
@@ -130,8 +130,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 270,
-            		        psnr => 33.06,
+            		        bitrate => 276,
+            		        psnr => 32.89,
             		      },
     		              #----------#
 			# Test   5 #
@@ -142,8 +142,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 30,
-            		        bitrate => 606,
-            		        psnr => 28.09,
+            		        bitrate => 645,
+            		        psnr => 28.38,
             		      },
     		              #----------#
 		  ],

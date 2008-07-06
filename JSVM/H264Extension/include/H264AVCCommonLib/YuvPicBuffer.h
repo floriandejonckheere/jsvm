@@ -159,6 +159,7 @@ public:
   
   ErrVal        loadFromPicBuffer       ( PicBuffer*        pcPicBuffer );
   ErrVal        storeToPicBuffer        ( PicBuffer*        pcPicBuffer );
+  ErrVal        interpolatedPicBuffer   ( PicBuffer*        pcPicBuffer, Bool bBotField );
 
   ErrVal        loadBuffer              ( YuvMbBuffer*   pcYuvMbBuffer );
   ErrVal        loadBuffer_MbAff        ( YuvMbBuffer *pcYuvMbBuffer   ,  UInt uiMask) ;//TMM_INTERLACE

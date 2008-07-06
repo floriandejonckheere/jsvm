@@ -203,6 +203,7 @@ private:
   Double*                       m_aaadDeltaDist       [MAX_LAYERS][MAX_QUALITY_LEVELS];
   UInt*                         m_aaauiPacketSize     [MAX_LAYERS][MAX_QUALITY_LEVELS];
   UInt*                         m_aaauiQualityID      [MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt*                         m_aauiPicNumToFrmID   [MAX_LAYERS];
 
   PicBufferList                 m_cActivePicBufferList;
   PicBufferList                 m_cUnusedPicBufferList;

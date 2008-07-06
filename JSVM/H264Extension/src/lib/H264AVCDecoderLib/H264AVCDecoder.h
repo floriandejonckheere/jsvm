@@ -137,6 +137,11 @@ public:
                             BinDataList&      rcBinDataList,
                             NALUnit&          rcNALUnit );
 
+  //===== update decoded picture buffer of all layers =====
+  ErrVal  updateDPB       ( UInt              uiTargetDependencyId,
+                            PicBufferList&    rcPicBufferOutputList,
+                            PicBufferList&    rcPicBufferUnusedList );
+
   //===== get inter-layer prediction data =====
   ErrVal  getBaseLayerData              ( SliceHeader&      rcELSH,
                                           Frame*&           pcFrame,
@@ -158,6 +163,7 @@ protected:
   ParameterSetMng*    m_pcParameterSetMngAUInit;
   ParameterSetMng*    m_pcParameterSetMngDecode;
   LayerDecoder*       m_apcLayerDecoder[MAX_LAYERS];
+  UInt                m_auiLastDQTPId[4]; // only for setting correct parameters in filler data instances
 };
 
 H264AVC_NAMESPACE_END

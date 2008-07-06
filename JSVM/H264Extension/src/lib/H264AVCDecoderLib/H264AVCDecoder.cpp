@@ -159,6 +159,11 @@ H264AVCDecoder::init( NalUnitParser*      pcNalUnitParser,
   m_pcParameterSetMngAUInit = pcParameterSetMngAUInit;
   m_pcParameterSetMngDecode = pcParameterSetMngDecode;
 
+  m_auiLastDQTPId[0]        = 0;
+  m_auiLastDQTPId[1]        = 0;
+  m_auiLastDQTPId[2]        = 0;
+  m_auiLastDQTPId[3]        = 0;
+
   return Err::m_nOK;
 }
 
@@ -334,27 +339,31 @@ H264AVCDecoder::processNALUnit( PicBuffer*        pcPicBuffer,
   }
   RNOK(   m_apcLayerDecoder[ rcSliceDataNALUnit.getDependencyId() ]->finishProcess( rcPicBufferOutputList, rcPicBufferUnusedList ) );
 
+  m_auiLastDQTPId[0] = rcSliceDataNALUnit.getDependencyId ();
+  m_auiLastDQTPId[1] = rcSliceDataNALUnit.getQualityId    ();
+  m_auiLastDQTPId[2] = rcSliceDataNALUnit.getTemporalId   ();
+  m_auiLastDQTPId[3] = rcSliceDataNALUnit.getPriorityId   ();
+
   return Err::m_nOK;
 }
 
+ErrVal
+H264AVCDecoder::updateDPB( UInt           uiTargetDependencyId, 
+                           PicBufferList& rcPicBufferOutputList, 
+                           PicBufferList& rcPicBufferUnusedList )
+{
+  PicBufferList cDummyList;
+  for( UInt uiDependencyId = 0; uiDependencyId < uiTargetDependencyId; uiDependencyId++ )
+  {
+    RNOK( m_apcLayerDecoder[ uiDependencyId       ]->updateDPB( cDummyList,             rcPicBufferUnusedList ) );
+  }
+  RNOK(   m_apcLayerDecoder[ uiTargetDependencyId ]->updateDPB( rcPicBufferOutputList,  rcPicBufferUnusedList ) );
+  return  Err::m_nOK;
+}
 
 ErrVal
 H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
 {
-  //===== parse prefix header when available =====
-  PrefixHeader* pcPrefixHeader = 0;
-  if( rcNonVCLNALUnit.getBinDataPrefix() )
-  {
-    BinDataAccessor cBinDataAccessorPrefix;
-    rcNonVCLNALUnit.getBinDataPrefix()->setMemAccessor( cBinDataAccessorPrefix );
-    RNOK( m_pcNalUnitParser ->initNalUnit   ( cBinDataAccessorPrefix )  );
-    ROF ( m_pcNalUnitParser ->getNalUnitType() == NAL_UNIT_PREFIX );
-    pcPrefixHeader = new PrefixHeader( *m_pcNalUnitParser );
-    ROF ( pcPrefixHeader );
-    RNOK( pcPrefixHeader    ->read          ( *m_pcHeaderSymbolReadIf ) );
-    RNOK( m_pcNalUnitParser ->closeNalUnit  () );
-  }
-
   //===== parse NAL unit =====
   BinDataAccessor cBinDataAccessor;
   rcNonVCLNALUnit.getBinData()->setMemAccessor( cBinDataAccessor );
@@ -418,10 +427,12 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
     }
   case NAL_UNIT_FILLER_DATA: // just read, but ignore
     {
-      const NalUnitHeader&  rcNalUnitHeader = ( pcPrefixHeader ? *pcPrefixHeader : *m_pcNalUnitParser );
-      FillerData            cFillerData( rcNalUnitHeader );
+      FillerData cFillerData( *m_pcNalUnitParser );
       RNOK( cFillerData.read( *m_pcHeaderSymbolReadIf ) );
-      cFillerData.NalUnitHeader::copy( *m_pcNalUnitParser, false );
+      cFillerData.setDependencyId ( m_auiLastDQTPId[0] );
+      cFillerData.setQualityId    ( m_auiLastDQTPId[1] );
+      cFillerData.setTemporalId   ( m_auiLastDQTPId[2] );
+      cFillerData.setPriorityId   ( m_auiLastDQTPId[3] );
       printf("  NON-VCL: FILLER DATA (D=%d,Q=%d)\n", cFillerData.getDependencyId(), cFillerData.getQualityId() );
       break;
     }

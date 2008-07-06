@@ -134,7 +134,7 @@ ErrVal MbTransformCoeffs::clearPrediction()
   TCoeff *pcDst     = get( B4x4Idx(0) );
   for( UInt ui = 0; ui < 384; ui++ )
   {
-    (pcDst++)->m_sPred = 0;
+    (pcDst++)->setSPred( 0 );
   }
   return Err::m_nOK;
 }
@@ -149,7 +149,7 @@ ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 16; uiX++ )
     {
-      (pcDst++)->m_sPred = pSrc[uiX];
+      (pcDst++)->setSPred( pSrc[uiX] );
     }
     pSrc += iSrcStride;
   }
@@ -160,7 +160,7 @@ ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 8; uiX++ )
     {
-      (pcDst++)->m_sPred = pSrc[uiX];
+      (pcDst++)->setSPred( pSrc[uiX] );
     }
     pSrc += iSrcStride;
   }
@@ -171,7 +171,7 @@ ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 8; uiX++ )
     {
-      (pcDst++)->m_sPred = pSrc[uiX];
+      (pcDst++)->setSPred( pSrc[uiX] );
     }
     pSrc += iSrcStride;
   }
@@ -188,7 +188,7 @@ ErrVal MbTransformCoeffs::copyPredictionTo( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 16; uiX++ )
     {
-      pcDst[uiX] = (pcSrc++)->m_sPred;
+      pcDst[uiX] = (pcSrc++)->getSPred();
     }
     pcDst += iSrcStride;
   }
@@ -199,7 +199,7 @@ ErrVal MbTransformCoeffs::copyPredictionTo( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 8; uiX++ )
     {
-      pcDst[uiX] = (pcSrc++)->m_sPred;
+      pcDst[uiX] = (pcSrc++)->getSPred();
     }
     pcDst += iSrcStride;
   }
@@ -210,7 +210,7 @@ ErrVal MbTransformCoeffs::copyPredictionTo( YuvMbBuffer &rcPred )
   {
     for( uiX = 0; uiX < 8; uiX++ )
     {
-      pcDst[uiX] = (pcSrc++)->m_sPred;
+      pcDst[uiX] = (pcSrc++)->getSPred();
     }
     pcDst += iSrcStride;
   }

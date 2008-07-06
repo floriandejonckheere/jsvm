@@ -191,15 +191,15 @@ H264AVCEncoder::destroy()
 
 
 Frame*
-H264AVCEncoder::getLowPassRec( UInt uiLayerId )
+H264AVCEncoder::getLowPassRec( UInt uiLayerId, UInt uiLowPassIndex )
 {
   //===== shall not be called in non-CGS mode =====
   Frame* pcLPRec = 0;
   for( UInt uiBL = MSYS_UINT_MAX; ( uiBL = m_pcCodingParameter->getLayerParameters( uiLayerId ).getBaseLayerId() ) != MSYS_UINT_MAX; uiLayerId = uiBL )
   {
-    if( m_apcLayerEncoder[uiBL]->getMGSLPRec() )
+    if( m_apcLayerEncoder[uiBL]->getMGSLPRec( uiLowPassIndex ) )
     {
-      pcLPRec = m_apcLayerEncoder[uiBL]->getMGSLPRec();
+      pcLPRec = m_apcLayerEncoder[uiBL]->getMGSLPRec( uiLowPassIndex );
     }
     else
     {
@@ -211,7 +211,7 @@ H264AVCEncoder::getLowPassRec( UInt uiLayerId )
 
 
 Frame*
-H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc )
+H264AVCEncoder::getELRefPic( UInt uiLayerId, UInt uiTemporalId, UInt uiFrameIdInTId )
 {
   Frame* pcELRefPic = 0;
   for( UInt uiELId = uiLayerId + 1; uiELId < m_pcCodingParameter->getNumberOfLayers(); uiELId++ )
@@ -220,11 +220,11 @@ H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc )
     LayerParameters&  rcCL  = m_pcCodingParameter->getLayerParameters( uiLayerId  );
     LayerParameters&  rcEL  = m_pcCodingParameter->getLayerParameters( uiELId     );
     if( ! rcEL.getResizeParameters().getCroppingFlag() &&
-        rcCL.getFrameWidth () == rcEL.getFrameWidth () &&
-        rcCL.getFrameHeight() == rcEL.getFrameHeight() &&
+        rcCL.getFrameWidthInSamples () == rcEL.getFrameWidthInSamples () &&
+        rcCL.getFrameHeightInSamples() == rcEL.getFrameHeightInSamples() &&
         rcCL.getResizeParameters().m_iExtendedSpatialScalability == ESS_NONE )
     {
-      pcELRefPic = m_apcLayerEncoder[uiELId]->getRefPic( iPoc );
+      pcELRefPic = m_apcLayerEncoder[uiELId]->getRefPic( uiTemporalId, uiFrameIdInTId );
     }
     else
     {
@@ -234,7 +234,12 @@ H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc )
   return pcELRefPic;
 }
 
-
+UInt
+H264AVCEncoder::getPicCodingType( UInt uiBaseLayerId, UInt uiTemporalId, UInt uiFrmIdInTLayer )
+{
+  AOF( uiBaseLayerId < m_pcCodingParameter->getNumberOfLayers() );
+  return m_apcLayerEncoder[ uiBaseLayerId ]->getPicCodingType( uiTemporalId, uiFrmIdInTLayer );
+}
 
 ErrVal
 H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
@@ -655,9 +660,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 					if(pcScalableSEI->getFrmSizeInfoPresentFlag(uiNumScalableLayer)||pcScalableSEI->getIroiSliceDivisionInfoPresentFlag(uiNumScalableLayer))
 					//SEI changes update }
           {
-            UInt uiFrmWidthInMbsMinus1 = rcLayer.getFrameWidth()/16 - 1;
-            UInt uiFrmHeightInMbsMinus1 = rcLayer.getFrameHeight()/16 - 1;
-
+            UInt uiFrmWidthInMbsMinus1  = rcLayer.getFrameWidthInMbs () - 1;
+            UInt uiFrmHeightInMbsMinus1 = rcLayer.getFrameHeightInMbs() - 1;
             pcScalableSEI->setFrmWidthInMbsMinus1(uiNumScalableLayer, uiFrmWidthInMbsMinus1);
             pcScalableSEI->setFrmHeightInMbsMinus1(uiNumScalableLayer, uiFrmHeightInMbsMinus1);
           }
@@ -1526,6 +1530,7 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
 ErrVal
 H264AVCEncoder::xInitParameterSets()
 {
+  Bool bOutput = ( m_pcCodingParameter->getLayerParameters( 0 ).getLevelIdc() == 0 );
   UInt uiSPSId = 0;
   UInt uiPPSId = 0;
   UInt uiIndex;
@@ -1534,45 +1539,93 @@ H264AVCEncoder::xInitParameterSets()
   UInt uiMaxResolutionStages  = m_pcCodingParameter->getDecompositionStages();  
   UInt uiRequiredPocBits      = max( 4, 1 + (Int)ceil( log10( 1.0 + ( 1 << uiMaxResolutionStages ) ) / log10( 2.0 ) ) );
 
-
   //===== loop over layers =====
   for( uiIndex = 0; uiIndex < m_pcCodingParameter->getNumberOfLayers(); uiIndex++ )
   {
     //===== get configuration parameters =====
     LayerParameters&  rcLayerParameters   = m_pcCodingParameter->getLayerParameters( uiIndex );
-  //bug-fix suffix{{
-    Bool              bH264AVCCompatible  = ( uiIndex == 0 );
-  //bug-fix suffix}}
-    UInt              uiMbY               = ( rcLayerParameters.getFrameHeight() + 15 ) >> 4;
-    UInt              uiMbX               = ( rcLayerParameters.getFrameWidth () + 15 ) >> 4;
-    UInt              uiFrameMbsOnlyFlag  = ( !rcLayerParameters.getPAff() && !rcLayerParameters.getMbAff() ? 1 : 0 );
+    UInt              uiMbY               = rcLayerParameters.getFrameHeightInMbs();
+    UInt              uiMbX               = rcLayerParameters.getFrameWidthInMbs ();
     UInt              uiCropLeft          = 0;
     UInt              uiCropTop           = 0;
-    UInt              uiCropRight         = ( ( 16 - ( rcLayerParameters.getFrameWidth () % 16 ) ) % 16 ) / 2;                              // chroma_format_idc is always equal to 1
-    UInt              uiCropBottom        = ( ( 16 - ( rcLayerParameters.getFrameHeight() % 16 ) ) % 16 ) / 2 / ( 2 - uiFrameMbsOnlyFlag ); // chroma_format_idc is always equal to 1
+    UInt              uiCropRight         = rcLayerParameters.getHorPadding() / 2;                                            // chroma_format_idc is always equal to 1
+    UInt              uiCropBottom        = rcLayerParameters.getVerPadding() / ( rcLayerParameters.isInterlaced() ? 4 : 2 ); // chroma_format_idc is always equal to 1
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
-    UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
-    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
-                      uiDPBSize          += ( rcLayerParameters.getPAff() > 0 ) ? 1 : 0; // TMM 
-    UInt              uiNumRefPic         = uiDPBSize; 
-  
-    UInt uiLayer;
-    UInt uiRefLayerMbY = 0;
-    UInt uiRefLayerMbX = 0;
-    //===== subclause G.10.2.1 =====
-    if( uiIndex > 1 )
+    UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange();
+    UInt              uiKeyPicMode        = m_pcCodingParameter->getEncodeKeyPictures ();
+    Bool              bMGS                = ( m_pcCodingParameter->getCGSSNRRefinement() != 0 );
+    Bool              bKeyPictures        = ( uiKeyPicMode == 2 || ( bMGS && uiKeyPicMode == 1 ) );
+    UInt              uiPaffOffset        = ( rcLayerParameters.getPAff() ? 1 : 0 );
+    UInt              uiRefBasePicOffset  = ( bKeyPictures ? 1 + uiPaffOffset : 0 );
+    UInt              uiDecStages         = rcLayerParameters.getDecompositionStages() - rcLayerParameters.getNotCodedStages();
+    UInt              uiVirtDecStages     = max( 1, uiDecStages + uiPaffOffset );
+    UInt              uiNumRefPic         = ( ( 1 << uiVirtDecStages ) >> 1 ) + uiVirtDecStages + uiRefBasePicOffset;
+    UInt              uiDPBSize           = uiNumRefPic;
+    if( rcLayerParameters.getUseLongTerm() )
     {
-      for( uiLayer = 0; uiLayer < uiIndex; uiLayer++ )
-      {
-        uiRefLayerMbY += ( m_pcCodingParameter->getLayerParameters( uiLayer ).getFrameHeight() + 15 ) >> 4;
-        uiRefLayerMbX += ( m_pcCodingParameter->getLayerParameters( uiLayer ).getFrameWidth()  + 15 ) >> 4;
-      }
+      ROT( rcLayerParameters.isIntraOnly() );
+      uiNumRefPic = uiDecStages + 1 + uiPaffOffset + ( bKeyPictures ? 2 : 0 );
+      uiDPBSize   = uiNumRefPic;
     }
-    UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, uiRefLayerMbY, uiRefLayerMbX );
-	//  UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
-
-	ROT( uiLevelIdc == MSYS_UINT_MAX );
-
+    if( rcLayerParameters.isIntraOnly() )
+    {
+      uiNumRefPic = 0;
+      uiDPBSize   = 1;
+    }
+    if( uiNumRefPic > 16 || uiDPBSize > 16 )
+    {
+      fprintf( stderr, "\n\nSpecified coding structure cannot be supported (DPB size exceeded)\n" );
+      if( ! rcLayerParameters.getUseLongTerm() )
+      {
+        fprintf( stderr, "\t-> try the use long-term pictures\n" );
+      }
+      ROT(1);
+    }
+  
+    //----- determine reference layer macroblocks (that are counted for level constraints) -----
+    UInt uiRefLayerMbs = 0;
+    { //>>>>> subclause G.10.2.1 >>>>>
+      LayerParameters&  rcCurrLayer   = m_pcCodingParameter->getLayerParameters( uiIndex );
+      UInt              uiLayerCount  = 0;
+      UInt              uiBaseDId     = rcCurrLayer.getBaseLayerCGSSNR();             // for lowest MGS fragment
+      UInt              uiBaseQId     = rcCurrLayer.getBaseQualityLevelCGSSNR();      // for lowest MGS fragment
+      UInt              uiNumMGSFrag  = rcCurrLayer.getNumberOfQualityLevelsCGSSNR(); // number of MGS fragments in "layer"
+      while( (--uiNumMGSFrag) > 0 ) // count MGS fragments (set level_idc for highest MGS fragment)
+      {
+        if( (++uiLayerCount) > 1 )
+        {
+          uiRefLayerMbs += rcCurrLayer.getFrameHeightInMbs() * rcCurrLayer.getFrameWidthInMbs();
+        }
+      }
+      for( UInt uiRefLayerId = uiIndex - 1; uiBaseDId != MSYS_UINT_MAX; uiRefLayerId-- )
+      {
+        LayerParameters&  rcRefLayer    = m_pcCodingParameter->getLayerParameters( uiRefLayerId );
+        UInt              uiRefDId      = rcRefLayer.getLayerCGSSNR();
+        UInt              uiRefQId      = rcRefLayer.getQualityLevelCGSSNR();
+        UInt              uiRefMGSFrag  = rcRefLayer.getNumberOfQualityLevelsCGSSNR();
+        if( uiRefDId == uiBaseDId && uiRefQId <= uiBaseQId && uiRefQId + uiRefMGSFrag > uiBaseQId )
+        {
+          uiNumMGSFrag = uiBaseQId - uiRefQId + 2;
+          while( (--uiNumMGSFrag) > 0 )
+          {
+            if( (++uiLayerCount) > 1 )
+            {
+              uiRefLayerMbs += rcRefLayer.getFrameHeightInMbs() * rcRefLayer.getFrameWidthInMbs();
+            }
+          }
+          uiBaseDId = rcRefLayer.getBaseLayerCGSSNR();
+          uiBaseQId = rcRefLayer.getBaseQualityLevelCGSSNR();
+        }
+      }
+    } //<<<<< subclause G.10.2.1 <<<<<
+    //----- get level idc -----
+    UInt uiLevelIdc = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, uiRefLayerMbs );
+    RNOK( rcLayerParameters.updateWithLevel( m_pcCodingParameter, uiLevelIdc ) );
+    if  ( uiLevelIdc == MSYS_UINT_MAX )
+    {
+      fprintf( stderr, "\n\nNo level found for specified configuration parameters\n" );
+      ROT(1);
+    }
     
     //===== create parameter sets, set Id's, and store =====
     SequenceParameterSet* pcSPS;
@@ -1614,13 +1667,17 @@ H264AVCEncoder::xInitParameterSets()
     //===== set sequence parameter set parameters =====
     pcSPS->setAVCHeaderRewriteFlag                ( true );
     pcSPS->setDependencyId                        ( rcLayerParameters.getDependencyId() );
-    pcSPS->setProfileIdc                          ( bH264AVCCompatible ? ( rcLayerParameters.getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE ) : SCALABLE_HIGH_PROFILE );
-    pcSPS->setConstrainedSet0Flag                 ( false );
-    pcSPS->setConstrainedSet1Flag                 ( bH264AVCCompatible ? 1 : 0 );
-    pcSPS->setConstrainedSet2Flag                 ( false );
-    pcSPS->setConstrainedSet3Flag                 ( false );
-    pcSPS->setLevelIdc                            ( uiLevelIdc );
-    pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getAdaptiveTransform() > 1 );
+    pcSPS->setProfileIdc                          ( (Profile)rcLayerParameters.getProfileIdc() );
+    pcSPS->setConstrainedSet0Flag                 ( rcLayerParameters.getConstrainedSet0Flag() );
+    pcSPS->setConstrainedSet1Flag                 ( rcLayerParameters.getConstrainedSet1Flag() );
+    pcSPS->setConstrainedSet2Flag                 ( rcLayerParameters.getConstrainedSet2Flag() );
+    pcSPS->setConstrainedSet3Flag                 ( rcLayerParameters.getConstrainedSet3Flag() );
+    pcSPS->setConvertedLevelIdc                   ( uiLevelIdc );
+    pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getScalingMatricesPresent() > 0 );
+    if( pcSPS->getSeqScalingMatrixPresentFlag() )
+    {
+      pcSPS->getSeqScalingMatrix().init( rcLayerParameters.getScalMatrixBuffer() );
+    }
     pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
     pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
@@ -1644,8 +1701,7 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setAVCAdaptiveRewriteFlag(rcLayerParameters.getAVCAdaptiveRewriteFlag());
     }
     
-    const Bool  bInterlaced = ( rcLayerParameters.getPAff() || rcLayerParameters.getMbAff() );
-    pcSPS->setFrameMbsOnlyFlag										( ! bInterlaced );
+    pcSPS->setFrameMbsOnlyFlag										( ! rcLayerParameters.isInterlaced() );
     pcSPS->setMbAdaptiveFrameFieldFlag            ( (rcLayerParameters.getMbAff() ? true : false ) );
    
     if( pcSPS->getMbAdaptiveFrameFieldFlag() && uiMbY % 2)
@@ -1712,7 +1768,7 @@ H264AVCEncoder::xInitParameterSets()
       }
     }
     //JVT-W049 }
-    pcPPSHP->setTransform8x8ModeFlag                  ( rcLayerParameters.getAdaptiveTransform() > 0 );
+    pcPPSHP->setTransform8x8ModeFlag                  ( rcLayerParameters.getEnable8x8Trafo() > 0 );
     pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
     pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
 
@@ -1739,7 +1795,7 @@ H264AVCEncoder::xInitParameterSets()
     {
       pcPPSLP->setReferencesSubsetSPS                   ( pcPPSHP->referencesSubsetSPS() );
       pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
-      pcPPSLP->setDependencyId                               ( pcPPSHP->getDependencyId                               ()  );
+      pcPPSLP->setDependencyId                          ( pcPPSHP->getDependencyId                               ()  );
       pcPPSLP->setEntropyCodingModeFlag                 ( pcPPSHP->getEntropyCodingModeFlag                 ()  );
       pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
       pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
@@ -1773,11 +1829,42 @@ H264AVCEncoder::xInitParameterSets()
     RNOK( m_pcControlMng->initParameterSets( *pcSPS, *pcPPSLP, *pcPPSHP ) );
   }
 
-
-  uiIndex = 0;
-//bug-fix suffix{{
-  //Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
-//bug-fix suffix}}
+  //---- some output ----
+  if( bOutput )
+  {
+    printf("\n");
+    printf("\nprofile & level info:" );
+    printf("\n=====================" );
+    for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+    {
+      LayerParameters&  rcL   = m_pcCodingParameter->getLayerParameters( uiLayer );
+      UInt              uiDQ  = ( rcL.getLayerCGSSNR() << 4 ) + rcL.getQualityLevelCGSSNR();
+      UInt              uiNX  = rcL.getNumberOfQualityLevelsCGSSNR();
+      UInt              uiLV  = rcL.getLevelIdc();
+      for( UInt uiN = 0; uiN < uiNX; uiN++ )
+      {
+        printf( "\nDQ=%3d:  ", uiDQ + uiN );
+        switch( rcL.getProfileIdc() )
+        {
+        case BASELINE_PROFILE:          ::printf( "Baseline" );           break;
+        case MAIN_PROFILE:              ::printf( "Main" );               break;
+        case EXTENDED_PROFILE:          ::printf( "Extended" );           break;
+        case HIGH_PROFILE:              ::printf( "High" );               break;
+        case SCALABLE_BASELINE_PROFILE: ::printf( "Scalable Baseline" );  break;
+        case SCALABLE_HIGH_PROFILE:
+          if( rcL.isIntraOnly() )       ::printf( "Scalable High Intra" );
+          else                          ::printf( "Scalable High" );      break;
+        default:
+          ROT(1);
+        }
+        printf( " @ Level " );
+        if( uiLV == 9 )                 ::printf( "1b" );
+        else if( uiLV % 10 == 0 )       ::printf( "%d", uiLV / 10 );
+        else                            ::printf( "%d.%d", uiLV / 10, uiLV % 10 );
+      }
+    }
+    printf("\n\n\n");
+  }
 
   //===== set unwritten parameter lists =====
   RNOK( m_pcParameterSetMng->setParamterSetList( m_cUnWrittenSPS, m_cUnWrittenPPS ) );
@@ -2331,11 +2418,17 @@ RewriteEncoder::xInitMb( MbDataAccess*& rpcMbDataAccessRewrite, MbDataAccess& rc
   RNOK( m_pcMbDataCtrl->initMb( rpcMbDataAccessRewrite, uiMbY, uiMbX ) );
 
   //===== copy macroblock data =====
-  rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+  if( ! rcMbDataAccessSource.getMbData().isPCM() )
+  {
+    rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+  }
   rpcMbDataAccessRewrite->getMbData   ().copyFrom             ( rcMbDataAccessSource.getMbData   () );
   rpcMbDataAccessRewrite->getMbTCoeffs().copyFrom             ( rcMbDataAccessSource.getMbTCoeffs() );
   rpcMbDataAccessRewrite->getMbData   ().copyMotion           ( rcMbDataAccessSource.getMbData   () );
-  rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+  if( ! rcMbDataAccessSource.getMbData().isPCM() )
+  {
+    rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+  }
 
   //===== set correct rewrite QP =====
   rpcMbDataAccessRewrite->getMbData().setQp( rcMbDataAccessSource.getMbData().getQp4LF() );

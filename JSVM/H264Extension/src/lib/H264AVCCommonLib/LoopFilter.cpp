@@ -475,8 +475,9 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
   //===== check special condition for I_BL in spatial scalable coding =====
   if( bSpatialScalableFlag && ( rcMbDataCurr.isIntraBL() || rcMbDataAbove.isIntraBL() ) )
   {
-    ROTRS( rcMbDataCurr .isIntraButnotIBL(),  4 );
-    ROTRS( rcMbDataAbove.isIntraButnotIBL(),  4 );
+    UInt   bIntraBs = ( ! m_bHorMixedMode && rcMbDataAccess.getMbPicType() == FRAME ? 4 : 3 );
+    ROTRS( rcMbDataCurr .isIntraButnotIBL(),  bIntraBs );
+    ROTRS( rcMbDataAbove.isIntraButnotIBL(),  bIntraBs );
     if( rcMbDataCurr.isIntraBL() && rcMbDataAbove.isIntraBL() )
     {
       ROTRS( rcMbDataCurr .is4x4BlkCoded( cIdx                            ), 1 ); // only coefficients of the current layer are counted

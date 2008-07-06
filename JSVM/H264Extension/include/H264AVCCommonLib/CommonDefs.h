@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-#define _JSVM_VERSION_ "9.12.2"
+#define _JSVM_VERSION_ "9.13"
 
 
 
@@ -348,16 +348,8 @@ H264AVC_NAMESPACE_END
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 #define MAX_SIZE_PID 64
 
-// heiko.schwarz@hhi.fhg.de: Hack for ensuring that the scaling factors
-// work with the closed-loop config files
-// and the other available config files
-// SHOULD BE REMOVED in the future
-#define SCALING_FACTOR_HACK 1
-
 #define MAX_NUM_INFO_ENTRIES 8
 #define MAX_NUM_NON_REQUIRED_PICS 32
-
-#define AR_FGS_COMPENSATE_SIGNED_FRAME                1
 
 #define WEIGHTED_PRED_FLAG                            0                   // (0:no weighted prediction, 1:random weights)
 #define WEIGHTED_BIPRED_IDC                           0                   // (0:no weighted bi-prediction, 1:random weights, 2:implicit weights)

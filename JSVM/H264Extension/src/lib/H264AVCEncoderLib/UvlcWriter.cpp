@@ -547,7 +547,7 @@ ErrVal UvlcWriter::xWriteSvlcCode( Int iVal)
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::writeUvlc( UInt uiCode, Char* pcTraceString )
+ErrVal UvlcWriter::writeUvlc( UInt uiCode, const Char* pcTraceString )
 {
   ETRACE_TH( pcTraceString );
 
@@ -558,7 +558,7 @@ ErrVal UvlcWriter::writeUvlc( UInt uiCode, Char* pcTraceString )
 }
 
 
-ErrVal UvlcWriter::writeSvlc( Int iCode, Char* pcTraceString )
+ErrVal UvlcWriter::writeSvlc( Int iCode, const Char* pcTraceString )
 {
   UInt uiCode;
 
@@ -574,7 +574,7 @@ ErrVal UvlcWriter::writeSvlc( Int iCode, Char* pcTraceString )
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::writeFlag( Bool bFlag, Char* pcTraceString )
+ErrVal UvlcWriter::writeFlag( Bool bFlag, const Char* pcTraceString )
 {
   ETRACE_TH( pcTraceString );
   ETRACE_TY( " u(1)" );
@@ -586,7 +586,7 @@ ErrVal UvlcWriter::writeFlag( Bool bFlag, Char* pcTraceString )
 }
 
 
-ErrVal UvlcWriter::writeSCode( Int iCode, UInt uiLength, Char* pcTraceString )
+ErrVal UvlcWriter::writeSCode( Int iCode, UInt uiLength, const Char* pcTraceString )
 {
   AOT_DBG(uiLength<1);
   ETRACE_TH( pcTraceString );
@@ -604,7 +604,7 @@ ErrVal UvlcWriter::writeSCode( Int iCode, UInt uiLength, Char* pcTraceString )
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::writeCode( UInt uiCode, UInt uiLength, Char* pcTraceString )
+ErrVal UvlcWriter::writeCode( UInt uiCode, UInt uiLength, const Char* pcTraceString )
 {
   AOT_DBG(uiLength<1);
   ETRACE_TH( pcTraceString );
@@ -1684,11 +1684,11 @@ ErrVal UvlcWriter::samplesPCM( MbDataAccess& rcMbDataAccess )
   AOF_DBG( rcMbDataAccess.getMbData().isPCM() );
 
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 16 );
-  Pel* pSrc = rcMbDataAccess.getMbTCoeffs().getPelBuffer();
+  TCoeff* pCoeff = rcMbDataAccess.getMbTCoeffs().getTCoeffBuffer();
 
   const UInt uiFactor = 8*8;
   const UInt uiSize   = uiFactor*2*3;
-  RNOK( m_pcBitWriteBufferIf->samples( pSrc, uiSize ) );
+  RNOK( m_pcBitWriteBufferIf->pcmSamples( pCoeff, uiSize ) );
 
   ETRACE_N;
   ETRACE_COUNT( uiFactor*6 );

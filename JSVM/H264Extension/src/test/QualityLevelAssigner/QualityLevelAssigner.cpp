@@ -128,6 +128,7 @@ QualityLevelAssigner::QualityLevelAssigner()
   ::memset( m_aaadDeltaDist,        0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
   ::memset( m_aaauiPacketSize,      0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
   ::memset( m_aaauiQualityID,       0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
+  ::memset( m_aauiPicNumToFrmID,    0x00, MAX_LAYERS                   *sizeof(Void*));
 }
 
 
@@ -175,9 +176,13 @@ QualityLevelAssigner::init( QualityLevelParameter* pcParameter )
   for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer]; uiFGS  ++ )
   {
     ROF( m_auiNumFrames[uiLayer] );
-    ROFS( ( m_aaadDeltaDist  [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ) );
-    ROFS( ( m_aaauiPacketSize[uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
-    ROFS( ( m_aaauiQualityID [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaadDeltaDist       [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaauiPacketSize     [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaauiQualityID      [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    if( uiFGS == 0 )
+    {
+      ROFS( ( m_aauiPicNumToFrmID [uiLayer]        = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    }
   }
 
   //--- init start code ----
@@ -235,9 +240,13 @@ QualityLevelAssigner::destroy()
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS;          uiLayer++ )
   for( UInt uiFGS   = 0; uiFGS   < MAX_QUALITY_LEVELS;  uiFGS  ++ )
   {
-    delete [] m_aaadDeltaDist   [uiLayer][uiFGS];
-    delete [] m_aaauiPacketSize [uiLayer][uiFGS];
-    delete [] m_aaauiQualityID  [uiLayer][uiFGS];
+    delete [] m_aaadDeltaDist       [uiLayer][uiFGS];
+    delete [] m_aaauiPacketSize     [uiLayer][uiFGS];
+    delete [] m_aaauiQualityID      [uiLayer][uiFGS];
+    if( uiFGS == 0 )
+    {
+      delete [] m_aauiPicNumToFrmID [uiLayer];
+    }
   }
 
   //===== delete picture buffers =====
@@ -371,12 +380,11 @@ QualityLevelAssigner::xInitStreamParameters()
 {
   printf( "analyse stream content ..." );
 
-  Bool              bFirstPacket  = true;
-  static Bool    bAVCComaptible = false;  //bug-fix suffix
-  BinData*          pcBinData     = 0;
-  SEI::SEIMessage*  pcScalableSEI = 0;
+  Bool              bFirstPacket    = true;
+  BinData*          pcBinData       = 0;
+  SEI::SEIMessage*  pcScalableSEI   = 0;
+  UInt              uiLastPrefixTL  = MSYS_UINT_MAX;
   PacketDescription cPacketDescription; 
-  UInt	uiLevel_prefix = 0;//prefix unit
 
   m_uiNumLayers = 0;
   ::memset( m_auiNumFGSLayers,      0x00, MAX_LAYERS                   *sizeof(UInt) );
@@ -413,11 +421,6 @@ QualityLevelAssigner::xInitStreamParameters()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
-    if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
-      cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
-    { 
-			cPacketDescription.Level = uiLevel_prefix;//prefix unit
-    }
     ROT( bFirstPacket && !pcScalableSEI );
     if( pcScalableSEI )
     {
@@ -459,18 +462,25 @@ QualityLevelAssigner::xInitStreamParameters()
     }
 
     //----- analyse packets -----
-  if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
-  {
-    bAVCComaptible = true;
-  }
-//prefix unit{{
-	if(cPacketDescription.NalUnitType == 14)
-	{
-		RNOK( pcReadBitStream->releasePacket( pcBinData ) );
-		uiLevel_prefix = cPacketDescription.Level;
-		continue;
-	}
-//prefix unit}}
+    if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+    {
+      if( uiLastPrefixTL == MSYS_UINT_MAX )
+      {
+        fprintf( stderr, "\nMissing prefix NAL unit\n\n" );
+        ROT(1);
+      }
+      cPacketDescription.Level = uiLastPrefixTL;
+    }
+    if( cPacketDescription.NalUnitType == 14 )
+    {
+      RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+      uiLastPrefixTL = cPacketDescription.Level;
+      continue;
+    }
+    else
+    {
+      uiLastPrefixTL = MSYS_UINT_MAX;
+    }
     if( cPacketDescription.FGSLayer )
     {
       if( cPacketDescription.Layer+1 > m_uiNumLayers)
@@ -591,32 +601,7 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
   {
     //JVT-S043
     UInt uiTopLayer = (bMultiLayer? m_uiNumLayers-1 : uiLayer);
-
-    //----- create arrays for pic number to frame number mapping -----
-    UInt* puiPic2FNum = new UInt[ m_auiNumFrames[uiLayer] ];
-    ROF(  puiPic2FNum);
-    Bool  bLastGOP    = false;
-    UInt  uiFrameNum  = 0;
-    UInt  uiGOPPos    = 0;
-    for( puiPic2FNum[0] = uiFrameNum++; ! bLastGOP; uiGOPPos += m_auiGOPSize[uiLayer] )
-    {
-      for( uiTLevel = 0; uiTLevel <= m_auiNumTempLevel[uiLayer]; uiTLevel++ )
-      {
-        UInt uiStep = ( 1 << ( m_auiNumTempLevel[uiLayer] - uiTLevel ) );
-        for( UInt uiDeltaPos = uiStep; uiDeltaPos <= m_auiGOPSize[uiLayer]; uiDeltaPos += (uiStep<<1) )
-        {
-          if( uiGOPPos + uiDeltaPos < m_auiNumFrames[uiLayer] )
-          {
-            puiPic2FNum[uiGOPPos+uiDeltaPos] = uiFrameNum++;
-          }
-          else
-          {
-            bLastGOP = true;
-          }
-        }
-      }
-    }
-
+    UInt* puiPic2FNum = m_aauiPicNumToFrmID[uiLayer];
 
     //----- determine delta distortions -----
     for( uiFGS = 1; uiFGS <= m_auiNumFGSLayers[uiLayer]; uiFGS++ )
@@ -706,9 +691,6 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
         }
       }
     }
-
-    //----- delete auxiliary array -----
-    delete [] puiPic2FNum;
   }
   printf("\n");
 
@@ -732,13 +714,12 @@ QualityLevelAssigner::xInitRateValues()
 {
   printf( "determine packet sizes ..." );
 
-  Int64             i64StartPos   = 0;
-  BinData*          pcBinData     = 0;
-  SEI::SEIMessage*  pcScalableSEI = 0;
+  Int64             i64StartPos     = 0;
+  BinData*          pcBinData       = 0;
+  SEI::SEIMessage*  pcScalableSEI   = 0;
+  UInt              uiLastPrefixTL  = MSYS_UINT_MAX;
   PacketDescription cPacketDescription;
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
-  static Bool    bAVCComaptible = false;  //bug-fix suffix 
-  UInt	uiLevel_prefix = 0;//prefix unit
 
   //===== init =====
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
@@ -752,7 +733,11 @@ QualityLevelAssigner::xInitRateValues()
   for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer];  uiFGS   ++ )
   for( UInt uiFrame = 0; uiFrame <  m_auiNumFrames   [uiLayer];  uiFrame ++ )
   {
-    m_aaauiPacketSize[uiLayer][uiFGS][uiFrame] = 0;
+    m_aaauiPacketSize     [uiLayer][uiFGS][uiFrame] = 0;
+    if( uiFGS == 0 )
+    {
+      m_aauiPicNumToFrmID [uiLayer]       [uiFrame] = MSYS_UINT_MAX;
+    }
   }
 
   //===== loop over packets =====
@@ -772,11 +757,6 @@ QualityLevelAssigner::xInitRateValues()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
-    if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
-       cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
-    { 
-			cPacketDescription.Level = uiLevel_prefix;//prefix unit
-    }
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- get packet size -----
@@ -787,24 +767,55 @@ QualityLevelAssigner::xInitRateValues()
     //----- analyse packets -----
     if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI )
     {
-    if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
-    {
-      bAVCComaptible = true;
-    }
-//prefix unit{{
-	if(cPacketDescription.NalUnitType == 14)
-	{
-		RNOK( pcReadBitStream->releasePacket( pcBinData ) );
-		uiLevel_prefix = cPacketDescription.Level;
-		continue;
-	}
-//prefix unit}}
+      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE )
+      {
+        if( uiLastPrefixTL == MSYS_UINT_MAX )
+        {
+          fprintf( stderr, "\nMissing prefix NAL unit\n\n" );
+          ROT(1);
+        }
+        cPacketDescription.Level = uiLastPrefixTL;
+      }
+      if( cPacketDescription.NalUnitType == 14 )
+      {
+        RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+        uiLastPrefixTL = cPacketDescription.Level;
+        continue;
+      }
+      else
+      {
+        uiLastPrefixTL = MSYS_UINT_MAX;
+      }
 
       if( cPacketDescription.FGSLayer == 0 && cPacketDescription.uiFirstMb == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
+        {
+          Bool  bSet        = false;
+          UInt  uiTXLevel   = m_auiNumTempLevel[cPacketDescription.Layer] - cPacketDescription.Level;
+          UInt  uiOffset    = ( 1 << uiTXLevel );
+          UInt  uiStepSize  = ( uiOffset  << 1 );
+          if( cPacketDescription.Level == 0 )
+          {
+            uiStepSize  = uiOffset;
+            uiOffset    = 0;
+          }
+          for( UInt uiPicNum = uiOffset; uiPicNum < m_auiNumFrames[cPacketDescription.Layer] && !bSet; uiPicNum += uiStepSize )
+          {
+            if( m_aauiPicNumToFrmID[cPacketDescription.Layer][ uiPicNum ] == MSYS_UINT_MAX )
+            {
+              m_aauiPicNumToFrmID[cPacketDescription.Layer][ uiPicNum ] = auiFrameNum[cPacketDescription.Layer];
+              bSet = true;
+            }
+          }
+          ROF( bSet );
+        }
       }
       m_aaauiPacketSize[cPacketDescription.Layer][cPacketDescription.FGSLayer][auiFrameNum[cPacketDescription.Layer]] += uiPacketSize;
+    }
+    else
+    {
+      uiLastPrefixTL = MSYS_UINT_MAX;
     }
 
     //----- delete bin data -----
@@ -834,9 +845,9 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
                                            Bool&              rbEOS,
                                            UInt*              auiFrameNum )
 {
-  Bool              bValid        = false;
-  static Bool    bAVCComaptible = false;  //bug-fix suffix
-  SEI::SEIMessage*  pcScalableSEI = 0;
+  Bool              bValid          = false;
+  SEI::SEIMessage*  pcScalableSEI   = 0;
+  static UInt       uiLastPrefixTL  = MSYS_UINT_MAX;
   PacketDescription cPacketDescription;
 
   while( !bValid )
@@ -856,11 +867,13 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     //===== check whether packet is required =====
     if( cPacketDescription.NalUnitType == NAL_UNIT_SEI )
     {
-      bValid      = true;
+      uiLastPrefixTL  = MSYS_UINT_MAX;
+      bValid          = true;
     }
 		else if( cPacketDescription.NalUnitType == NAL_UNIT_SPS )
     {
-      bValid      = false;
+      uiLastPrefixTL  = MSYS_UINT_MAX;
+      bValid          = false;
       for( UInt ui = 0; ui <= uiTopLayer; ui++ )
       {
         if( m_auiSPSRequired[cPacketDescription.SPSid] & (1<<ui) )
@@ -872,7 +885,8 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     }
     else if( cPacketDescription.NalUnitType == NAL_UNIT_SUBSET_SPS )
     {
-      bValid      = false;
+      uiLastPrefixTL  = MSYS_UINT_MAX;
+      bValid          = false;
       for( UInt ui = 0; ui <= uiTopLayer; ui++ )
       {
         if( m_auiSubsetSPSRequired[cPacketDescription.SPSid] & (1<<ui) )
@@ -884,7 +898,8 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     }
     else if( cPacketDescription.NalUnitType == NAL_UNIT_PPS )
     {
-      bValid      = false;
+      uiLastPrefixTL  = MSYS_UINT_MAX;
+      bValid          = false;
       for( UInt ui = 0; ui <= uiTopLayer; ui++ )
       {
         if( m_auiPPSRequired[cPacketDescription.PPSid] & (1<<ui) )
@@ -896,59 +911,29 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     }
     else // slice data
     {
-    if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
-    {
-      bAVCComaptible = true;
-    }
-//prefix unit{{
-	if(cPacketDescription.NalUnitType == 14)
-	{
-	//	uiLevel_prefix = cPacketDescription.Level;
-		bValid  = true;
-		continue;
-	}
-//prefix unit}}
+      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE )
+      {
+        if( uiLastPrefixTL == MSYS_UINT_MAX )
+        {
+          fprintf( stderr, "\nMissing prefix NAL unit\n\n" );
+          ROT(1);
+        }
+        cPacketDescription.Level = uiLastPrefixTL;
+      }
+      if( cPacketDescription.NalUnitType == 14 )
+      {
+        uiLastPrefixTL  = cPacketDescription.Level;
+        bValid          = true;
+        continue;
+      }
+      else
+      {
+        uiLastPrefixTL  = MSYS_UINT_MAX;
+      }
       //===== update frame num =====
       if( ! cPacketDescription.FGSLayer && cPacketDescription.uiFirstMb == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
-      }
-
-      //===== check temporal level =====
-      {
-        UInt uiTL                 = 0;
-        UInt uiFN                 = auiFrameNum[cPacketDescription.Layer];
-        UInt uiNumFramesComplete  = ( ( m_auiNumFrames[cPacketDescription.Layer] - 1 ) / m_auiGOPSize[cPacketDescription.Layer] ) * m_auiGOPSize[cPacketDescription.Layer] + 1;
-        UInt uiRemainingFrames    = m_auiNumFrames[cPacketDescription.Layer] - uiNumFramesComplete;
-        UInt uiFNMod              = ( uiFN - 1 ) % m_auiGOPSize[cPacketDescription.Layer];
-        if( uiFN )
-        {
-          if( uiFN < uiNumFramesComplete )
-          {
-            for( ; uiFNMod > 0; uiFNMod >>= 1, uiTL++ );
-          }
-          else
-          {
-            UInt auiTLevel[128];
-            UInt uiEntry = 0;
-            ::memset( auiTLevel, 0xFF, 128*sizeof(UInt) );
-            for( UInt   uiTempLevel = 0;      uiTempLevel <= m_auiNumTempLevel[cPacketDescription.Layer]; uiTempLevel++ )
-            {
-              UInt      uiStep      = ( 1 << ( m_auiNumTempLevel[cPacketDescription.Layer] - uiTempLevel ) );
-              for( UInt uiPos       = uiStep; uiPos      <= m_auiGOPSize[cPacketDescription.Layer];      uiPos += (uiStep<<1) )
-              {
-                if( uiPos - 1 < uiRemainingFrames )
-                {
-                  auiTLevel[uiEntry++] = uiTempLevel;
-                }
-              }
-            }
-            uiTL = auiTLevel[uiFNMod];
-            ROT( uiTL == MSYS_UINT_MAX );
-          }
-        }
-        ROT( cPacketDescription.Scalable && cPacketDescription.Level != uiTL );
-        cPacketDescription.Level = uiTL;
       }
 
       //===== get valid status =====
@@ -1408,12 +1393,11 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
 {
   printf( "write stream with quality layer (PID) \"%s\" ...", m_pcParameter->getOutputBitStreamName().c_str() );
 
-  BinData*          pcBinData     = 0;
-  SEI::SEIMessage*  pcScalableSEI = 0;
+  BinData*          pcBinData       = 0;
+  SEI::SEIMessage*  pcScalableSEI   = 0;
+  UInt              uiLastPrefixTL  = MSYS_UINT_MAX;
   PacketDescription cPacketDescription;
-  static Bool    bAVCComaptible = false;  //bug-fix suffix
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
-  UInt	uiLevel_prefix = 0;//prefix unit
   //===== init =====
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
   ReadBitstreamFile*    pcReadBitStream   = 0;
@@ -1441,11 +1425,6 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
-    if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
-      cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
-    { 
-			cPacketDescription.Level = uiLevel_prefix;//prefix unit
-    }
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- set packet size -----
@@ -1465,9 +1444,14 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
     }
     else
     {
-      if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE )
       {
-        bAVCComaptible = true;
+        if( uiLastPrefixTL == MSYS_UINT_MAX )
+        {
+          fprintf( stderr, "\nMissing prefix NAL unit\n\n" );
+          ROT(1);
+        }
+        cPacketDescription.Level = uiLastPrefixTL;
       }
       if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
           ! cPacketDescription.FGSLayer  && cPacketDescription.NalUnitType != NAL_UNIT_PREFIX && cPacketDescription.uiFirstMb == 0 )
@@ -1475,12 +1459,16 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
         auiFrameNum[cPacketDescription.Layer]++;
       }
     }
-//prefix unit{{
-	  if(cPacketDescription.NalUnitType == 14)
+
+    if( cPacketDescription.NalUnitType == 14 )
 	  {
-	  	uiLevel_prefix = cPacketDescription.Level;
+      uiLastPrefixTL = cPacketDescription.Level;
   	}
-//prefix unit}}
+    else
+    {
+      uiLastPrefixTL = MSYS_UINT_MAX;
+    }
+
     //----- write and delete bin data -----
     RNOK( pcWriteBitStream->writePacket   ( &m_cBinDataStartCode ) );
     RNOK( pcWriteBitStream->writePacket   ( pcBinData ) );
@@ -1509,12 +1497,11 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
   UInt              uiNumAccessUnits  = 0;
   UInt              uiPrevLayer       = 0;
   UInt              uiPrevLevel       = 0;
+  UInt              uiLastPrefixTL    = MSYS_UINT_MAX;
   BinData*          pcBinData         = 0;
   SEI::SEIMessage*  pcScalableSEI     = 0;
   PacketDescription cPacketDescription;
-  static Bool    bAVCComaptible = false;  //bug-fix suffix
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
-  UInt	uiLevel_prefix = 0;//prefix unit
   //===== init =====
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
   ReadBitstreamFile*    pcReadBitStream   = 0;
@@ -1543,11 +1530,6 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
-    if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
-      cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
-    { 
-			cPacketDescription.Level = uiLevel_prefix;//prefix unit
-    }
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- set packet size -----
@@ -1563,19 +1545,25 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
                             cPacketDescription.FGSLayer    == 0U );
     if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
     {
-      bAVCComaptible = true;
+      if( uiLastPrefixTL == MSYS_UINT_MAX )
+      {
+        fprintf( stderr, "\nMissing prefix NAL unit\n\n" );
+        ROT(1);
+      }
+      cPacketDescription.Level = uiLastPrefixTL;
       bNewAccessUnit = bNewAccessUnit && (!bPrevNALUnitWasPrefix); //JVT-W137
       if(bPrevNALUnitWasPrefix)
         bPrevNALUnitWasPrefix = false; //JVT-W137
     }
-//prefix unit{{
-	if(cPacketDescription.NalUnitType == 14)
-	{
-		uiLevel_prefix = cPacketDescription.Level;
-		//bNewAccessUnit = false; //JVT-W137 remove
-    bPrevNALUnitWasPrefix = true; //JVT-W137
-	}
-//prefix unit}}
+    if( cPacketDescription.NalUnitType == 14 )
+    {
+      uiLastPrefixTL  = cPacketDescription.Level;
+      bPrevNALUnitWasPrefix = true;
+    }
+    else
+    {
+      uiLastPrefixTL  = MSYS_UINT_MAX;
+    }
     if(  bNewAccessUnit )
     {
       bNewAccessUnit  =                   ( cPacketDescription.Layer == 0 );

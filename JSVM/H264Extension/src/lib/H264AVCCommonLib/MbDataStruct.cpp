@@ -253,7 +253,7 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_bResidualPredFlag   = rcMbDataStruct.m_bResidualPredFlag;
   m_bTransformSize8x8   = rcMbDataStruct.m_bTransformSize8x8;
   m_bFieldFlag          = rcMbDataStruct.m_bFieldFlag;
-   
+
   ::memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
   ::memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );
 }

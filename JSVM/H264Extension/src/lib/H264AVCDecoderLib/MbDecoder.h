@@ -133,7 +133,7 @@ public:
 
 protected:
   ErrVal xDecodeMbPCM             ( MbDataAccess&       rcMbDataAccess,
-                                    YuvPicBuffer*       pcRecYuvBuffer );
+                                    YuvMbBuffer&        rcYuvMbBuffer );
   ErrVal xDecodeMbIntra4x4        ( MbDataAccess&       rcMbDataAccess,
                                     YuvMbBuffer&        cYuvMbBuffer,
                                     YuvMbBuffer&        rcPredBuffer );

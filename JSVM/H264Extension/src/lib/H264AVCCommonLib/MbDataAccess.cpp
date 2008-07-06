@@ -737,6 +737,47 @@ ErrVal  MbDataAccess::setConvertMbType( UInt uiMbType )
   return Err::m_nOK;
 }
 
+ErrVal
+MbDataAccess::setSVCDirectModeMvAndRef( RefFrameList& rcRefList0,
+                                        RefFrameList& rcRefList1,
+                                        Int           i8x8Blk     /* = -1 for entire macroblock */ )
+{
+  UInt  uiFirst4x4Index = ( i8x8Blk == 3 ? 10 : i8x8Blk == 2 ? 8 : i8x8Blk == 1 ? 2 : i8x8Blk == 0 ? 0 : 0 );
+  UInt  uiLast4x4Index  = ( i8x8Blk == 3 ? 11 : i8x8Blk == 2 ? 9 : i8x8Blk == 1 ? 3 : i8x8Blk == 0 ? 1 : 3 );
+  SChar ascRefIdx [2];
+  Mv    acMv      [2];
+  for(  UInt uiListIdx = 0; uiListIdx < 2; uiListIdx++ )
+  {
+    ListIdx eListIdx = ( uiListIdx ? LIST_1 : LIST_0 );
+    xSetNeighboursMvPredictor( eListIdx, B4x4Idx( uiFirst4x4Index ), B4x4Idx( uiLast4x4Index ) );
+    if( ( ascRefIdx[uiListIdx] = m_cMv3D_A.minRefIdx( m_cMv3D_B ).minRefIdx( m_cMv3D_C ).getRef() ) > 0 )
+    {
+      xGetMvPredictorUseNeighbours( acMv[uiListIdx], ascRefIdx[uiListIdx], MEDIAN );
+    }
+  }
+  if( ascRefIdx[0] < 1 && ascRefIdx[1] < 1 )
+  {
+    ascRefIdx[0] = 1;
+    ascRefIdx[1] = 1;
+  }
+  ROF( ascRefIdx[0] <= (SChar)rcRefList0.getActive() && ascRefIdx[1] <= (SChar)rcRefList1.getActive() );
+  if ( i8x8Blk < 0 || i8x8Blk > 3 ) // 16x16
+  {
+    getMbMotionData( LIST_0 ).setRefIdx( ascRefIdx[0] );
+    getMbMotionData( LIST_1 ).setRefIdx( ascRefIdx[1] );
+    getMbMotionData( LIST_0 ).setAllMv ( acMv     [0] );
+    getMbMotionData( LIST_1 ).setAllMv ( acMv     [1] );
+  }
+  else
+  {
+    ParIdx8x8 eParIdx8x8 = ( i8x8Blk == 0 ? PART_8x8_0 : i8x8Blk == 1 ? PART_8x8_1 : i8x8Blk == 2 ? PART_8x8_2 : PART_8x8_3 );
+    getMbMotionData( LIST_0 ).setRefIdx( ascRefIdx[0], eParIdx8x8 );
+    getMbMotionData( LIST_1 ).setRefIdx( ascRefIdx[1], eParIdx8x8 );
+    getMbMotionData( LIST_0 ).setAllMv ( acMv     [0], eParIdx8x8 );
+    getMbMotionData( LIST_1 ).setAllMv ( acMv     [1], eParIdx8x8 );
+  }
+  return Err::m_nOK;
+}
 
 Bool MbDataAccess::getMvPredictorDirect( ParIdx8x8 eParIdx, 
                                          Bool& rbOneMv, 
@@ -797,8 +838,7 @@ Bool MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8, RefFrameLis
     {
       if( NULL != pcL0RefFrameList && NULL != pcL1RefFrameList )
       {
-        // no Long term support
-        bAllColNonZero          = false;
+        bAllColNonZero  = (*pcL1RefFrameList)[1]->isLongTerm();
       }
       else
       {

@@ -324,7 +324,7 @@ protected:
 																						UInt uiMaxBitrate    );
   // JVT-S080 LMI }
   // HS: packet trace
-  ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,
+  ErrVal        xReadLineExtractTrace ( const Char*         ,
                                         UInt*               puiStart,
                                         UInt*               puiLength );
   ErrVal        xExtractTrace         ();

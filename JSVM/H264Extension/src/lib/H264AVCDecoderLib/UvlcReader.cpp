@@ -543,7 +543,7 @@ ErrVal UvlcReader::xGetSvlcCode( Int& riVal)
 
 
 
-ErrVal UvlcReader::getFlag( Bool& rbFlag, Char* pcTraceString )
+ErrVal UvlcReader::getFlag( Bool& rbFlag, const Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
 
@@ -557,7 +557,7 @@ ErrVal UvlcReader::getFlag( Bool& rbFlag, Char* pcTraceString )
 }
 
 
-ErrVal UvlcReader::getCode( UInt& ruiCode, UInt uiLength, Char* pcTraceString )
+ErrVal UvlcReader::getCode( UInt& ruiCode, UInt uiLength, const Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
   RNOK( xGetCode( ruiCode, uiLength) );
@@ -567,7 +567,7 @@ ErrVal UvlcReader::getCode( UInt& ruiCode, UInt uiLength, Char* pcTraceString )
 }
 
 
-ErrVal UvlcReader::getUvlc( UInt& ruiCode, Char* pcTraceString )
+ErrVal UvlcReader::getUvlc( UInt& ruiCode, const Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
 
@@ -579,7 +579,7 @@ ErrVal UvlcReader::getUvlc( UInt& ruiCode, Char* pcTraceString )
 }
 
 
-ErrVal UvlcReader::getSvlc( Int& riCode, Char* pcTraceString )
+ErrVal UvlcReader::getSvlc( Int& riCode, const Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
 
@@ -633,7 +633,7 @@ ErrVal UvlcReader::readZeroByteAlign()
   return Err::m_nOK;
 }
 
-ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, Char* pcTraceString )
+ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, const Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
   DTRACE_TY( " u(v)" );
@@ -959,11 +959,11 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
       uiCbp = 0;
       if( rcMbDataAccess.isAvailableLeft() )
       {
-        uiCbp = rcMbDataAccess.getMbDataLeft().calcMbCbp( uiStart, uiStop );
+        uiCbp = rcMbDataAccess.getMbDataLeft().getMbCbp();
       }
       else if ( rcMbDataAccess.isAvailableAbove() )
       {
-        uiCbp = rcMbDataAccess.getMbDataAbove().calcMbCbp( uiStart, uiStop );
+        uiCbp = rcMbDataAccess.getMbDataAbove().getMbCbp();
       }
     }
     else
@@ -1008,11 +1008,11 @@ ErrVal UvlcReader::samplesPCM( MbDataAccess& rcMbDataAccess )
   AOF_DBG( rcMbDataAccess.getMbData().isPCM() );
 
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 16 );
-  Pel* pSrc = rcMbDataAccess.getMbTCoeffs().getPelBuffer();
+  TCoeff* pCoeff = rcMbDataAccess.getMbTCoeffs().getTCoeffBuffer();
 
   const UInt uiFactor = 8*8;
   const UInt uiSize   = uiFactor*2*3;
-  RNOK( m_pcBitReadBuffer->samples( pSrc, uiSize ) );
+  RNOK( m_pcBitReadBuffer->pcmSamples( pCoeff, uiSize ) );
 
   DTRACE_N;
   DTRACE_COUNT( uiFactor*6 );

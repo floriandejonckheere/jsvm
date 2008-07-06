@@ -36,6 +36,20 @@ ResizeParameters::readPictureParameters( FILE* pFile, Bool bFrameMbsOnlyFlag )
   ROTREPORT( iSW < m_iRefLayerFrmWidth,  "Cropping Window must be bigger than base layer" );
   ROTREPORT( iSH < m_iRefLayerFrmHeight, "Cropping Window must be bigger than base layer" );
 
+  //===== adjust parameters =====
+  if( m_iRefLayerFrmWidth != m_iRefLayerWidthInSamples )
+  {
+    Int iShift  = 1;
+    Int iDiv    = m_iRefLayerWidthInSamples << iShift;
+    iSW         = ( ( iSW * m_iRefLayerFrmWidth + ( iDiv >> 1 ) ) / iDiv ) << iShift;
+  }
+  if( m_iRefLayerFrmHeight != m_iRefLayerHeightInSamples )
+  {
+    Int iShift  = ( bFrameMbsOnlyFlag ? 1 : 2 );
+    Int iDiv    = m_iRefLayerHeightInSamples << iShift;
+    iSH         = ( ( iSH * m_iRefLayerFrmHeight + ( iDiv >> 1 ) ) / iDiv ) << iShift;
+  }
+
   //===== set parameters =====
   m_iScaledRefFrmWidth  = iSW;
   m_iScaledRefFrmHeight = iSH;

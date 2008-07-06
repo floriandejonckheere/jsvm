@@ -142,9 +142,6 @@ protected:
                                       PicBufferList&              rcPicBufferInputList );
 
   //===== control data initialization =====
-  ErrVal  xGetConnections           ( Double&                     rdL0Rate,
-                                      Double&                     rdL1Rate,
-                                      Double&                     rdBiRate );
   ErrVal  xSetScalingFactors        ( UInt                        uiBaseLevel );
   ErrVal  xGetListSizes             ( UInt                        uiTemporalLevel,
                                       UInt                        uiFrameIdInGOP,

@@ -55,50 +55,50 @@ tests              => [
                        #   Test 0  #
                        #----------#
                        {
-            		        name => "L0",
+            		name => "L0",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 652,
-                  			psnr        => 30.56,
+                  	bitrate     => 589,
+                  	psnr        => 30.96,
                        },                                                                  
                        #----------#
                        #   Test 1  #
                        #----------#
                        {
-            		        name => "L1",
+            		name => "L1",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1586,
-                  			psnr        => 35.40,
+                  	bitrate     => 1475,
+                  	psnr        => 35.85,
                        },                                                                  
                        #----------#
                        #   Test 2  #
                        #----------#
                        {
-            		        name => "L2",
+            		name => "L2",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 2614,
-                  			psnr        => 37.96,
-            		        encdecmatch => 1,
+                  	bitrate     => 2414,
+                  	psnr        => 38.38,
+            		encdecmatch => 1,
                        },                                                                  
                        #----------#
                        #   Test 3  #
                        #----------#
                        {
-            		        name => "LX",
+            		name => "LX",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1860,
-            		psnr        => 36.00,
+                  	bitrate     => 1846,
+            		psnr        => 36.62,
 			},
                       ],
 }

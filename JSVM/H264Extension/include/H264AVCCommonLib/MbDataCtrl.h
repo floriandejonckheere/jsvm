@@ -255,8 +255,8 @@ public:
   ~MbDataCtrl();
 
 public:
-  ErrVal getBoundaryMask      ( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const;
-  ErrVal getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const;
+  ErrVal getBoundaryMask      ( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const;
+  ErrVal getBoundaryMask_MbAff( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const;
 
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
@@ -286,7 +286,8 @@ public:
 	MbData& getMbData( UInt uiMbX, UInt uiMbY ) const  { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
 //  TMM_EC }}
 
-  ErrVal  copyMotion    ( MbDataCtrl&       rcMbDataCtrl );
+  ErrVal  copyMotion    ( MbDataCtrl&       rcMbDataCtrl,
+                          PicType           ePicType = FRAME );
   ErrVal  upsampleMotion( SliceHeader*      pcSliceHeader,
                           ResizeParameters* pcResizeParameters,
                           MbDataCtrl*       pcBaseMbDataCtrl, 
@@ -382,39 +383,17 @@ public:
     return Err::m_nOK;
   }
 
-  ErrVal        activateMbDataCtrlForQpAndCbp( Bool bNormalMbDataCtrl )
-  {
-    // restore the state first
-    if( m_bIsNormalMbDataCtrl != bNormalMbDataCtrl )
-    {
-      switchFGSLayerQpAndCbp();
-    }
-    m_bIsNormalMbDataCtrl = bNormalMbDataCtrl;
-
-    return Err::m_nOK;
-  }
-
-  ErrVal        saveMbDataQpAndCbp()
-  {
-    // should not happen, not designed so general
-    ROT( ! m_bIsNormalMbDataCtrl );
-    storeFGSLayerQpAndCbp();
-    return Err::m_nOK;
-  }
-
   Frame*     getBaseLayerRec     ()  { return  m_pcBaseLayerRec;     }
   Frame*     getBaseLayerSbb     ()  { return  m_pcBaseLayerSbb;     }
   MbDataCtrl*   getBaseLayerCtrl    ()  { return  m_pcBaseLayerCtrl;    }
   MbDataCtrl*   getMbDataCtrl0L1    ()  { return m_pcMbDataCtrl0L1; }
   Void          setMbDataCtrl0L1    ( MbDataCtrl* p )  { m_pcMbDataCtrl0L1 = p; }
   MbDataCtrl*   getBaseLayerCtrlField ()  { return  m_pcBaseLayerCtrlField;    }
-  ControlData*  getBaseCtrlData     ()  { return  m_pcBaseCtrlData;     }
   UInt          getUseBLMotion      ()  { return  m_uiUseBLMotion;      }
   Void          setBaseLayerRec     ( Frame*   pcBaseLayerRec  )   { m_pcBaseLayerRec    = pcBaseLayerRec;   }
   Void          setBaseLayerSbb     ( Frame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb    = pcBaseLayerSbb;   }
   Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl   = pcBaseLayerCtrl;  }
   Void          setBaseLayerCtrlField ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrlField = pcBaseLayerCtrl;  }
-  Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData    = pcBaseCtrlData;   }
   Void          setUseBLMotion      ( UInt        uiUseBLMotion   )   { m_uiUseBLMotion     = uiUseBLMotion;    }
 
   Void          setLambda           ( Double d ) { m_dLambda = d; }
@@ -432,16 +411,6 @@ public:
 
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
   
-  ErrVal        initFGSData             ( UInt uiNumMb );
-  ErrVal        uninitFGSData           ();
-  ErrVal        storeFGSLayerQpAndCbp   ();
-  ErrVal        switchFGSLayerQpAndCbp  ();
-
-  ErrVal        initBQData            ( UInt uiNumMb );
-  ErrVal        uninitBQData          ();
-  ErrVal        storeBQLayerQpAndCbp  ();
-  ErrVal        switchBQLayerQpAndCbp ();
-
   Void          setSpatialScalability ( Bool b )  { m_bSpatialScalability = b; }
   Bool          getSpatialScalability ()  const   { return m_bSpatialScalability; }
 
@@ -457,37 +426,19 @@ private:
   Frame*     m_pcBaseLayerSbb;
   MbDataCtrl*   m_pcBaseLayerCtrl;
   MbDataCtrl*   m_pcBaseLayerCtrlField;
-  ControlData*  m_pcBaseCtrlData;
   UInt          m_uiUseBLMotion;
 
   Double        m_dScalingFactor;
 
   UInt          m_uiBaseLayerId;
   UInt          m_uiBaseLayerIdMotion;
-
   Bool          m_bSpatialScalability;     // TMM_ESS  
-
-  UChar*        m_pacFGSMbQP;
-  UChar*        m_pacFGSMbQP4LF;
-  UInt*         m_pauiFGSMbCbp;
-  Bool*         m_pabFGS8x8Trafo;
-  Bool          m_bIsNormalMbDataCtrl;
-
-  //===== base quality data (CBP, QP, 8x8flag) =====
-  UChar*        m_pacBQMbQP;
-  UChar*        m_pacBQMbQP4LF;
-  UInt*         m_pauiBQMbCbp;
-  Bool*         m_pabBQ8x8Trafo;
-  MbMode*       m_paeBQMbMode;
-  UShort*       m_pusBQFwdBwd;
-  MbMotionData* m_paacBQMotionData[2];
 
   RefFrameList  m_acPrdFrameList[2];
 	//JVT-X046 {
 public:
 	UInt m_uiCurrentFirstMB;
 	bool m_bSliceGroupAllCoded;
-	UInt m_uiCurrentSliceGroupId;
   //JVT-X046 }
 };
 

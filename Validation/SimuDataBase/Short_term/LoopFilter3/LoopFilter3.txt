@@ -52,22 +52,22 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  			bitrate     => 224,
-                  			psnr        => 34.43,
-            		        encdecmatch => 1,
+                  	bitrate     => 183,
+                  	psnr        => 33.88,
+            		encdecmatch => 1,
                        },                                                                  
                        #----------#
                        #   Test 2  #
                        #----------#
                        {
-            		        name => "L1",
+            		name => "L1",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 915,
-                  			psnr        => 31.54,
-            		        encdecmatch => 1,
+                  	bitrate     => 757,
+                  	psnr        => 31.56,
+            		encdecmatch => 1,
                        },                                                                  
                       ],
 }

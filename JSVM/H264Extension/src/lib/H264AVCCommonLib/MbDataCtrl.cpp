@@ -1138,11 +1138,20 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 }
 
 ErrVal
-MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl )
+MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl, PicType ePicType )
 {
-  for( UInt n = 0; n < m_uiSize; n++ )
+  UInt    uiStride    = ( ePicType == FRAME     ? m_iMbPerLine : m_iMbPerLine << 1 );
+  UInt    uiMbOffset  = ( ePicType == BOT_FIELD ? m_iMbPerLine : 0 );
+  UInt    uiNumLines  = m_uiSize / uiStride;
+  MbData* pcMbDataDes = &( m_pcMbData             [ uiMbOffset ] );
+  MbData* pcMbDataSrc = &( rcMbDataCtrl.m_pcMbData[ uiMbOffset ] );
+  
+  for( Int y = 0; y < (Int)uiNumLines; y++, pcMbDataDes += uiStride, pcMbDataSrc += uiStride )
   {
-    RNOK( m_pcMbData[n].copyMotion( rcMbDataCtrl.m_pcMbData[n], m_uiSliceId ) );
+    for( Int x = 0; x < m_iMbPerLine; x++ )
+    {
+      RNOK( pcMbDataDes[x].copyMotion( pcMbDataSrc[x], m_uiSliceId ) );
+    }
   }
   m_bPicCodedField = rcMbDataCtrl.m_bPicCodedField;
   return Err::m_nOK;
@@ -1254,7 +1263,7 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
     {
       m_pcMbDataCtrl0L1 = pcMbDataCtrl;
     }
-    if( rcSH.isH264AVCCompatible() && rcSH.isBSlice() && bDecoder && m_eProcessingState == DECODE_PROCESS && m_pcMbDataCtrl0L1 )
+    if( rcSH.isH264AVCCompatible() && rcSH.isBSlice() && m_pcMbDataCtrl0L1 )
     {
       const RefFrameList* pcRefFrameList  = rcSH.getRefFrameList( rcSH.getPicType(), LIST_1 );
       ROF( pcRefFrameList );
@@ -1335,8 +1344,7 @@ const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId,
   ROTRS( iMbY >= m_iMbPerColumn, xGetOutMbData() );
 
   //--ICU/ETRI FMO Implementation
-//  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * m_uiMbStride + iMbX + m_uiMbOffset ) , xGetOutMbData() );
-  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + iMbX ) , xGetOutMbData() ); //TMM_INTERLACE
+  ROTRS( !bLoopFilter && uiCurrSliceID != getSliceGroupIDofMb(iMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + iMbX ) , xGetOutMbData() ); //TMM_INTERLACE
 
   // get the ref mb data
   const MbData& rcMbData = getMbData( iMbY * m_uiMbStride + iMbX + m_uiMbOffset );
@@ -1476,35 +1484,14 @@ ControlData::ControlData()
 , m_pcBaseLayerSbb       ( 0   )
 , m_pcBaseLayerCtrl      ( 0   )
 , m_pcBaseLayerCtrlField ( 0   )
-, m_pcBaseCtrlData       ( 0   )
 , m_uiUseBLMotion        ( 0   )
 , m_dScalingFactor       ( 1.0 )
-, m_pacFGSMbQP           ( 0 )
-, m_pacFGSMbQP4LF        ( 0 )
-, m_pauiFGSMbCbp         ( 0 )
-, m_pabFGS8x8Trafo       ( 0 )
-, m_bIsNormalMbDataCtrl  ( true )
-, m_pacBQMbQP            ( 0 )
-, m_pacBQMbQP4LF         ( 0 )
-, m_pauiBQMbCbp          ( 0 )
-, m_pabBQ8x8Trafo        ( 0 )
-, m_paeBQMbMode          ( 0 )
-, m_pusBQFwdBwd          ( 0 )
 , m_bSpatialScalability  ( false)
 {
-  m_paacBQMotionData[0] = m_paacBQMotionData[1] = 0;
 }
 
 ControlData::~ControlData()
 {
-  AOT( m_pacBQMbQP );
-  AOT( m_pacBQMbQP4LF );
-  AOT( m_pauiBQMbCbp );
-  AOT( m_pabBQ8x8Trafo );
-  AOT( m_pacFGSMbQP );
-  AOT( m_pacFGSMbQP4LF );
-  AOT( m_pauiFGSMbCbp );
-  AOT( m_pabFGS8x8Trafo );
 }
 
 Void
@@ -1517,8 +1504,6 @@ ControlData::clear()
   m_pcBaseLayerCtrlField = 0;
   m_uiUseBLMotion        = 0;
   m_dScalingFactor       = 1.0;
-
-  m_bIsNormalMbDataCtrl = true;
 }
 
 ErrVal
@@ -1533,12 +1518,12 @@ ControlData::init( SliceHeader*  pcSliceHeader,
   m_pcMbDataCtrl  = pcMbDataCtrl;
   m_dLambda       = dLambda;
   
-  m_pcMbDataCtrl0L1 = 0;
-  m_pcBaseLayerRec       = 0;
-  m_pcBaseLayerSbb       = 0;
-  m_pcBaseLayerCtrl      = 0;
-  m_pcBaseLayerCtrlField = 0;
-  m_uiUseBLMotion        = 0;
+  m_pcMbDataCtrl0L1       = 0;
+  m_pcBaseLayerRec        = 0;
+  m_pcBaseLayerSbb        = 0;
+  m_pcBaseLayerCtrl       = 0;
+  m_pcBaseLayerCtrlField  = 0;
+  m_uiUseBLMotion         = 0;
 
   return Err::m_nOK;
 }
@@ -1549,199 +1534,17 @@ ControlData::init( SliceHeader*  pcSliceHeader )
   ROF( pcSliceHeader );
   ROF( m_pcMbDataCtrl  );
 
-  m_pcSliceHeader = pcSliceHeader;
+  m_pcSliceHeader         = pcSliceHeader;
   
-  m_pcMbDataCtrl0L1 = 0;
-  m_pcBaseLayerRec       = 0;
-  m_pcBaseLayerSbb       = 0;
-  m_pcBaseLayerCtrl      = 0;
-  m_pcBaseLayerCtrlField = 0; 
-  m_uiUseBLMotion        = 0;
+  m_pcMbDataCtrl0L1       = 0;
+  m_pcBaseLayerRec        = 0;
+  m_pcBaseLayerSbb        = 0;
+  m_pcBaseLayerCtrl       = 0;
+  m_pcBaseLayerCtrlField  = 0; 
+  m_uiUseBLMotion         = 0;
 
   return Err::m_nOK;
 }
-
-ErrVal
-ControlData::initBQData( UInt uiNumMb )
-{
-  ROT( m_pacBQMbQP );
-  ROT( m_pacBQMbQP4LF );
-  ROT( m_pauiBQMbCbp );
-  ROT( m_pabBQ8x8Trafo );
-  ROFS( ( m_pacBQMbQP      = new UChar [uiNumMb] ) );
-  ROFS( ( m_pacBQMbQP4LF   = new UChar [uiNumMb] ) );
-  ROFS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ) );
-  ROFS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ) );
-  ROFS( ( m_paeBQMbMode    = new MbMode[uiNumMb] ) );
-  ROFS( ( m_pusBQFwdBwd    = new UShort[uiNumMb] ) );
-  ROFS( ( m_paacBQMotionData[0] = new MbMotionData[uiNumMb] ) );
-  ROFS( ( m_paacBQMotionData[1] = new MbMotionData[uiNumMb] ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-ControlData::uninitBQData()
-{
-  delete [] m_pacBQMbQP;
-  delete [] m_pacBQMbQP4LF;
-  delete [] m_pauiBQMbCbp;
-  delete [] m_pabBQ8x8Trafo;
-  delete [] m_paeBQMbMode;
-  delete [] m_pusBQFwdBwd;
-  delete [] m_paacBQMotionData[0];
-  delete [] m_paacBQMotionData[1];
-  m_pacBQMbQP     = 0;
-  m_pacBQMbQP4LF  = 0;
-  m_pauiBQMbCbp   = 0;
-  m_pabBQ8x8Trafo = 0;
-  m_paeBQMbMode   = 0;
-  m_pusBQFwdBwd   = 0;
-  m_paacBQMotionData[0] = 0;
-  m_paacBQMotionData[1] = 0;
-  return Err::m_nOK;
-}
-
-
-ErrVal
-ControlData::storeBQLayerQpAndCbp()
-{
-  ROF( m_pacBQMbQP );
-  ROF( m_pacBQMbQP4LF );
-  ROF( m_pauiBQMbCbp );
-  ROF( m_pabBQ8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
-  {
-    m_pacBQMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    m_pacBQMbQP4LF  [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
-    m_pauiBQMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    m_pabBQ8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
-    m_paeBQMbMode   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMode();
-    m_pusBQFwdBwd   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getFwdBwd();
-    m_paacBQMotionData[0][uiMbIndex].copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( 0 ) ) );
-    m_paacBQMotionData[1][uiMbIndex].copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( 1 ) ) );
-  }
-  return Err::m_nOK;
-}
-
-ErrVal
-ControlData::switchBQLayerQpAndCbp()
-{
-  ROF( m_pacBQMbQP );
-  ROF( m_pacBQMbQP4LF );
-  ROF( m_pauiBQMbCbp );
-  ROF( m_pabBQ8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
-  {
-    UChar ucQP    = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    UChar ucQP4LF = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
-    UInt  uiCbp   = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    Bool  bT8x8   = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
-
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacBQMbQP     [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp4LF            ( m_pacBQMbQP4LF  [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiBQMbCbp   [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabBQ8x8Trafo [uiMbIndex] );
-
-    m_pacBQMbQP     [uiMbIndex] = ucQP;
-    m_pacBQMbQP4LF  [uiMbIndex] = ucQP4LF;
-    m_pauiBQMbCbp   [uiMbIndex] = uiCbp;
-    m_pabBQ8x8Trafo [uiMbIndex] = bT8x8;
-
-    MbMode       eMbMode  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMode();
-    UShort       usFwdBwd = m_pcMbDataCtrl->getMbData( uiMbIndex ).getFwdBwd();
-
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbMode           ( m_paeBQMbMode [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setFwdBwd           ( m_pusBQFwdBwd [uiMbIndex] );
-
-    m_paeBQMbMode   [uiMbIndex] = eMbMode;
-    m_pusBQFwdBwd   [uiMbIndex] = usFwdBwd;
-
-    for( UInt ui = 0; ui < 2; ui++ )
-    {
-      MbMotionData cMbMotionData;
-      cMbMotionData.copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( ui ) ) );
-      m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).getMbMotionData( ListIdx( ui ) ).copyFrom( m_paacBQMotionData[ui][uiMbIndex] );
-      m_paacBQMotionData[ui][uiMbIndex].copyFrom( cMbMotionData );
-    }
-  }
-  return Err::m_nOK;
-}
-
-
-
-
-ErrVal
-ControlData::initFGSData( UInt uiNumMb )
-{
-  ROT( m_pacFGSMbQP );
-  ROT( m_pacFGSMbQP4LF );
-  ROT( m_pauiFGSMbCbp );
-  ROT( m_pabFGS8x8Trafo );
-  ROFS( ( m_pacFGSMbQP      = new UChar [uiNumMb] ) );
-  ROFS( ( m_pacFGSMbQP4LF   = new UChar [uiNumMb] ) );
-  ROFS( ( m_pauiFGSMbCbp    = new UInt  [uiNumMb] ) );
-  ROFS( ( m_pabFGS8x8Trafo  = new Bool  [uiNumMb] ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-ControlData::uninitFGSData()
-{
-  delete [] m_pacFGSMbQP;
-  delete [] m_pacFGSMbQP4LF;
-  delete [] m_pauiFGSMbCbp;
-  delete [] m_pabFGS8x8Trafo;
-  m_pacFGSMbQP      = 0;
-  m_pacFGSMbQP4LF   = 0;
-  m_pauiFGSMbCbp    = 0;
-  m_pabFGS8x8Trafo  = 0;
-  return Err::m_nOK;
-}
-
-ErrVal
-ControlData::storeFGSLayerQpAndCbp()
-{
-  ROF( m_pacFGSMbQP );
-  ROF( m_pacFGSMbQP4LF );
-  ROF( m_pauiFGSMbCbp );
-  ROF( m_pabFGS8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
-  {
-    m_pacFGSMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    m_pacFGSMbQP4LF  [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
-    m_pauiFGSMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    m_pabFGS8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
-  }
-  return Err::m_nOK;
-}
-
-ErrVal
-ControlData::switchFGSLayerQpAndCbp()
-{
-  ROF( m_pacFGSMbQP );
-  ROF( m_pacFGSMbQP4LF );
-  ROF( m_pauiFGSMbCbp );
-  ROF( m_pabFGS8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
-  {
-    UChar ucQP      = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    UChar ucQP4LF   = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
-    UInt  uiCbp     = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    Bool  bT8x8     = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
-
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacFGSMbQP     [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp4LF            ( m_pacFGSMbQP4LF  [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiFGSMbCbp   [uiMbIndex] );
-    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabFGS8x8Trafo [uiMbIndex] );
-
-    m_pacFGSMbQP     [uiMbIndex] = ucQP;
-    m_pacFGSMbQP4LF  [uiMbIndex] = ucQP4LF;
-    m_pauiFGSMbCbp   [uiMbIndex] = uiCbp;
-    m_pabFGS8x8Trafo [uiMbIndex] = bT8x8;
-  }
-  return Err::m_nOK;
-}
-
 
 const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 {
@@ -1756,13 +1559,14 @@ const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 
 
 ErrVal 
-MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const
+MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const
 {
   ruiMask         = 0;
   UInt uiCurrIdx  = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
   AOT( uiCurrIdx >= m_uiSize );
 
-  ROTRS( m_pcMbData[uiCurrIdx].isIntraInSlice( uiCurrentSliceID ), Err::m_nOK );
+  rbIntra = m_pcMbData[uiCurrIdx].isIntraInSlice( uiCurrentSliceID );
+  ROTRS( rbIntra, Err::m_nOK );
 
   Bool bLeftAvailable   = ( iMbX > 0 );
   Bool bTopAvailable    = ( iMbY > 0 );
@@ -1818,195 +1622,125 @@ MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSl
 
 
 ErrVal 
-MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const
+MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const
 {
-  ruiMask         = 0;
-  UInt uiCurrIdx  = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
-  AOT( uiCurrIdx >= m_uiSize );
+  ROF( iMbY >= 0 && iMbY < m_iMbPerColumn && iMbX >= 0 && iMbX < m_iMbPerLine );
 
-  Bool  bIscurrField  = m_pcMbData[uiCurrIdx].getFieldFlag();
-  Bool  bIsUp         = !(iMbY%2);
-  Bool  bTopIntra     = false;
-  Bool  bBotIntra     = false;
-  Bool  bIsIntra      = m_pcMbData[uiCurrIdx].isIntraInSlice( uiCurrentSliceID );
+  Bool  bAvailableTopLeft     = false; //0x001
+  Bool  bAvailableTop         = false; //0x002
+  Bool  bAvailableTopRight    = false; //0x004
+  Bool  bAvailableLeftTop     = false; //0x008
+  Bool  bAvailableLeftBot     = false; //0x010
+  Bool  bAvailableCurrTop     = false; //0x020
+  Bool  bAvailableCurrBot     = false; //0x040
+  Bool  bAvailableRightTop    = false; //0x080
+  Bool  bAvailableRightBot    = false; //0x100
+  Bool  bAvailableBotLeft     = false; //0x200
+  Bool  bAvailableBot         = false; //0x400
+  Bool  bAvailableBotRight    = false; //0x800
 
-  if( !bIscurrField ) 
+  Int   iMbY0                 = ( iMbY >> 1 ) << 1;
+  Int   iMbFieldOffset        = ( iMbY - iMbY0 ) * (Int)m_uiMbStride; 
+
+  Bool  bMbPairAvailableTop   = ( iMbY0 > 0 );
+  Bool  bMbPairAvailableBot   = ( iMbY0 < m_iMbPerColumn - 2 );
+  Bool  bMbPairAvailableLeft  = ( iMbX  > 0 );
+  Bool  bMbPairAvailableRight = ( iMbX  < m_iMbPerLine   - 1 );
+
+  Int   iMbPairTIdxCurr       = iMbY0 * (Int)m_uiMbStride + iMbX + (Int)m_uiMbOffset;
+  Int   iMbPairTIdxTop        = iMbPairTIdxCurr - (Int)( m_uiMbStride << 1 );
+  Int   iMbPairTIdxBot        = iMbPairTIdxCurr + (Int)( m_uiMbStride << 1 );
+
+  //===== current macroblock pair =====
   {
-    UInt  uiComplIdx    = uiCurrIdx + ( bIsUp ? 1 : -1 ) * m_uiMbStride;
-    Bool  bIsCompIntra  = m_pcMbData[uiComplIdx].isIntraInSlice( uiCurrentSliceID );
-
-    ROTRS( bIsIntra && bIsCompIntra, Err::m_nOK );
-
-    bTopIntra = (  bIsUp && bIsIntra ) || ( !bIsUp && bIsCompIntra );
-    bBotIntra = ( !bIsUp && bIsIntra ) || (  bIsUp && bIsCompIntra );
+    Int iMbIdxCurrTop   = iMbPairTIdxCurr + ( m_pcMbData[iMbPairTIdxCurr].getFieldFlag() ? iMbFieldOffset : 0            );
+    Int iMbIdxCurrBot   = iMbPairTIdxCurr + ( m_pcMbData[iMbPairTIdxCurr].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+    bAvailableCurrTop   = m_pcMbData[iMbIdxCurrTop].isIntraInSlice( uiCurrentSliceID );
+    bAvailableCurrBot   = m_pcMbData[iMbIdxCurrBot].isIntraInSlice( uiCurrentSliceID );
   }
-  else
+
+  //===== reset =====
+  ruiMask = 0;
+  rbIntra = ( bAvailableCurrTop && bAvailableCurrBot );
+  ROTRS( rbIntra, Err::m_nOK ); // current field of current macroblock pair is completely intra coded
+
+  //===== left macroblock pair =====
+  if( bMbPairAvailableLeft )
   {
-    ROTRS( bIsIntra, Err::m_nOK );
+    Int iMbIdxLeftTop   = iMbPairTIdxCurr - 1 + ( m_pcMbData[iMbPairTIdxCurr - 1].getFieldFlag() ? iMbFieldOffset : 0            );
+    Int iMbIdxLeftBot   = iMbPairTIdxCurr - 1 + ( m_pcMbData[iMbPairTIdxCurr - 1].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+    bAvailableLeftTop   = m_pcMbData[iMbIdxLeftTop].isIntraInSlice( uiCurrentSliceID );
+    bAvailableLeftBot   = m_pcMbData[iMbIdxLeftBot].isIntraInSlice( uiCurrentSliceID );
   }
 
-  ruiMask |= ( bTopIntra ? 0x01000 : 0 );
-  ruiMask |= ( bBotIntra ? 0x02000 : 0 );
-
-  Int   iTopStride        = ( bTopIntra ? ( bIsUp ? 0 : m_uiMbStride ) : m_uiMbStride << 1 );
-  Int   iBottomStride     = ( bBotIntra ? ( bIsUp ? m_uiMbStride : 0 ) : m_uiMbStride << 1 );
-  Bool  bLeftAvailable    = ( iMbX > 0 );
-  Bool  bRightAvailable   = ( iMbX < m_iMbPerLine - 1 );
-  Bool  bTopAvailable     = ( iMbY - ( iTopStride    / (Int)m_uiMbStride ) >= 0 );
-  Bool  bBottomAvailable  = ( iMbY + ( iBottomStride / (Int)m_uiMbStride ) <= m_iMbPerColumn - 1 );
-
-  if( bTopAvailable )
+  //===== right macroblock pair =====
+  if( bMbPairAvailableRight )
   {
-    //TOP
-    {
-      Int iIndex = uiCurrIdx - iTopStride;
-      if( iTopStride && bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  += m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x01 : 0 );
-    }
-    //TOP LEFT  
-    if( bLeftAvailable )
-    {
-      Int iIndex = uiCurrIdx - iTopStride - 1;
-      if( iTopStride && bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  += m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x80 : 0 );
-    }
-    //TOP RIGHT 
-    if( bRightAvailable )
-    {
-      Int iIndex = uiCurrIdx - iTopStride + 1;
-      if( iTopStride && bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  += m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x02 : 0 );
-    }
+    Int iMbIdxRightTop  = iMbPairTIdxCurr + 1 + ( m_pcMbData[iMbPairTIdxCurr + 1].getFieldFlag() ? iMbFieldOffset : 0            );
+    Int iMbIdxRightBot  = iMbPairTIdxCurr + 1 + ( m_pcMbData[iMbPairTIdxCurr + 1].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+    bAvailableRightTop  = m_pcMbData[iMbIdxRightTop].isIntraInSlice( uiCurrentSliceID );
+    bAvailableRightBot  = m_pcMbData[iMbIdxRightBot].isIntraInSlice( uiCurrentSliceID );
   }
-  if( bBottomAvailable )
+
+  if( bMbPairAvailableTop )
   {
-    //BOTTOM
+    //===== top macroblock pair =====
     {
-      Int iIndex = uiCurrIdx + iBottomStride;
-      if( iBottomStride && !bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  -= m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x10 : 0 );
+      Int iMbIdxTop = iMbPairTIdxTop + ( m_pcMbData[iMbPairTIdxTop].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+      bAvailableTop = m_pcMbData[iMbIdxTop].isIntraInSlice( uiCurrentSliceID );
     }
-    //BOTTOM LEFT
-    if( bLeftAvailable )
+
+    //===== top-left macroblock pair =====
+    if( bMbPairAvailableLeft )
     {
-      Int iIndex = uiCurrIdx  + iBottomStride - 1;
-      if( iBottomStride && !bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  -= m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x20 : 0 );
+      Int iMbIdxTopLeft = iMbPairTIdxTop - 1 + ( m_pcMbData[iMbPairTIdxTop - 1].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+      bAvailableTopLeft = m_pcMbData[iMbIdxTopLeft].isIntraInSlice( uiCurrentSliceID );
     }
-    //BOTTOM RIGHT
-    if( bRightAvailable )
+
+    //===== top-right macroblock pair =====
+    if( bMbPairAvailableRight )
     {
-      Int iIndex = uiCurrIdx + iBottomStride + 1;
-      if( iBottomStride && !bIsUp && !m_pcMbData[iIndex].getFieldFlag() ) 
-      {
-        iIndex  -= m_uiMbStride;
-      }
-      ruiMask   |= ( m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID ) ? 0x08 : 0 );
+      Int iMbIdxTopRight = iMbPairTIdxTop + 1 + ( m_pcMbData[iMbPairTIdxTop + 1].getFieldFlag() ? iMbFieldOffset : m_uiMbStride );
+      bAvailableTopRight = m_pcMbData[iMbIdxTopRight].isIntraInSlice( uiCurrentSliceID );
     }
   }
 
-  //LEFT
-  if( bLeftAvailable )
+  if( bMbPairAvailableBot )
   {
-    Int   iIndex            = uiCurrIdx - 1;
-    Bool  bIntra            = false;
-    Bool  bTopCoincided     = false;
-    Bool  bBottomCoincided  = false;
-    if( m_pcMbData[iIndex].getFieldFlag() ) 
+    //===== bottom macroblock pair =====
     {
-      bIntra            = m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID );
-      bTopCoincided     = bIntra;
-      bBottomCoincided  = bIntra;
+      Int iMbIdxBot = iMbPairTIdxBot + ( m_pcMbData[iMbPairTIdxBot].getFieldFlag() ? iMbFieldOffset : 0 );
+      bAvailableBot = m_pcMbData[iMbIdxBot].isIntraInSlice( uiCurrentSliceID );
     }
-    else
-    {
-      UInt  uiComplIdx    = iIndex + ( bIsUp ? 1 : -1 ) * m_uiMbStride;
-      Bool  bIsCurIntra   = m_pcMbData[iIndex    ].isIntraInSlice( uiCurrentSliceID ); 
-      Bool  bIsCompIntra  = m_pcMbData[uiComplIdx].isIntraInSlice( uiCurrentSliceID ); 
 
-      if( bTopIntra || bBotIntra )
-      {
-        if( bIsIntra )
-        {
-          bIntra  = bIsCompIntra; 
-        }
-        else
-        {
-          bIntra  = bIsCurIntra; 
-        }
-      }
-      else  
-      {
-        bIntra    =  ( bIsCurIntra || bIsCompIntra );
-      }
-      if( bIntra )
-      {
-        bTopCoincided     = (  bIsUp && bIsCurIntra ) || ( !bIsUp && bIsCompIntra );
-        bBottomCoincided  = ( !bIsUp && bIsCurIntra ) || (  bIsUp && bIsCompIntra );
-      }  
+    //===== bottom-left macroblock pair =====
+    if( bMbPairAvailableLeft )
+    {
+      Int iMbIdxBotLeft = iMbPairTIdxBot - 1 + ( m_pcMbData[iMbPairTIdxBot - 1].getFieldFlag() ? iMbFieldOffset : 0 );
+      bAvailableBotLeft = m_pcMbData[iMbIdxBotLeft].isIntraInSlice( uiCurrentSliceID );
     }
-    ruiMask |= ( bTopCoincided    ? 0x0100 : 0 );
-    ruiMask |= ( bBottomCoincided ? 0x0200 : 0 );
+
+    //===== bottom-right macroblock pair =====
+    if( bMbPairAvailableRight )
+    {
+      Int iMbIdxBotRight = iMbPairTIdxBot + 1 + ( m_pcMbData[iMbPairTIdxBot + 1].getFieldFlag() ? iMbFieldOffset : 0 );
+      bAvailableBotRight = m_pcMbData[iMbIdxBotRight].isIntraInSlice( uiCurrentSliceID );
+    }
   }
 
-  //RIGHT
-  if( bRightAvailable )
-  {
-    Int   iIndex            = uiCurrIdx + 1;
-    Bool  bIntra            = false;
-    Bool  bTopCoincided     = false;
-    Bool  bBottomCoincided  = false;
-    if( m_pcMbData[iIndex].getFieldFlag() )
-    {
-      bIntra            = m_pcMbData[iIndex].isIntraInSlice( uiCurrentSliceID );
-      bTopCoincided     = bIntra;
-      bBottomCoincided  = bIntra;
-    }
-    else
-    {
-      UInt  uiComplIdx    = iIndex + ( bIsUp ? 1 : -1 ) * m_uiMbStride;
-      Bool  bIsCurIntra   = m_pcMbData[iIndex    ].isIntraInSlice( uiCurrentSliceID ); 
-      Bool  bIsCompIntra  = m_pcMbData[uiComplIdx].isIntraInSlice( uiCurrentSliceID ); 
-
-      if( bTopIntra || bBotIntra )
-      {
-        if( bIsIntra )
-        {
-          bIntra  = bIsCompIntra; 
-        }
-        else
-        {
-          bIntra  = bIsCurIntra; 
-        }
-      }
-      else  
-      {
-        bIntra    = ( bIsCurIntra || bIsCompIntra );
-      }
-      if( bIntra )
-      {
-        bTopCoincided     =(  bIsUp && bIsCurIntra ) || ( !bIsUp && bIsCompIntra );
-        bBottomCoincided  =( !bIsUp && bIsCurIntra ) || (  bIsUp && bIsCompIntra );
-      }   
-    }
-    ruiMask |= ( bTopCoincided    ? 0x0400 : 0 );
-    ruiMask |= ( bBottomCoincided ? 0x0800 : 0 );
-  }
+  //===== set mask =====
+  ruiMask |= ( bAvailableTopLeft  ? 0x001 : 0 );
+  ruiMask |= ( bAvailableTop      ? 0x002 : 0 );
+  ruiMask |= ( bAvailableTopRight ? 0x004 : 0 );
+  ruiMask |= ( bAvailableLeftTop  ? 0x008 : 0 );
+  ruiMask |= ( bAvailableLeftBot  ? 0x010 : 0 );
+  ruiMask |= ( bAvailableCurrTop  ? 0x020 : 0 );
+  ruiMask |= ( bAvailableCurrBot  ? 0x040 : 0 );
+  ruiMask |= ( bAvailableRightTop ? 0x080 : 0 );
+  ruiMask |= ( bAvailableRightBot ? 0x100 : 0 );
+  ruiMask |= ( bAvailableBotLeft  ? 0x200 : 0 );
+  ruiMask |= ( bAvailableBot      ? 0x400 : 0 );
+  ruiMask |= ( bAvailableBotRight ? 0x800 : 0 );
 
   return Err::m_nOK;
 }

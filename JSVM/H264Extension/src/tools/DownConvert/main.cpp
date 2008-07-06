@@ -141,6 +141,9 @@ readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool s
   assert( width  <= c.stride );
   assert( height <= c.lines  );
 
+  int iMaxPadWidth  = min( c.stride, ( ( width  + 15 ) >> 4 ) << 4 );
+  int iMaxPadHeight = min( c.lines,  ( ( height + 31 ) >> 5 ) << 5 );
+
   for( int i = 0; i < height; i++ )
   {
     unsigned char* buffer = ( second ? c.data2 : c.data ) + i * c.stride;
@@ -148,6 +151,19 @@ readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool s
     if( rsize != width )
     {
       return 1;
+    }
+    for( int xp = width; xp < iMaxPadWidth; xp++ )
+    {
+      buffer[xp] = buffer[xp-1];
+    }
+  }
+  for( int yp = height; yp < iMaxPadHeight; yp++ )
+  {
+    unsigned char* buffer  = ( second ? c.data2 : c.data ) + yp * c.stride;
+    unsigned char* bufferX = buffer - c.stride;
+    for( int xp = 0; xp < c.stride; xp++ )
+    {
+      buffer[xp] = bufferX[xp];
     }
   }
   return 0;
@@ -249,7 +265,7 @@ writeFrame( YuvFrame& f, FILE* file, int width, int height, bool both = false )
 
 
 void 
-print_usage_and_exit( int test, char* name, char* message = 0 )
+print_usage_and_exit( int test, const char* name, const char* message = 0 )
 {
   if( test )
   {
@@ -358,6 +374,21 @@ resampleFrame( YuvFrame&          rcFrame,
   //===== upsampling ====
   if( upsampling )
   {
+    ResizeParameters cRP = rcRP;
+    {
+      Int iRefVerMbShift        = ( cRP.m_bRefLayerFrameMbsOnlyFlag ? 4 : 5 );
+      Int iScaledVerShift       = ( cRP.m_bFrameMbsOnlyFlag         ? 1 : 2 );
+      Int iHorDiv               = ( cRP.m_iRefLayerFrmWidth    <<               1 );
+      Int iVerDiv               = ( cRP.m_iRefLayerFrmHeight   << iScaledVerShift );
+      Int iRefFrmW              = ( ( cRP.m_iRefLayerFrmWidth   + ( 1 <<               4 ) - 1 ) >>               4 ) <<               4;  // round to next multiple of 16
+      Int iRefFrmH              = ( ( cRP.m_iRefLayerFrmHeight  + ( 1 <<  iRefVerMbShift ) - 1 ) >>  iRefVerMbShift ) <<  iRefVerMbShift;  // round to next multiple of 16 or 32 (for interlaced)
+      Int iScaledRefFrmW        = ( ( cRP.m_iScaledRefFrmWidth  * iRefFrmW + ( iHorDiv >> 1 ) ) / iHorDiv ) <<               1;  // scale and round to next multiple of  2
+      Int iScaledRefFrmH        = ( ( cRP.m_iScaledRefFrmHeight * iRefFrmH + ( iVerDiv >> 1 ) ) / iVerDiv ) << iScaledVerShift;  // scale and round to next multiple of  2 or  4 (for interlaced)
+      cRP.m_iRefLayerFrmWidth   = iRefFrmW;
+      cRP.m_iRefLayerFrmHeight  = iRefFrmH;
+      cRP.m_iScaledRefFrmWidth  = iScaledRefFrmW;
+      cRP.m_iScaledRefFrmHeight = iScaledRefFrmH;
+    }
     if( resamplingMethod == 1 )
     {
       rcDownConvert.upsamplingDyadic    ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
@@ -365,31 +396,45 @@ resampleFrame( YuvFrame&          rcFrame,
     }
     if( resamplingMethod == 3 )
     {
-      rcDownConvert.upsamplingLanczos   ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      rcDownConvert.upsamplingLanczos   ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP );
       return;
     }
     if( resamplingMethod == 4 )
     {
-      rcDownConvert.upsampling6tapBilin ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      rcDownConvert.upsampling6tapBilin ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP );
       return;
     }
     if( resamplingMode < 4 )
     {
-      rcDownConvert.upsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP, resamplingMode == 3 );
+      rcDownConvert.upsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP, resamplingMode == 3 );
       return;
     }
     {
       duplicateFrame( rcFrame );
-      rcRP.m_bRefLayerBotFieldFlag  = ( resamplingMode == 5 );
-      rcDownConvert.upsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
-      rcRP.m_bRefLayerBotFieldFlag  = ( resamplingMode != 5 );
-      rcDownConvert.upsamplingSVC       ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &rcRP );
-      rcRP.m_bRefLayerBotFieldFlag  = false; // reset
+      cRP.m_bRefLayerBotFieldFlag  = ( resamplingMode == 5 );
+      rcDownConvert.upsamplingSVC    ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP );
+      cRP.m_bRefLayerBotFieldFlag  = ( resamplingMode != 5 );
+      rcDownConvert.upsamplingSVC    ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &cRP );
       return;
     }
   }
 
   //===== downsampling =====
+  ResizeParameters cRP = rcRP;
+  {
+    Int iRefVerMbShift        = ( cRP.m_bRefLayerFrameMbsOnlyFlag ? 4 : 5 );
+    Int iScaledVerShift       = ( cRP.m_bFrameMbsOnlyFlag         ? 1 : 2 );
+    Int iHorDiv               = ( cRP.m_iFrameWidth    <<               1 );
+    Int iVerDiv               = ( cRP.m_iFrameHeight   << iScaledVerShift );
+    Int iRefFrmW              = ( ( cRP.m_iFrameWidth   + ( 1 <<               4 ) - 1 ) >>               4 ) <<               4;        // round to next multiple of 16
+    Int iRefFrmH              = ( ( cRP.m_iFrameHeight  + ( 1 <<  iRefVerMbShift ) - 1 ) >>  iRefVerMbShift ) <<  iRefVerMbShift;        // round to next multiple of 16 or 32 (for interlaced)
+    Int iScaledRefFrmW        = ( ( cRP.m_iScaledRefFrmWidth  * iRefFrmW + ( iHorDiv >> 1 ) ) / iHorDiv ) <<               1;  // scale and round to next multiple of  2
+    Int iScaledRefFrmH        = ( ( cRP.m_iScaledRefFrmHeight * iRefFrmH + ( iVerDiv >> 1 ) ) / iVerDiv ) << iScaledVerShift;  // scale and round to next multiple of  2 or  4 (for interlaced)
+    cRP.m_iFrameWidth         = iRefFrmW;
+    cRP.m_iFrameHeight        = iRefFrmH;
+    cRP.m_iScaledRefFrmWidth  = iScaledRefFrmW;
+    cRP.m_iScaledRefFrmHeight = iScaledRefFrmH;
+  }
   if( resamplingMethod == 1 )
   {
     rcDownConvert.downsamplingDyadic    ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
@@ -397,21 +442,19 @@ resampleFrame( YuvFrame&          rcFrame,
   }
   if( resamplingMode < 4 )
   {
-    rcDownConvert.downsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP, resamplingMode == 3 );
+    rcDownConvert.downsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP, resamplingMode == 3 );
     return;
   }
   if( ! bSecondInputFrame )
   {
-    rcRP.m_bRefLayerBotFieldFlag = ( resamplingMode == 5 );
-    rcDownConvert.downsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
-    rcRP.m_bRefLayerBotFieldFlag = false; // reset
+    cRP.m_bRefLayerBotFieldFlag  = ( resamplingMode == 5 );
+    rcDownConvert.downsamplingSVC  ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &cRP );
   }
   else
   {
-    rcRP.m_bRefLayerBotFieldFlag = ( resamplingMode == 4 );
-    rcDownConvert.downsamplingSVC       ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &rcRP );
-    rcRP.m_bRefLayerBotFieldFlag = false; // reset
-    combineTopAndBottomInFrame ( rcFrame, resamplingMode == 4 );
+    cRP.m_bRefLayerBotFieldFlag  = ( resamplingMode == 4 );
+    rcDownConvert.downsamplingSVC  ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &cRP );
+    combineTopAndBottomInFrame     ( rcFrame, resamplingMode == 4 );
   }
 }
 
@@ -544,7 +587,7 @@ main( int argc, char *argv[] )
       if( resamplingMethod != 2 )
       {
         resampling  = true;
-        upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth );
+        upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth ) || ( cRP.m_iRefLayerFrmHeight < cRP.m_iFrameHeight );
       }
       if( resamplingMethod == 1 )
       {
@@ -598,7 +641,7 @@ main( int argc, char *argv[] )
   if( ! methodInitialized )
   {
     resampling  = true;
-    upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth );
+    upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth ) || ( cRP.m_iRefLayerFrmHeight < cRP.m_iFrameHeight );
   }
   if( ! croppingInitialized )
   {
@@ -644,6 +687,12 @@ main( int argc, char *argv[] )
   {
     int maxWidth  = max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
     int maxHeight = max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    int minWidth  = min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+    int minHeight = min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    int minWRnd16 = ( ( minWidth  + 15 ) >> 4 ) << 4;
+    int minHRnd32 = ( ( minHeight + 31 ) >> 5 ) << 5;
+    maxWidth      = ( ( maxWidth  * minWRnd16 + ( minWidth  << 4 ) - 1 ) / ( minWidth  << 4 ) ) << 4;
+    maxHeight     = ( ( maxHeight * minHRnd32 + ( minHeight << 4 ) - 1 ) / ( minHeight << 4 ) ) << 4;
     createFrame( cFrame, maxWidth, maxHeight );
     cDownConvert.init(   maxWidth, maxHeight );
   }

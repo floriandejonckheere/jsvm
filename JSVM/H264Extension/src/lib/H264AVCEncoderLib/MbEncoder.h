@@ -137,6 +137,9 @@ public:
   ErrVal uninit();
   ErrVal initSlice( const SliceHeader& rcSH);
 
+  Void  setIPCMRate( UInt ui )  { m_uiIPCMRate = ui; }
+  UInt  getIPCMRate()   const   { return m_uiIPCMRate; }
+
   IntMbTempData* getBestIntData() {return m_pcIntMbBestData; }
 
   ErrVal  encodeIntra         ( MbDataAccess&   rcMbDataAccess,
@@ -167,7 +170,8 @@ public:
                                 Frame*       pcBaseLayerRec,
                                 Frame*       pcBaseLayerSbb,
                                 RefFrameList&   rcRefFrameList0,
-                                RefFrameList*   pcRefFrameList0Base,
+                                Bool            bMCBlks8x8Disable,
+                                UInt            uiMaxNumMv,
                                 Double          dLambda,
                                 Double&         rdCost,
                                 Bool            bSkipModeAllowed);
@@ -194,10 +198,11 @@ public:
                                 const Frame* pcBaseLayerResidual,
                                 const Frame& rcOrigFrame,
                                 Frame&       rcIntraRecFrame,
-                                Bool            bBiPredOnly,
+                                UInt            uiMaxNumMv,
+                                Bool            bMCBlks8x8Disable,
+                                Bool            bBiPred8x8Disable,
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
-								                Bool		      	bBLSkipEnable, // JVT-Q065 EIDR
                                 Double          dLambda,
                                 Double&         rdCost,
                                 Bool            bSkipModeAllowed );
@@ -205,6 +210,9 @@ public:
                                 Frame*       pcFrame,
                                 RefFrameList&   rcList0,
                                 RefFrameList&   rcList1,
+                                UInt            uiMaxNumMv,
+                                Bool            bMCBlks8x8Disable,
+                                Bool            bBiPred8x8Disable,
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
                                 Double          dLambda );
@@ -251,7 +259,7 @@ public:
                               Int              blockY);
 
   Void  getChannelDistortion( MbDataAccess&    rcMbDataAccess,
-	  Frame&       rcRefFrame,
+	                            Frame&           rcRefFrame,
 	                            Int              *distortion,
 	                            Int              iMvX,
 	                            Int              iMvY,
@@ -382,6 +390,8 @@ protected:
   ErrVal  xEstimateMbPCM        ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice  );
+  ErrVal  xEstimateMbPCMRewrite ( IntMbTempData*&   rpcMbTempData,
+                                  IntMbTempData*&   rpcMbBestData );
   // JVT-W043 {
   UInt    jsvmCalcMAD           ( IntMbTempData*&   rpcMbBestData, 
                                   MbDataAccess&  rcMbDataAccess );
@@ -396,6 +406,8 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   const Frame*   pcBaseLayerRec,
+                                  UInt              uiMaxNumMv,
+                                  Bool              bBiPred8x8Disable,
                                   Bool              bBSlice,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   MbDataAccess&     rcMbDataAccess,
@@ -406,6 +418,7 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  UInt              uiMaxNumMv,
                                   Bool              bResidualPred,
                                   UInt              Qp,
                                   Bool              bSkipModeAllowed=true);
@@ -413,7 +426,7 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   Bool              bQPelRefinementOnly,
@@ -423,7 +436,7 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   Bool              bQPelRefinementOnly,
@@ -433,7 +446,7 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   Bool              bQPelRefinementOnly,
@@ -443,7 +456,9 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
+                                  Bool              bMCBlks8x8Disable,
+                                  Bool              bBiPred8x8Disable,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   Bool              bQPelRefinementOnly,
@@ -453,7 +468,7 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   Bool              bQPelRefinementOnly,
@@ -464,16 +479,16 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
+                                  UInt              uiMaxNumMv,
                                   Bool              bTrafo8x8,
-                                  UInt              uiAddBits,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion );
+                                  UInt              uiAddBits );
   ErrVal  xEstimateSubMb8x8     ( Par8x8            ePar8x8,
                                   IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
+                                  UInt              uiMaxNumMv,
                                   Bool              bTrafo8x8,
-                                  Bool              bBiPredOnly,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   UInt              uiAddBits,
@@ -484,7 +499,8 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
+                                  Bool              bBiPred8x8Disable,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   UInt              uiAddBits,
@@ -495,7 +511,8 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
+                                  Bool              bBiPred8x8Disable,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   UInt              uiAddBits,
@@ -506,7 +523,8 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bBiPredOnly,
+                                  UInt              uiMaxNumMv,
+                                  Bool              bBiPred8x8Disable,
                                   UInt              uiNumMaxIter,
                                   UInt              uiIterSearchRange,
                                   UInt              uiAddBits,
@@ -604,6 +622,7 @@ protected:
   Bool		m_bUseBDir;
   //S051}
   Bool  m_bBaseModeAllowedFlag;
+  UInt  m_uiIPCMRate;
 };
 
 

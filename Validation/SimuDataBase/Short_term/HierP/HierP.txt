@@ -1,0 +1,98 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "HierP",
+    original 	=> "BUS_352x288_30.yuv",
+    width      	=> 352,
+    height     	=> 288,
+    framerate 	=> 30,
+    nbframes	=> 40,
+    verbosemode => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 1,
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                      #----------#
+                      # Layer  0 #
+                      #----------#
+                       {
+                         width        => 176,
+                  	 height       => 144,
+                  	 framerate    =>  15,
+                       },
+		      #----------#
+                      # Layer  2 #
+                      #----------#
+                       {
+                         width        => 352,
+                  	 height       => 288,
+                  	 framerate    =>  30,
+                       },
+		      #----------#
+                      # Layer  3 #
+                      #----------#
+                       {
+                         width        => 352,
+                  	 height       => 288,
+                  	 framerate    =>  30,
+                       },
+		      #----------#
+   		      ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#          mode == 11 decode + rewrite                     #
+#==========================================================#  
+      bitratecheckrange  => 1.,
+      psnrcheckrange     => 0.,
+	
+
+      tests      => [
+            	      #----------#
+                      # Test   0 #
+                      #----------#
+            	      {
+            	        name => "L0",
+            	        mode => 1,
+            	        width => 176,
+            	        height => 144,
+            	        framerate => 15,
+                        bitrate     => 198,
+                        psnr        => 33.71,
+            	        encdecmatch => 1,
+            	      },
+            	      #----------#
+                      # Test   1 #
+                      #----------#
+            	      {
+            	        name => "L1",
+            	        mode => 1,
+            	        width => 352,
+            	        height => 288,
+            	        framerate => 30,
+                        bitrate     => 599,
+                        psnr        => 30.99,
+            	      },
+            	      #----------#
+                      # Test   2 #
+                      #----------#
+            	      {
+            	        name => "L2",
+            	        mode => 1,
+            	        width => 352,
+            	        height => 288,
+            	        framerate => 30,
+                        bitrate     => 968,
+                        psnr        => 32.86,
+            	        encdecmatch => 1,
+            	      },
+            	      #----------#    		              
+		  ],
+}

@@ -131,8 +131,8 @@ public:
   ErrVal        predict4x4Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
   ErrVal        predict8x8Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
   ErrVal        predictChromaBlocks       ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );    
-  ErrVal        predictScaledACCoeffs     ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp );  
-  ErrVal        predictScaledChromaCoeffs ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp );  
+  ErrVal        predictScaledACCoeffs     ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp, const UChar* pucScale );  
+  ErrVal        predictScaledChromaCoeffs ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp, const UChar* pucScaleCb, const UChar* pucScaleCr );  
   ErrVal        predictMb16x16            ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
   ErrVal        addPrediction4x4Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiDstQp, UInt uiRefQp, UInt &uiCoded  );
   ErrVal        addPrediction8x8Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  );
@@ -173,7 +173,7 @@ public:
   
   ErrVal        invTransformDcCoeff       ( TCoeff* piCoeff, const Int iQpScale, const Int iQpPer );
   ErrVal        invTransformDcCoeff       ( TCoeff* piCoeff, Int iQpScale );
-  Void          invTransformChromaDc      ( TCoeff* piCoeff, Int iQpScale );
+  Void          invTransformChromaDc      ( TCoeff* piCoeff );
 
   void         setStoreCoeffFlag(Bool flag)   { m_storeCoeffFlag = flag;}
   Bool         getStoreCoeffFlag()        {return  m_storeCoeffFlag;}
@@ -240,12 +240,10 @@ private:
                                       UInt& ruiDcAbs, 
                                       UInt& ruiAcAbs );
 
-  Void x4x4Quant          ( TCoeff*             piQCoeff,
+  Void x4x4DequantChroma  ( TCoeff*             piQCoeff,
                             TCoeff*             piCoeff,
-                            const QpParameter&  rcQp );
-  Void x4x4Dequant        ( TCoeff*             piQCoeff,
-                            TCoeff*             piCoeff,
-                            const QpParameter&  rcQp );
+                            const QpParameter&  rcQp,
+                            const UChar*        pucScale );
 
 protected:
   const SliceHeader*  m_pcSliceHeader;

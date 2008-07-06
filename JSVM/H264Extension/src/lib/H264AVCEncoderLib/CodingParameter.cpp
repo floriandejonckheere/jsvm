@@ -92,19 +92,30 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include <math.h>
 
-#define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
+#define ROTREPORT(x,t)   {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
+#define SETREPORT(x,v,s) {if(x!=v) {x=v; ::printf("in layer %d: %s\n",m_uiLayerId,s);}}
 
 // h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
 
 
-ErrVal MotionVectorSearchParams::check() const
+ErrVal MotionVectorSearchParams::check()
 {
   ROTREPORT( 4 < m_uiSearchMode,   "No Such Search Mode 0==Block,1==Spiral,2==Log,3==Fast, 4==NewFast" )
   ROTREPORT( 3 < m_uiFullPelDFunc, "No Such Search Func (Full Pel) 0==SAD,1==SSE,2==Hadamard,3==YUV-SAD" )
   ROTREPORT( 3 == m_uiFullPelDFunc && (m_uiSearchMode==2 || m_uiSearchMode==3), "Log and Fast search not possible in comb. with distortion measure 3" )
   ROTREPORT( 2 < m_uiSubPelDFunc,  "No Such Search Func (Sub Pel) 0==SAD,1==SSE,2==Hadamard" )
   ROTREPORT( 1 < m_uiDirectMode,  "Direct Mode Exceeds Supported Range 0==Temporal, 1==Spatial");
+
+  if( m_uiELSearchRange == 0 )
+  {
+    m_uiELSearchRange = m_uiSearchRange;
+    m_bELSearch       = false;
+  }
+  else
+  {
+    m_bELSearch       = true;
+  }
 
   return Err::m_nOK;
 }
@@ -146,21 +157,25 @@ UInt LayerParameters::getNumberOfQualityLevelsCGSSNR() const
 
 ErrVal LayerParameters::check()
 {
-//TMM_INTERLACE{
-  ROTREPORT( ( getFrameHeight           () % 4 ) &&
-             ( getMbAff() > 0 || getPAff() > 0 ),       "Frame Height must be a multiple of 4 for interlace" );
-//TMM_INTERLACE}
-
-  ROTREPORT( getFrameWidth              () % 2,         "Frame Width must be a multiple of 2" );
-  ROTREPORT( getFrameHeight             () % 2,         "Frame Height must be a multiple of 2" );
+  ROTREPORT( getFrameWidthInSamples     () % 2,         "Frame Width must be a multiple of 2" );
+  ROTREPORT( getFrameHeightInSamples    () % 2,         "Frame Height must be a multiple of 2" );
+  ROTREPORT( getFrameHeightInSamples    () % 4
+             && isInterlaced            (),             "Frame Height must be a multiple of 4 for interlace" );
   ROTREPORT( getInputFrameRate          () < 
              getOutputFrameRate         (),             "Output frame rate must be less than or equal to input frame rate" );
-  ROTREPORT( getAdaptiveTransform       () > 2,         "FRExt mode not supported" );
+  ROTREPORT( getEnable8x8Trafo          ()  > 1,        "The value for Enable8x8Transform is not supported" );
+  ROTREPORT( getScalingMatricesPresent  ()  > 1,        "The value for ScalingMatricesPresent is not supported" );
+  ROTREPORT( getBiPred8x8Disable        () > 1,         "The value for BiPredLT8x8Disable is not supported" );
+  ROTREPORT( getMCBlks8x8Disable        () > 1,         "The value for MCBlocksLT8x8Disable is not supported" );
+  ROTREPORT( getPicCodingType           () > 1,         "The value for DisableBSlices is not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getDependencyId(), "BaseLayerId is not possible" );
+
+  ROTREPORT( m_uiSliceMode != 0 && m_uiSliceMode != 1 && m_uiSliceMode != 2, "Invalid slice mode" );
+  ROTREPORT( m_uiSliceMode != 0 && m_uiSliceArgument == 0, "Invalid slice argument" );
 
   UInt uiVectPos = 0;
   UInt ui;
@@ -196,131 +211,143 @@ ErrVal LayerParameters::check()
     m_dQpModeDecisionLP = m_dBaseQpResidual;
   }
 
-  // JVT-S054 (ADD) ->
-  if ( m_uiNumSliceGroupsMinus1 > 0 && m_uiSliceGroupMapType == 0 && m_uiSliceMode == 4)
+  if ( m_uiNumSliceGroupsMinus1 > 0 && m_uiSliceGroupMapType == 2 && ( m_uiSliceMode == 0 || m_uiSliceMode == 1 ) )
   {
-    UInt i, j, uiSliceId, uiTotalRun, uiNumSlicePerHeight, uiMBAddr, uiMBCount, uiFrameWidthInMbs, uiFrameHeightInMbs, uiFrameSizeInMbs;
-
-    m_bSliceDivisionFlag = true;
-    //m_uiSliceDivisionType = 0;  // rectangular grid slice of constant size//SEI changes update
-    m_bGridFlag = 0;  // rectangular grid slice of constant size//SEI changes update
-    uiTotalRun = m_uiRunLengthMinus1[0] + 1;
-    for (i=1; i<m_uiNumSliceGroupsMinus1; i++)
+    ROT( m_uiSliceMode == 1 && m_uiSliceArgument == 0 );
+    ROTREPORT( isInterlaced(), "Slice groups and interlaced are not supported in the same profile" );
+    UInt  uiMaxSliceSize  = ( m_uiSliceMode == 1 ? m_uiSliceArgument : MSYS_UINT_MAX );
+    UInt  uiMapWidth      = getFrameWidthInMbs  ();
+    UInt  uiMapHeight     = getFrameHeightInMbs ();
+    UInt  uiMapSize       = uiMapHeight * uiMapWidth;
+    UInt* pauiSGMap       = new UInt [ uiMapSize ];
+    UInt* pauiROIMap      = new UInt [ uiMapSize ];
+    UInt* pauiROIFirstMB  = new UInt [ uiMapSize ];
+    UInt* pauiROILastMB   = new UInt [ uiMapSize ];
+    UInt* pauiROIWidth    = new UInt [ uiMapSize ];
+    UInt* pauiROIHeight   = new UInt [ uiMapSize ];
+    ROF(  pauiSGMap && pauiROIMap && pauiROIFirstMB && pauiROILastMB && pauiROIWidth && pauiROIHeight );
+    //----- set slice group Id's in map -----
+    for( Int iIdx0 = 0; iIdx0 < (Int)uiMapSize; iIdx0++ )
     {
-      uiTotalRun += m_uiRunLengthMinus1[i] + 1;
-      if ( m_uiRunLengthMinus1[i] != m_uiRunLengthMinus1[0] )
-        //m_uiSliceDivisionType = 1;//SEI changes update
-        m_bGridFlag = 1;//SEI changes update
+      pauiSGMap[iIdx0] = m_uiNumSliceGroupsMinus1;
     }
-    uiTotalRun += m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] + 1;
-    if ( m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] > m_uiRunLengthMinus1[0] )
+    for( Int iGroup0 = m_uiNumSliceGroupsMinus1 - 1; iGroup0 >= 0; iGroup0-- )
     {
-      //m_uiSliceDivisionType = 1;//SEI changes update
-			m_bGridFlag = 1;//SEI changes update
-    }
-
-    if ( (uiTotalRun<<4) != m_uiFrameWidth )
-    {
-      printf("Unsupported IROI mode\n");
-      m_bSliceDivisionFlag = false;
-      return Err::m_nOK;
-    }
-
-    uiFrameWidthInMbs  = ( m_uiFrameWidth  + 15 ) >> 4;
-    uiFrameHeightInMbs = ( m_uiFrameHeight + 15 ) >> 4;
-    uiFrameSizeInMbs = uiFrameWidthInMbs*uiFrameHeightInMbs;
-    uiNumSlicePerHeight = (uiFrameHeightInMbs+m_uiSliceArgument-1)/m_uiSliceArgument;
-    m_uiNumSliceMinus1 = ((m_uiNumSliceGroupsMinus1+1) * uiNumSlicePerHeight) - 1;
-
-    // Allocate memory for slice division info
-    if (m_puiGridSliceWidthInMbsMinus1 != NULL)
-      free(m_puiGridSliceWidthInMbsMinus1);
-    m_puiGridSliceWidthInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
-
-    if (m_puiGridSliceHeightInMbsMinus1 != NULL)
-      free(m_puiGridSliceHeightInMbsMinus1);
-    m_puiGridSliceHeightInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
-
-    if (m_puiFirstMbInSlice != NULL)
-      free(m_puiFirstMbInSlice);
-    m_puiFirstMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
-
-    if (m_puiLastMbInSlice != NULL)
-      free(m_puiLastMbInSlice);
-    m_puiLastMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
-
-    if (m_puiSliceId != NULL)
-      free(m_puiSliceId);
-    m_puiSliceId = (UInt*)malloc(uiFrameSizeInMbs*sizeof(UInt));
-
-    // Initialize slice division info
-    uiSliceId=0;
-    m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[0];
-    m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
-    m_puiFirstMbInSlice[uiSliceId] = 0;
-    m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
-    uiSliceId += uiNumSlicePerHeight;
-    for (i=1; i<=m_uiNumSliceGroupsMinus1; i++)
-    {
-      m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[i];
-      m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
-      m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-uiNumSlicePerHeight] + m_uiRunLengthMinus1[i-1] + 1;
-      m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
-      uiSliceId += uiNumSlicePerHeight;
-    }
-    uiSliceId = 0;
-    for (i=0; i<=m_uiNumSliceGroupsMinus1; i++)
-    {
-      uiSliceId++;
-      for (j=1; j<uiNumSlicePerHeight; j++, uiSliceId++)
+      Int iY0 = m_uiTopLeft    [ iGroup0 ] / uiMapWidth;
+      Int iX0 = m_uiTopLeft    [ iGroup0 ] % uiMapWidth;
+      Int iY1 = m_uiBottomRight[ iGroup0 ] / uiMapWidth;
+      Int iX1 = m_uiBottomRight[ iGroup0 ] % uiMapWidth;
+      for( Int iY = iY0; iY <= iY1; iY++ )
+      for( Int iX = iX0; iX <= iX1; iX++ )
       {
-        m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_puiGridSliceWidthInMbsMinus1[uiSliceId-1];
-        m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
-        if ( j == (uiNumSlicePerHeight-1) )
-          m_puiGridSliceHeightInMbsMinus1[uiSliceId] = (m_uiFrameHeight>>4) - (j*m_uiSliceArgument) - 1;
-
-        m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-1] + m_uiSliceArgument*uiFrameWidthInMbs;
-        m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+        pauiSGMap[ iY * uiMapWidth + iX ] = iGroup0;
       }
     }
-    // Debug
-    if (uiSliceId != (m_uiNumSliceMinus1+1))
+    //----- set ROI map -----
+    UInt uiROIId = MSYS_UINT_MAX;
+    for( Int iGroup = 0; iGroup <= (Int)m_uiNumSliceGroupsMinus1; iGroup++ )
     {
-      printf("IROI error\n");
-      m_bSliceDivisionFlag = false;
-      return Err::m_nOK;
-    }
-
-    uiMBCount = 0;
-    for (uiSliceId = 0; uiSliceId <= m_uiNumSliceMinus1; uiSliceId++)
-    {
-      uiMBAddr = m_puiFirstMbInSlice[uiSliceId];
-      for (i = 0; i <= m_puiGridSliceHeightInMbsMinus1[uiSliceId]; i++, uiMBAddr+=uiFrameWidthInMbs)
+      UInt uiNumMb = 0;
+      for( UInt uiIdx = 0; uiIdx < uiMapSize; uiIdx++ )
       {
-        for (j = 0; j <= m_puiGridSliceWidthInMbsMinus1[uiSliceId]; j++, uiMBCount++)
+        if( pauiSGMap[uiIdx] == iGroup )
         {
-          m_puiSliceId[uiMBAddr+j] = uiSliceId;
+          if( uiNumMb == 0 )
+          {
+            uiROIId++;
+            pauiROIFirstMB[uiROIId] = uiIdx;
+          }
+          pauiROILastMB   [uiROIId] = uiIdx;
+          pauiROIMap      [uiIdx]   = uiROIId;
+          if( ++uiNumMb == uiMaxSliceSize )
+          {
+            uiNumMb = 0;
+          }
         }
       }
     }
-    // Debug
-    if (uiMBCount != uiFrameSizeInMbs)
+    UInt  uiNumROI      = uiROIId + 1;
+    Bool  bRectangular  = true;
+    Bool  bSameSize     = true;
+    //----- check ROI map and set sizes -----
+    for( uiROIId = 0; uiROIId < uiNumROI; uiROIId++ )
     {
-      printf("IROI error\n");
-      m_bSliceDivisionFlag = false;
-      return Err::m_nOK;
+      Int iY0 = pauiROIFirstMB[ uiROIId ] / uiMapWidth;
+      Int iX0 = pauiROIFirstMB[ uiROIId ] % uiMapWidth;
+      Int iY1 = pauiROILastMB [ uiROIId ] / uiMapWidth;
+      Int iX1 = pauiROILastMB [ uiROIId ] % uiMapWidth;
+      for( Int iY = 0; iY < (Int)uiMapHeight; iY++ )
+      for( Int iX = 0; iX < (Int)uiMapWidth;  iX++ )
+      {
+        Bool bInside = ( iY >= iY0 && iY <= iY1 && iX >= iX0 && iX <= iX1 );
+        Bool bMatch  = ( pauiROIMap[ iY * uiMapWidth + iX ] == uiROIId );
+        if( ( bInside && ! bMatch ) || ( !bInside && bMatch ) )
+        {
+          bRectangular = false;
+        }
+      }
+      pauiROIWidth [uiROIId] = iX1 - iX0 + 1;
+      pauiROIHeight[uiROIId] = iY1 - iY0 + 1;
+      if( uiROIId > 0 && bSameSize )
+      {
+        if( pauiROIWidth[uiROIId] != pauiROIWidth[0] || pauiROIHeight[uiROIId] != pauiROIHeight[0] )
+        {
+          bSameSize = false;
+        }
+      }
     }
-
-
-    // Display slice division info.
-    //printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);//SEI changes update
-		printf("IROI: Iroi Grid Flag %d, Num Slice %d\n", m_bGridFlag, m_uiNumSliceMinus1+1);//SEI changes update
-    //for (i=0; i<=m_uiNumSliceMinus1; i++)
-    //{
-    //  printf("(%d, %d, %d, %d, %d)\n", i, m_puiGridSliceWidthInMbsMinus1[i], m_puiGridSliceHeightInMbsMinus1[i], m_puiFirstMbInSlice[i], m_puiLastMbInSlice[i]);
-    //}
+    //----- set ROI parameters -----
+    if( bRectangular )
+    {
+      m_bSliceDivisionFlag  = true;
+      m_bGridFlag           = bSameSize;
+      m_uiNumSliceMinus1    = uiNumROI - 1;
+      // alloc arrays
+      if (m_puiGridSliceWidthInMbsMinus1 != NULL)
+        free(m_puiGridSliceWidthInMbsMinus1);
+      m_puiGridSliceWidthInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+      if (m_puiGridSliceHeightInMbsMinus1 != NULL)
+        free(m_puiGridSliceHeightInMbsMinus1);
+      m_puiGridSliceHeightInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+      if (m_puiFirstMbInSlice != NULL)
+        free(m_puiFirstMbInSlice);
+      m_puiFirstMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+      if (m_puiLastMbInSlice != NULL)
+        free(m_puiLastMbInSlice);
+      m_puiLastMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+      if (m_puiSliceId != NULL)
+        free(m_puiSliceId);
+      m_puiSliceId = (UInt*)malloc(uiMapSize*sizeof(UInt));
+      // set data and output some info
+      UInt uiMBCount  = 0;
+      printf("Layer%2d: %d IROI's with IROI grid flag = %d\n", m_uiLayerId, uiNumROI, m_bGridFlag );
+      for( UInt uiSliceNum = 0; uiSliceNum < uiNumROI; uiSliceNum++ )
+      {
+        printf("\tROI%2d:  W =%3d,  H =%3d,  FirstMb = %d\n", uiSliceNum, pauiROIWidth[uiSliceNum], pauiROIHeight[uiSliceNum], pauiROIFirstMB[uiSliceNum] );
+        m_puiGridSliceWidthInMbsMinus1  [uiSliceNum] = pauiROIWidth  [ uiSliceNum ] - 1;
+        m_puiGridSliceHeightInMbsMinus1 [uiSliceNum] = pauiROIHeight [ uiSliceNum ] - 1;
+        m_puiFirstMbInSlice             [uiSliceNum] = pauiROIFirstMB[ uiSliceNum ];
+        m_puiLastMbInSlice              [uiSliceNum] = pauiROILastMB [ uiSliceNum ];
+        UInt uiMBAddr   = m_puiFirstMbInSlice[uiSliceNum];
+        for( UInt i = 0; i <= m_puiGridSliceHeightInMbsMinus1[uiSliceNum]; i++, uiMBAddr += uiMapWidth )
+        {
+          for( UInt j = 0; j <= m_puiGridSliceWidthInMbsMinus1[uiSliceNum]; j++, uiMBCount++)
+          {
+            m_puiSliceId[uiMBAddr+j] = uiSliceNum;
+          }
+        }
+      }
+      ROF( uiMBCount == uiMapSize );
+      printf("\n\n");
+    }
+    //----- delete temporary arrays -----
+    delete [] pauiSGMap;
+    delete [] pauiROIMap;
+    delete [] pauiROIFirstMB;
+    delete [] pauiROILastMB;
+    delete [] pauiROIWidth;
+    delete [] pauiROIHeight;
   }
-  // JVT-S054 (ADD) <-
 
   //S051{
   ROTREPORT( getAnaSIP	()>0 && getEncSIP(),			"Unsupported SIP mode\n"); 
@@ -356,32 +383,36 @@ ErrVal CodingParameter::check()
     Bool bStringNotOk = SequenceStructure::checkString( getSequenceFormatString() ); 
 
     //===== coder is operated in MVC mode =====
-    ROTREPORT( getFrameWidth        () <= 0 ||
-               getFrameWidth        ()  % 16,             "Frame Width  must be greater than 0 and a multiple of 16" );
-    ROTREPORT( getFrameHeight       () <= 0 ||
-               getFrameHeight       ()  % 16,             "Frame Height must be greater than 0 and a multiple of 16" );
-    ROTREPORT( getMaximumFrameRate  () <= 0.0,            "Frame rate not supported" );
-    ROTREPORT( getTotalFrames       () == 0,              "Total Number Of Frames must be greater than 0" );
-    ROTREPORT( getSymbolMode        ()  > 1,              "Symbol mode not supported" );
-    ROTREPORT( get8x8Mode           ()  > 2,              "FRExt mode not supported" );
-    ROTREPORT( getDPBSize           () == 0,              "DPBSize must be greater than 0" );
-    ROTREPORT( getNumDPBRefFrames   () == 0 ||
-               getNumDPBRefFrames   ()  > getDPBSize(),   "NumRefFrames must be greater than 0 and must not be greater than DPB size" );
-    ROTREPORT( getLog2MaxFrameNum   ()  < 4 ||
-               getLog2MaxFrameNum   ()  > 16,             "Log2MaxFrameNum must be in the range of [4..16]" );
-    ROTREPORT( getLog2MaxPocLsb     ()  < 4 ||
-               getLog2MaxPocLsb     ()  > 15,             "Log2MaxFrameNum must be in the range of [4..15]" );
+    ROTREPORT( getFrameWidth            () <= 0 ||
+               getFrameWidth            ()  % 16,             "Frame Width  must be greater than 0 and a multiple of 16" );
+    ROTREPORT( getFrameHeight           () <= 0 ||
+               getFrameHeight           ()  % 16,             "Frame Height must be greater than 0 and a multiple of 16" );
+    ROTREPORT( getMaximumFrameRate      () <= 0.0,            "Frame rate not supported" );
+    ROTREPORT( getTotalFrames           () == 0,              "Total Number Of Frames must be greater than 0" );
+    ROTREPORT( getSymbolMode            ()  > 1,              "Symbol mode not supported" );
+    ROTREPORT( getEnable8x8Trafo        ()  > 1,              "The value for Enable8x8Transform is not supported" );
+    ROTREPORT( getScalingMatricesPresent()  > 1,              "The value for ScalingMatricesPresent is not supported" );
+    ROTREPORT( getBiPred8x8Disable      ()  > 1,              "The value for BiPredLT8x8Disable is not supported" );
+    ROTREPORT( getMCBlks8x8Disable      ()  > 1,              "The value for MCBlocksLT8x8Disable is not supported" );
+    ROTREPORT( getDPBSize               () == 0,              "DPBSize must be greater than 0" );
+    ROTREPORT( getNumDPBRefFrames       () == 0 ||
+               getNumDPBRefFrames       ()  > getDPBSize(),   "NumRefFrames must be greater than 0 and must not be greater than DPB size" );
+    ROTREPORT( getLog2MaxFrameNum       ()  < 4 ||
+               getLog2MaxFrameNum       ()  > 16,             "Log2MaxFrameNum must be in the range of [4..16]" );
+    ROTREPORT( getLog2MaxPocLsb         ()  < 4 ||
+               getLog2MaxPocLsb         ()  > 15,             "Log2MaxFrameNum must be in the range of [4..15]" );
     ROTREPORT( bStringNotOk,                              "Unvalid SequenceFormatString" );
-    ROTREPORT( getMaxRefIdxActiveBL0() <= 0 ||
-               getMaxRefIdxActiveBL0()  > 15,             "Unvalid value for MaxRefIdxActiveBL0" );
-    ROTREPORT( getMaxRefIdxActiveBL1() <= 0 ||
-               getMaxRefIdxActiveBL1()  > 15,             "Unvalid value for MaxRefIdxActiveBL1" );
-    ROTREPORT( getMaxRefIdxActiveP  () <= 0 ||
-               getMaxRefIdxActiveP  ()  > 15,             "Unvalid value for MaxRefIdxActiveP" );
+    ROTREPORT( getMaxRefIdxActiveBL0    () <= 0 ||
+               getMaxRefIdxActiveBL0    ()  > 15,             "Unvalid value for MaxRefIdxActiveBL0" );
+    ROTREPORT( getMaxRefIdxActiveBL1    () <= 0 ||
+               getMaxRefIdxActiveBL1    ()  > 15,             "Unvalid value for MaxRefIdxActiveBL1" );
+    ROTREPORT( getMaxRefIdxActiveP      () <= 0 ||
+               getMaxRefIdxActiveP      ()  > 15,             "Unvalid value for MaxRefIdxActiveP" );
 
     return Err::m_nOK;
   }
 
+  ROTREPORT( getNumberOfLayers() == 0, "Number of layer must be greate than 0" );
   ROTREPORT( getMaximumFrameRate() <= 0.0,              "Maximum frame rate not supported" );
   ROTREPORT( getMaximumDelay    ()  < 0.0,              "Maximum delay must be greater than or equal to 0" );
   ROTREPORT( getTotalFrames     () == 0,                "Total Number Of Frames must be greater than 0" );
@@ -405,11 +436,6 @@ ErrVal CodingParameter::check()
     setIntraPeriodLowPass( uiIntraPeriod );
   }
 
-	//JVT-X046 {
-  ROTREPORT(   m_uiSliceMode < 0 || m_uiSliceMode > 2 || 
-	  (m_uiSliceMode==1)&&(m_uiSliceArgument <= 0) || (m_uiSliceMode==2)&&(m_uiSliceArgument <= 0)
-	  , "Unvalid value for SliceMode or SliceArgument" );
-  //JVT-X046 }
   ROTREPORT( getNumRefFrames    ()  < 1  ||
              getNumRefFrames    ()  > 15,               "Number of reference frames not supported" );
   ROTREPORT( getBaseLayerMode   ()  > 2,                "Base layer mode not supported" );
@@ -428,6 +454,7 @@ ErrVal CodingParameter::check()
 
   Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
   UInt    uiMaxFrameDelay = (UInt)floor( dMaxFrameDelay );
+  Double  dMinUnrstrDelay = Double( ( 1 << m_uiDecompositionStages ) - 1 ) / m_dMaximumFrameRate * 1000.0;
 
   for( UInt uiLayer = 0; uiLayer < getNumberOfLayers(); uiLayer++ )
   {
@@ -448,10 +475,30 @@ ErrVal CodingParameter::check()
     ROTREPORT( uiLogFactorInOutRate == MSYS_UINT_MAX,   "Input frame rate must be a power of 2 of output frame rate" );
     ROTREPORT( uiLogFactorMaxInRate == MSYS_UINT_MAX,   "Maximum frame rate must be a power of 2 of input frame rate" );
 
+    if( pcLayer->getUseLongTerm() && m_dMaximumDelay < dMinUnrstrDelay )
+    {
+      fprintf( stderr, "\nWARNING: The usage of long term pictures for"
+                       "\n         a delay of less than %.2lf ms might"
+                       "\n         result in non-conforming DPB behaviour"
+                       "\n         for temporal sub-streams\n\n", dMinUnrstrDelay );
+    }
+
     pcLayer->setNotCodedStages      ( uiLogFactorInOutRate );
     pcLayer->setTemporalResolution  ( uiLogFactorMaxInRate );
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
-    pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );
+    pcLayer->setFrameDelay          ( uiMaxFrameDelay );
+    if( ( uiMaxFrameDelay >> ( uiLogFactorMaxInRate + uiLogFactorInOutRate ) ) == 0 || ( getDecompositionStages() - uiLogFactorMaxInRate - uiLogFactorInOutRate ) == 0 )
+    {
+      pcLayer->setPicCodingType( 1 );
+    }
+    if( pcLayer->getPicCodingType() == 1 )
+    {
+      pcLayer->setBiPred8x8Disable( 1 );
+    }
+    if( uiBaseLayerId != MSYS_UINT_MAX )
+    {
+      ROTREPORT( pcLayer->getPicCodingType() == 1 && pcBaseLayer->getPicCodingType() != 1, "DisableBSlices must be equal to 0 when it is equal to 0 for the bse layer" );
+    }
 
     Bool bMGSVectorUsed = pcLayer->getMGSVect( 0 ) != 16;
     if( bMGSVectorUsed )
@@ -464,24 +511,30 @@ ErrVal CodingParameter::check()
 
     if( pcBaseLayer )
     {
-      Bool bResolutionChange = pcLayer->getFrameWidth () != pcBaseLayer->getFrameWidth() || 
-                               pcLayer->getFrameHeight() != pcBaseLayer->getFrameHeight();
+      Bool bResolutionChange = pcLayer->getFrameWidthInSamples () != pcBaseLayer->getFrameWidthInSamples () || 
+                               pcLayer->getFrameHeightInSamples() != pcBaseLayer->getFrameHeightInSamples();
       ROTREPORT( bResolutionChange && pcLayer->getMGSVect(0) != 16, "Base layer and current layer must have the same resolution when MGS vectors are used in the current layer." );
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );
       UInt uiLogFactorRate = getLogFactor( pcBaseLayer->getInputFrameRate(), pcLayer->getInputFrameRate() );
       ROTREPORT( uiLogFactorRate == MSYS_UINT_MAX, "Input Frame rate must be a power of 2 from layer to layer" );
       pcLayer->setBaseLayerTempRes( uiLogFactorRate );
 
-      ROTREPORT( pcLayer->getFrameWidth ()  < pcBaseLayer->getFrameWidth (), "Frame width  less than base layer frame width" );
-      ROTREPORT( pcLayer->getFrameHeight()  < pcBaseLayer->getFrameHeight(), "Frame height less than base layer frame height" );
-      UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidth (), pcLayer->getFrameWidth () );
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getPicCodingType() != pcBaseLayer->getPicCodingType(),
+        "DisableBSlices shall be the same in successive MGS layers" );
+
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getUseLongTerm() != pcBaseLayer->getUseLongTerm(),
+        "UseLongTerm shall be the same in successive MGS layers" );
+
+      ROTREPORT( pcLayer->getFrameWidthInSamples ()  < pcBaseLayer->getFrameWidthInSamples (), "Frame width  less than base layer frame width" );
+      ROTREPORT( pcLayer->getFrameHeightInSamples()  < pcBaseLayer->getFrameHeightInSamples(), "Frame height less than base layer frame height" );
+      UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidthInSamples (), pcLayer->getFrameWidthInSamples () );
      
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
 			
       ResizeParameters& rcRP = pcLayer->getResizeParameters();
       if( rcRP.m_iExtendedSpatialScalability != ESS_NONE )
       {
-        Bool  bI    = ( pcLayer->getMbAff() || pcLayer->getPAff() );
+        Bool  bI    = pcLayer->isInterlaced();
         Int   iV    = ( bI ? 4 : 2 );
         Int   iL    = rcRP.m_iLeftFrmOffset;
         Int   iT    = rcRP.m_iTopFrmOffset;
@@ -496,9 +549,13 @@ ErrVal CodingParameter::check()
 
       pcBaseLayer->setContrainedIntraForLP();
 
-      if( pcLayer->getSliceSkip() && pcLayer->getSliceSkipTLevelStart() == 0 )
+      if( pcLayer->getSliceSkip() )
       {
-        pcLayer->setContrainedIntraForLP();
+        pcLayer->setSliceSkipTLevelStart( pcLayer->getSliceSkip() - 1 );
+        if( pcLayer->getSliceSkipTLevelStart() == 0 )
+        {
+          pcLayer->setContrainedIntraForLP();
+        }
       }
 
       if( pcLayer->getTCoeffLevelPredictionFlag() )
@@ -514,7 +571,7 @@ ErrVal CodingParameter::check()
       pcLayer->setInterLayerPredictionMode( pcLayer->getInterLayerPredictionMode() > 0 ? 2 : 0 );
     }
 
-    ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level may not exceed 15." );
+    ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level shall not exceed 15." );
 
     if( uiLayer == 0 && pcLayer->getBaseQualityLevel() != 0 )
     {
@@ -522,9 +579,390 @@ ErrVal CodingParameter::check()
     }
   }
 
+  RNOK( xCheckAndSetProfiles() );
+
   return Err::m_nOK;
 }
 
+
+ErrVal
+CodingParameter::xCheckAndSetProfiles()
+{
+  for( UInt uiLayer = 0; uiLayer < m_uiNumberOfLayers; uiLayer++ )
+  {
+    RNOK( m_acLayerParameters[uiLayer].setAndCheckProfile( this ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
+{
+  ROF( pcCodingParameter );
+
+  Bool  bSVCLayersPresent     = ( pcCodingParameter->getNumberOfLayers() > 1 );
+  Bool  bScalBaselineRequired = false;
+  Bool  bScalHighRequired     = false;
+  for( UInt uiTestLayer = m_uiLayerId + 1; uiTestLayer < pcCodingParameter->getNumberOfLayers(); uiTestLayer++ )
+  {
+    if( pcCodingParameter->getLayerParameters( uiTestLayer ).getProfileIdc() == SCALABLE_BASELINE_PROFILE )
+    {
+      bScalBaselineRequired = true;
+    }
+    if( pcCodingParameter->getLayerParameters( uiTestLayer ).getProfileIdc() == SCALABLE_HIGH_PROFILE )
+    {
+      bScalHighRequired     = true;
+    }
+  }
+
+  //===== BASE LAYER =====
+  if ( m_uiLayerId == 0 )
+  {
+    ROTREPORT( m_uiProfileIdc != BASELINE_PROFILE &&
+               m_uiProfileIdc != MAIN_PROFILE     &&
+               m_uiProfileIdc != EXTENDED_PROFILE &&
+               m_uiProfileIdc != HIGH_PROFILE     &&
+               m_uiProfileIdc != 0, "Unsupported ProfileIdc in base layer" );
+    //----- try to force compatibility when required -----
+    Bool  bForceBaseline    = ( m_uiProfileIdc == BASELINE_PROFILE || bScalBaselineRequired );
+    Bool  bForceMain        = ( m_uiProfileIdc == MAIN_PROFILE     || bScalBaselineRequired );
+    Bool  bForceExtended    = ( m_uiProfileIdc == EXTENDED_PROFILE || bScalBaselineRequired );
+    Bool  bForceHigh        = ( m_uiProfileIdc == HIGH_PROFILE     || bSVCLayersPresent     );
+    if(   bForceBaseline )  RNOK( xForceBaselineProfile ( pcCodingParameter ) );
+    if(   bForceMain     )  RNOK( xForceMainProfile     ( pcCodingParameter ) );
+    if(   bForceExtended )  RNOK( xForceExtendedProfile ( pcCodingParameter ) );
+    if(   bForceHigh     )  RNOK( xForceHighProfile     ( pcCodingParameter ) );
+    //----- check compatibility -----
+    Bool  bBaseline         = xIsBaselineProfile          ( pcCodingParameter );
+    Bool  bMain             = xIsMainProfile              ( pcCodingParameter );
+    Bool  bExtended         = xIsExtendedProfile          ( pcCodingParameter );
+    Bool  bHigh             = xIsHighProfile              ( pcCodingParameter );
+    Bool  bIntraOnly        = xIsIntraOnly                ( pcCodingParameter );
+    ROT(  bForceBaseline  && !bBaseline );
+    ROT(  bForceMain      && !bMain     );
+    ROT(  bForceExtended  && !bExtended );
+    ROT(  bForceHigh      && !bHigh     );
+    //----- set parameters -----
+    if( m_uiProfileIdc == 0)
+    {
+      m_uiProfileIdc        = ( bBaseline ? BASELINE_PROFILE : bMain ? MAIN_PROFILE : bExtended ? EXTENDED_PROFILE : bHigh ? HIGH_PROFILE : 0 );
+      ROTREPORT( m_uiProfileIdc == 0, "No profile found for given configuration parameters" );
+    }
+    m_bIntraOnly            = bIntraOnly;
+    m_bConstrainedSetFlag0  = bBaseline;
+    m_bConstrainedSetFlag1  = bMain;
+    m_bConstrainedSetFlag2  = bExtended;
+    m_bConstrainedSetFlag3  = ( bHigh && bIntraOnly );
+    m_uiNumDependentDId     = 1;
+    m_uiLevelIdc            = 0;
+    //----- update IDR period -----
+    if( bIntraOnly )
+    {
+      m_iIDRPeriod          = pcCodingParameter->getGOPSize();
+    }
+    return Err::m_nOK;
+  }
+
+  //===== ENHANCEMENT LAYER =====
+  ROTREPORT( m_uiProfileIdc != SCALABLE_BASELINE_PROFILE &&
+             m_uiProfileIdc != SCALABLE_HIGH_PROFILE     &&
+             m_uiProfileIdc != 0, "Unsupported ProfileIdc in enhancement layer" );
+  //----- try to force compatibility when required -----
+  Bool  bForceScalBase    = ( m_uiProfileIdc == SCALABLE_BASELINE_PROFILE || bScalBaselineRequired );
+  Bool  bForceScalHigh    = ( m_uiProfileIdc == SCALABLE_HIGH_PROFILE     || bScalHighRequired     );
+  if(   bForceScalBase )  RNOK( xForceScalableBaselineProfile ( pcCodingParameter ) );
+  if(   bForceScalHigh )  RNOK( xForceScalableHighProfile     ( pcCodingParameter ) );
+  //----- check compatibility -----
+  Bool  bScalBase         = xIsScalableBaselineProfile          ( pcCodingParameter );
+  Bool  bScalHigh         = xIsScalableHighProfile              ( pcCodingParameter );
+  Bool  bIntraOnly        = xIsIntraOnly                        ( pcCodingParameter );
+  ROT(  bForceScalBase  && !bScalBase );
+  ROT(  bForceScalHigh  && !bScalHigh );
+  //----- set parameters -----
+  if( m_uiProfileIdc == 0)
+  {
+    m_uiProfileIdc        = ( bScalBase ? SCALABLE_BASELINE_PROFILE : bScalHigh ? SCALABLE_HIGH_PROFILE : 0 );
+    ROTREPORT( m_uiProfileIdc == 0, "No profile found for given configuration parameters" );
+  }
+  m_bIntraOnly            = bIntraOnly;
+  m_bConstrainedSetFlag0  = bScalBase;
+  m_bConstrainedSetFlag1  = bScalHigh;
+  m_bConstrainedSetFlag2  = false;
+  m_bConstrainedSetFlag3  = ( bScalHigh && bIntraOnly );
+  m_uiNumDependentDId     = 1;
+  m_uiLevelIdc            = 0;
+  if( m_uiBaseLayerId != MSYS_UINT_MAX )
+  {
+    if( pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).m_uiLayerCGSSNR == m_uiLayerCGSSNR )
+    {
+      m_uiNumDependentDId = 0;
+    }
+    m_uiNumDependentDId  += pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).m_uiNumDependentDId;
+    ROTREPORT( m_uiNumDependentDId > 3, "At most 3 dependent dependency layers are supported in SVC" );
+  }
+  //----- update picture coding type -----
+  if( m_uiBaseLayerId != MSYS_UINT_MAX && m_uiPicCodingType == 0 && pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getPicCodingType() != 0 )
+  {
+    m_uiPicCodingType     = 2;
+  }
+  //----- update IDR period -----
+  if( bIntraOnly )
+  {
+    m_iIDRPeriod          = pcCodingParameter->getGOPSize();
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+LayerParameters::updateWithLevel( CodingParameter* pcCodingParameter, UInt& ruiLevelIdc )
+{
+  if( m_uiBaseLayerId != MSYS_UINT_MAX )
+  {
+    UInt uiBaseLevel  = pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getLevelIdc();
+    ROF( uiBaseLevel );
+    ruiLevelIdc       = max( ruiLevelIdc, uiBaseLevel );
+  }
+  switch( m_uiProfileIdc )
+  {
+  case MAIN_PROFILE:
+  case EXTENDED_PROFILE:
+  case HIGH_PROFILE:
+  case SCALABLE_HIGH_PROFILE:
+    if( ruiLevelIdc < 21 && isInterlaced() )
+    {
+      ruiLevelIdc = 21;
+    }
+    else if( ruiLevelIdc > 41 )
+    {
+      SETREPORT( m_uiMbAff, 0, "MbAff disabled for level compatibility" );
+      SETREPORT( m_uiPAff,  0, "PAff disabled for level compatibility" );
+    }
+    break;
+  case SCALABLE_BASELINE_PROFILE:
+    if( ruiLevelIdc < 21 && ( m_uiEntropyCodingModeFlag || m_uiEnable8x8Trafo ) )
+    {
+      ruiLevelIdc = 21;
+    }
+    break;
+  default:
+    break;
+  }
+  m_uiLevelIdc = ruiLevelIdc;
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsBaselineProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId                    == 0,               false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
+  ROFRS( m_uiPicCodingType              == 1,               false );
+  ROFRS( m_uiMbAff                      == 0,               false );
+  ROFRS( m_uiPAff                       == 0,               false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
+  ROFRS( pcCodingParameter->m_uiIPMode  == 0,               false );
+  ROFRS( pcCodingParameter->m_uiIPMode  == 0,               false );
+  ROFRS( m_uiEntropyCodingModeFlag      == 0,               false );
+  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,               false );
+  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  return true;
+}
+ErrVal
+LayerParameters::xForceBaselineProfile( CodingParameter* pcCodingParameter )
+{
+  ROT( m_uiLayerId );
+  ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
+  ROTREPORT( m_uiNumSliceGroupsMinus1     > 7, "NumSliceGrpMns1 must be less than 8 in Baseline profile compatibility mode" );
+  SETREPORT( m_uiPicCodingType,             1, "B slices disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiMbAff,                     0, "MbAff disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiPAff,                      0, "PAff disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiScalingMatricesPresent,    0, "Scaling matrices disabled for Baseline profile compatibility" );
+  SETREPORT( pcCodingParameter->m_uiIPMode, 0, "Weighted prediction disabled for Baseline profile compatibility" );
+  SETREPORT( pcCodingParameter->m_uiIPMode,  0, "Weighted prediction disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiEntropyCodingModeFlag,     0, "CABAC disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiEnable8x8Trafo,            0, "8x8 transform disabled for Baseline profile compatibility" );
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsMainProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId                    == 0,               false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
+  ROFRS( m_uiNumSliceGroupsMinus1       == 0,               false );
+  ROFRS( m_uiUseRedundantSlice          == 0,               false ); 
+  ROFRS( m_uiUseRedundantKeySlice       == 0,               false ); 
+  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  return true;
+}
+ErrVal
+LayerParameters::xForceMainProfile( CodingParameter* pcCodingParameter )
+{
+  ROT( m_uiLayerId );
+  ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
+  SETREPORT( m_uiScalingMatricesPresent,  0, "Scaling matrices disabled for Main profile compatibility" );
+  SETREPORT( m_uiNumSliceGroupsMinus1,    0, "NumSliceGrpMns1 set to 0 for Main profile compatibility" );
+  SETREPORT( m_uiUseRedundantSlice,       0, "Redundant slices disabled for Main profile compatibility" ); 
+  SETREPORT( m_uiUseRedundantKeySlice,    0, "Redundant slices disabled for Main profile compatibility" ); 
+  SETREPORT( m_uiEnable8x8Trafo,          0, "8x8 transform disabled for Main profile compatibility" );
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsExtendedProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId                    == 0,               false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
+  ROFRS( m_uiEntropyCodingModeFlag      == 0,               false );
+  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,               false );
+  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  return true;
+}
+ErrVal
+LayerParameters::xForceExtendedProfile( CodingParameter* pcCodingParameter )
+{
+  ROT( m_uiLayerId );
+  ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
+  ROTREPORT( m_uiNumSliceGroupsMinus1   > 7, "NumSliceGrpMns1 must be less than 8 in Extended profile compatibility mode" );
+  SETREPORT( m_uiScalingMatricesPresent,  0, "Scaling matrices disabled for Extended profile compatibility" );
+  SETREPORT( m_uiEntropyCodingModeFlag,   0, "CABAC disabled for Extended profile compatibility" );
+  SETREPORT( m_uiEnable8x8Trafo,          0, "8x8 transform disabled for Extended profile compatibility" );
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsHighProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId                    == 0,               false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
+  ROFRS( m_uiNumSliceGroupsMinus1       == 0,               false );
+  ROFRS( m_uiUseRedundantSlice          == 0,               false ); 
+  ROFRS( m_uiUseRedundantKeySlice       == 0,               false ); 
+  return true;
+}
+ErrVal
+LayerParameters::xForceHighProfile( CodingParameter* pcCodingParameter )
+{
+  ROT( m_uiLayerId );
+  ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
+  SETREPORT( m_uiNumSliceGroupsMinus1,    0, "NumSliceGrpMns1 set to 0 for High profile compatibility" );
+  SETREPORT( m_uiUseRedundantSlice,       0, "Redundant slices disabled for High profile compatibility" ); 
+  SETREPORT( m_uiUseRedundantKeySlice,    0, "Redundant slices disabled for High profile compatibility" ); 
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsIntraOnly( CodingParameter* pcCodingParameter )
+{
+  ROTRS( m_uiUseLongTerm,                                                       false );
+  ROFRS( m_uiDecompositionStages        == m_uiNotCodedStages,                  false );
+  ROFRS( pcCodingParameter->m_uiGOPSize == pcCodingParameter->m_uiIntraPeriod ||
+         pcCodingParameter->m_uiGOPSize == (UInt)m_iIDRPeriod,                  false );
+  ROTRS( m_uiBaseLayerId                == MSYS_UINT_MAX,                       true  );
+  return pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).isIntraOnly();
+}
+
+Bool
+LayerParameters::xHasRestrictedESS( CodingParameter* pcCodingParameter )
+{
+  ROTRS( m_uiBaseLayerId                            == MSYS_UINT_MAX, true  );
+  ROFRS( m_cResizeParameters.m_iLeftFrmOffset % 16  == 0,             false );
+  ROFRS( m_cResizeParameters.m_iTopFrmOffset  % 16  == 0,             false );
+  Bool   bHor11 = (     m_cResizeParameters.m_iScaledRefFrmWidth  ==     m_cResizeParameters.m_iRefLayerFrmWidth  );
+  Bool   bHor23 = ( 2 * m_cResizeParameters.m_iScaledRefFrmWidth  == 3 * m_cResizeParameters.m_iRefLayerFrmWidth  );
+  Bool   bHor12 = (     m_cResizeParameters.m_iScaledRefFrmWidth  == 2 * m_cResizeParameters.m_iRefLayerFrmWidth  );
+  Bool   bVer11 = (     m_cResizeParameters.m_iScaledRefFrmHeight ==     m_cResizeParameters.m_iRefLayerFrmHeight );
+  Bool   bVer23 = ( 2 * m_cResizeParameters.m_iScaledRefFrmHeight == 3 * m_cResizeParameters.m_iRefLayerFrmHeight );
+  Bool   bVer12 = (     m_cResizeParameters.m_iScaledRefFrmHeight == 2 * m_cResizeParameters.m_iRefLayerFrmHeight );
+  UInt   uiHor  = ( bHor11 ? 11 : bHor23 ? 23 : bHor12 ? 12 : (UInt)'H' );
+  UInt   uiVer  = ( bVer11 ? 11 : bVer23 ? 23 : bVer12 ? 12 : (UInt)'V' );
+  ROFRS( uiHor == uiVer,                                              false );
+  return true;
+}
+
+Bool
+LayerParameters::xIsScalableBaselineProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId               > 0,                       false );
+  ROFRS( m_uiMbAff                == 0,                       false );
+  ROFRS( m_uiPAff                 == 0,                       false );
+  ROFRS( m_uiNumSliceGroupsMinus1 <= 7,                       false );
+  if   ( m_uiNumSliceGroupsMinus1 )
+  {
+    ROFRS( m_uiSliceGroupMapType  == 2,                       false );
+  }
+  ROFRS( m_uiBiPred8x8Disable     == 1,                       false );
+  ROTRS( m_uiBaseLayerId          == MSYS_UINT_MAX,           true  );
+  
+  ROFRS( xHasRestrictedESS( pcCodingParameter ),              false );
+  LayerParameters& rcBase = pcCodingParameter->getLayerParameters( m_uiBaseLayerId );
+  if( m_uiBaseLayerId == 0 )
+  {
+    ROFRS( rcBase.m_bConstrainedSetFlag0,                     false );
+    ROFRS( rcBase.m_bConstrainedSetFlag1,                     false );
+    ROFRS( rcBase.m_bConstrainedSetFlag2,                     false );
+    ROFRS( rcBase.m_uiProfileIdc == BASELINE_PROFILE ||
+           rcBase.m_uiProfileIdc == MAIN_PROFILE     ||
+           rcBase.m_uiProfileIdc == EXTENDED_PROFILE,         false );
+    return true;
+  }
+
+  ROTRS( rcBase.m_uiProfileIdc == SCALABLE_BASELINE_PROFILE,  true  );
+  ROTRS( rcBase.m_bConstrainedSetFlag0,                       true  );
+  return false;
+}
+ErrVal
+LayerParameters::xForceScalableBaselineProfile( CodingParameter* pcCodingParameter )
+{
+  ROF( m_uiLayerId );
+  ROTREPORT( m_uiNumSliceGroupsMinus1     > 7,          "NumSliceGrpMns1 must be less than 8 in Scalable Baseline profile compatibility mode" );
+  if( m_uiNumSliceGroupsMinus1 )
+  {
+    ROTREPORT( m_uiSliceGroupMapType     != 2,          "SliceGroupMapType must be equal to 2 in Scalable Baseline profile compatibility mode" );
+  }
+  SETREPORT( m_uiMbAff,                     0,          "MbAff disabled for Scalable Baseline profile compatibility" );
+  SETREPORT( m_uiPAff,                      0,          "PAff disabled for Scalable Baseline profile compatibility" );
+  SETREPORT( m_uiBiPred8x8Disable,          1,          "BiPred for blocks smaller than 8x8 disabled for Scalable Baseline profile compatibility" );
+  ROTRS( m_uiBaseLayerId == MSYS_UINT_MAX,  Err::m_nOK  );
+  ROTREPORT( ! xHasRestrictedESS( pcCodingParameter ),  "Spatial scalability parameters must be restricted for Scalable Baseline profile compatibility mode" );
+  return Err::m_nOK;
+}
+
+Bool
+LayerParameters::xIsScalableHighProfile( CodingParameter* pcCodingParameter )
+{
+  ROFRS( m_uiLayerId               > 0,                       false );
+  ROFRS( m_uiNumSliceGroupsMinus1 == 0,                       false );
+  ROFRS( m_uiUseRedundantSlice    == 0,                       false ); 
+  ROFRS( m_uiUseRedundantKeySlice == 0,                       false ); 
+  ROTRS( m_uiBaseLayerId          == MSYS_UINT_MAX,           true  );
+
+  LayerParameters& rcBase = pcCodingParameter->getLayerParameters( m_uiBaseLayerId );
+  if( m_uiBaseLayerId == 0 )
+  {
+    ROTRS( rcBase.m_uiProfileIdc == HIGH_PROFILE,             true  );
+    ROFRS( rcBase.m_bConstrainedSetFlag1,                     false );
+    ROFRS( rcBase.m_uiProfileIdc == BASELINE_PROFILE ||
+           rcBase.m_uiProfileIdc == MAIN_PROFILE     ||
+           rcBase.m_uiProfileIdc == EXTENDED_PROFILE,         false );
+    return true;
+  }
+
+  ROTRS( rcBase.m_uiProfileIdc == SCALABLE_HIGH_PROFILE,      true  );
+  ROTRS( rcBase.m_bConstrainedSetFlag1,                       true  );
+  return false;
+}
+ErrVal
+LayerParameters::xForceScalableHighProfile( CodingParameter* pcCodingParameter )
+{
+  ROF( m_uiLayerId );
+  SETREPORT( m_uiNumSliceGroupsMinus1,    0, "NumSliceGrpMns1 set to 0 for Scalable High profile compatibility" );
+  SETREPORT( m_uiUseRedundantSlice,       0, "Redundant slices disabled for Scalable High profile compatibility" ); 
+  SETREPORT( m_uiUseRedundantKeySlice,    0, "Redundant slices disabled for Scalable High profile compatibility" ); 
+  return Err::m_nOK;
+}
 
 
 H264AVC_NAMESPACE_END

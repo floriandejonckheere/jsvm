@@ -144,28 +144,28 @@ typedef Long    XXPel;
 class TCoeff
 {
 public:
-	TCoeff()                                  { sCoeffValue=0; sLevelValue=0; };
-	TCoeff( Short val )                       { sCoeffValue = val; sLevelValue=val; };
-	~TCoeff()                                 { };
+  TCoeff( Int iVal = 0 ) : m_iCoeffValue( iVal ), m_iLevelValue ( iVal ), m_sPred( 0 ) {}
+  ~TCoeff()                                                                            {}
 
-	operator Short() const { return sCoeffValue; };	
+  operator Int() const { return m_iCoeffValue; }	
 
-  XPel  m_sPred;
+  TCoeff &operator=  ( const Int iVal )      { m_iCoeffValue =  iVal; return *this; }
+  TCoeff &operator+= ( const Int iVal )      { m_iCoeffValue += iVal; return *this; }
+  TCoeff &operator-= ( const Int iVal )      { m_iCoeffValue -= iVal; return *this; }
+  TCoeff &operator*= ( const Int iVal )      { m_iCoeffValue *= iVal; return *this; }
+  TCoeff &operator/= ( const Int iVal )      { m_iCoeffValue /= iVal; return *this; }
 
-	TCoeff &operator=  (const Short val )      { sCoeffValue =  val; return *this; };
-	TCoeff &operator+= (const Short val )      { sCoeffValue += val;  return *this; };
-	TCoeff &operator-= (const Short val )      { sCoeffValue -= val;  return *this; };
-	TCoeff &operator*= (const Short val )      { sCoeffValue *= val;  return *this; };
-	TCoeff &operator/= (const Short val )      { sCoeffValue /= val;  return *this; };
-	
-	Short getLevel()                           { return sLevelValue; };
-	Short getCoeff()                           { return sCoeffValue; };	
-	Void  setLevel( Short val )                { sLevelValue = val; };
-	Void  setCoeff( Short val )                { sCoeffValue = val; };	
+  Int   getLevel()            const          { return m_iLevelValue; }
+  Int   getCoeff()            const          { return m_iCoeffValue; }	
+  Short getSPred()            const          { return m_sPred;       }
+  Void  setLevel( Int  iVal )                { m_iLevelValue = iVal; }
+  Void  setCoeff( Int  iVal )                { m_iCoeffValue = iVal; }	
+  Void  setSPred( XPel sVal )                { m_sPred       = sVal; }
 
 private: 	
-	Short sCoeffValue;
-	Short sLevelValue;	
+  Int   m_iCoeffValue; // more than 16 bit required for chroma DC
+  Int   m_iLevelValue; // more than 16 bit required for chroma DC
+  XPel  m_sPred;
 };
 
 template< class T >

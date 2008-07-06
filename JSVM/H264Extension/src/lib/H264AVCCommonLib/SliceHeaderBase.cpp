@@ -416,6 +416,20 @@ DecRefPicMarking::read( HeaderSymbolReadIf& rcReadIf )
   return Err::m_nOK;
 }
 
+Bool
+DecRefPicMarking::hasMMCO5() const
+{
+  ROFRS( m_bAdaptiveRefPicMarkingModeFlag,  false );
+  Bool bEnd = false;
+  for( Int iIndex = 0; !bEnd; iIndex++ )
+  {
+    Mmco   eMmcoOp  = get( iIndex ).getCommand();
+    ROTRS( eMmcoOp == MMCO_RESET, true );
+    bEnd            = ( eMmcoOp == MMCO_END ); 
+  }
+  return false;
+}
+
 
 
 PredWeight::PredWeight()
@@ -1255,8 +1269,8 @@ PrefixHeader::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNALUnitHeade
     {
       RNOK( m_cDecRefBasePicMarking.write( rcWriteIf ) );
     }
-    RNOK( rcWriteIf.writeFlag( m_bPrefixNalUnitAdditionalExtensionFlag, "prefix_nal_unit_additional_extension_flag" ) );
-    ROT ( m_bPrefixNalUnitAdditionalExtensionFlag ); // not supported
+    RNOK( rcWriteIf.writeFlag( m_bPrefixNalUnitAdditionalExtensionFlag, "additional_prefix_nal_unit_extension_flag" ) );
+    ROT ( m_bPrefixNalUnitAdditionalExtensionFlag ); // not supported in encoder
   }
   return Err::m_nOK;
 }
@@ -1264,6 +1278,8 @@ PrefixHeader::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNALUnitHeade
 ErrVal
 PrefixHeader::read( HeaderSymbolReadIf& rcReadIf, Bool bInclusiveNALUnitHeader )
 {
+  Bool bDummy;
+
   if( bInclusiveNALUnitHeader )
   {
     RNOK( NalUnitHeader::read( rcReadIf ) );
@@ -1275,8 +1291,21 @@ PrefixHeader::read( HeaderSymbolReadIf& rcReadIf, Bool bInclusiveNALUnitHeader )
     {
       RNOK( m_cDecRefBasePicMarking.read( rcReadIf ) );
     }
-    RNOK( rcReadIf.getFlag( m_bPrefixNalUnitAdditionalExtensionFlag,  "prefix_nal_unit_additional_extension_flag" ) );
-    ROT ( m_bPrefixNalUnitAdditionalExtensionFlag ); // not supported
+    RNOK( rcReadIf.getFlag( m_bPrefixNalUnitAdditionalExtensionFlag,  "additional_prefix_nal_unit_extension_flag" ) );
+    if( m_bPrefixNalUnitAdditionalExtensionFlag ) // read, but ignore following data
+    {
+      while( rcReadIf.moreRBSPData() )
+      {
+        RNOK( rcReadIf.getFlag( bDummy, "additional_prefix_nal_unit_extension_data_flag" ) );
+      }
+    }
+  }
+  else // read, but ignore following data
+  {
+    while( rcReadIf.moreRBSPData() )
+    {
+      RNOK( rcReadIf.getFlag( bDummy, "additional_prefix_nal_unit_extension_data_flag" ) );
+    }
   }
   return Err::m_nOK;
 }
@@ -1472,8 +1501,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
   {
     RNOK(       m_cDeblockingFilterParameter.write( rcWriteIf ) );
   }
-  if( getQualityId() == 0 &&
-      getPPS().getNumSliceGroupsMinus1() > 0 &&
+  if( getPPS().getNumSliceGroupsMinus1() > 0 &&
       getPPS().getSliceGroupMapType() >= 3 && getPPS().getSliceGroupMapType() <= 5 )
   {    
     RNOK(       rcWriteIf.writeCode ( m_uiSliceGroupChangeCycle,
@@ -1675,8 +1703,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
   {
     RNOK(       m_cDeblockingFilterParameter.read( rcReadIf, getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ) );
   }
-  if( getQualityId() == 0 &&
-      getPPS().getNumSliceGroupsMinus1() > 0 &&
+  if( getPPS().getNumSliceGroupsMinus1() > 0 &&
       getPPS().getSliceGroupMapType() >= 3 && getPPS().getSliceGroupMapType() <= 5 )
   {    
     RNOK(       rcReadIf.getCode ( m_uiSliceGroupChangeCycle,
@@ -1906,14 +1933,26 @@ SliceHeaderSyntax::xInitScalingMatrix()
     {
       puc = m_acScalingMatrix.get( uiIndex - 1 );
     }
-    if( ! puc )
+    if( ! puc || puc[0] == 0 )
     {
       switch( uiIndex )
       {
-      case 0 : puc = g_aucScalingMatrixDefault4x4Intra; break;
-      case 3 : puc = g_aucScalingMatrixDefault4x4Inter; break;
-      case 6 : puc = g_aucScalingMatrixDefault8x8Intra; break;
-      case 7 : puc = g_aucScalingMatrixDefault8x8Inter; break;
+      case 0: 
+      case 1: 
+      case 2: 
+        puc = g_aucScalingMatrixDefault4x4Intra; 
+        break;
+      case 3:
+      case 4:
+      case 5:
+        puc = g_aucScalingMatrixDefault4x4Inter; 
+        break;
+      case 6:
+        puc = g_aucScalingMatrixDefault8x8Intra; 
+        break;
+      case 7: 
+        puc = g_aucScalingMatrixDefault8x8Inter; 
+        break;
       default:
         RERR();
       }

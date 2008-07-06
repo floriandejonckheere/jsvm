@@ -127,8 +127,7 @@ public:
 
 	SequenceParameterSet& operator = ( const SequenceParameterSet& rcSPS );
 
-  //static UInt   getLevelIdc               ( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic );
-  static UInt   getLevelIdc               ( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbY, UInt uiRefLayerMbX );
+  static UInt   getLevelIdc               ( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbs );
   UInt          getMaxDPBSize             () const;
 
   static Short  getMaxIntMvVer            ( UInt uiLevelIdc, Bool bField ) { return m_aLevelLimit[uiLevelIdc].uiMaxVMvRange / (bField?2:1); }
@@ -143,9 +142,18 @@ public:
   Bool                  getConstrainedSet2Flag                ()          const { return m_bConstrainedSet2Flag; }
   Bool                  getConstrainedSet3Flag                ()          const { return m_bConstrainedSet3Flag; }
   UInt                  getLevelIdc                           ()          const { return m_uiLevelIdc;}
+  UInt                  getConvertedLevelIdc                  ()          const
+  { 
+    if( ( m_eProfileIdc == BASELINE_PROFILE || m_eProfileIdc == MAIN_PROFILE || m_eProfileIdc == EXTENDED_PROFILE ) && m_uiLevelIdc == 11 && m_bConstrainedSet3Flag )
+    {
+      return 9;
+    }
+    return m_uiLevelIdc;
+  }
   UInt                  getSeqParameterSetId                  ()          const { return m_uiSeqParameterSetId;}
   Bool                  getSeqScalingMatrixPresentFlag        ()          const { return m_bSeqScalingMatrixPresentFlag; }
   const ScalingMatrix&  getSeqScalingMatrix                   ()          const { return m_cSeqScalingMatrix; }
+  ScalingMatrix&        getSeqScalingMatrix                   ()                { return m_cSeqScalingMatrix; }
   UInt                  getLog2MaxFrameNum                    ()          const { return m_uiLog2MaxFrameNum;}
 	UInt                  getPicOrderCntType                    ()          const { return m_uiPicOrderCntType;}
   UInt                  getLog2MaxPicOrderCntLsb              ()          const { return m_uiLog2MaxPicOrderCntLsb;}
@@ -172,6 +180,18 @@ public:
   Void  setConstrainedSet2Flag                ( Bool        b  )          { m_bConstrainedSet2Flag                  = b;  }
   Void  setConstrainedSet3Flag                ( Bool        b  )          { m_bConstrainedSet3Flag                  = b;  }
   Void  setLevelIdc                           ( UInt        ui )          { m_uiLevelIdc                            = ui; }
+  Void  setConvertedLevelIdc                  ( UInt        ui )          
+  { 
+    if( ( m_eProfileIdc == BASELINE_PROFILE || m_eProfileIdc == MAIN_PROFILE || m_eProfileIdc == EXTENDED_PROFILE ) && ui == 9 )
+    {
+      m_uiLevelIdc            = 11;
+      m_bConstrainedSet3Flag  = true;
+    }
+    else
+    {
+      m_uiLevelIdc = ui;
+    }
+  }
   Void  setSeqParameterSetId                  ( UInt        ui )          { m_uiSeqParameterSetId                   = ui; }
   Void  setSeqScalingMatrixPresentFlag        ( Bool        b  )          { m_bSeqScalingMatrixPresentFlag          = b;  }
   Void  setLog2MaxFrameNum                    ( UInt        ui )          { m_uiLog2MaxFrameNum                     = ui; }
@@ -264,6 +284,10 @@ public:
   UInt          getMaxCPBSize() const;
   UInt          getMaxBitRate() const;
   // JVT-V068 HRD } 
+
+  UInt  getMaxSliceSize       ( Bool bFieldPic )  const;
+  UInt  getMaxMVsPer2Mb       ()                  const;
+  Bool  getBiPred8x8Disabled  ()                  const;
 
   Bool getSVCVUIParametersPresentFlag()            const { return m_bSVCVUIParametersPresentFlag;      }
 	Bool getAdditionalExtension2Flag()               const { return m_bAdditionalExtension2Flag;         }

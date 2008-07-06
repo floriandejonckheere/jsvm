@@ -1,4 +1,47 @@
-[Currently, all validation scripts work except for those that use error concealment features]
+﻿[Currently, all validation scripts work except for those that use error concealment features]
+
+
+
+JSVM_9_12_2 -> JSVM_9_13
+========================
+- correct setting of level_idc in encoder
+- correction of scaling matrix support in decoder
+- new encoder options for scaling matrices
+- new encoder option for 8x8 transform (removal of FRExt parameter)
+- IPCM support in decoder (including for SNR scalability)
+- encoder option for forcing IPCM macroblocks (for debugging purposes)
+- correction of prefix NAL unit syntax
+- removal of filler prefix NAL units (no longer supported in draft standard)
+- added support for Level 1b
+- fix of MCTF preprocessor
+- fix of FixedQPEncoder
+- fix in residual upsampling (item 47 of JVT-AA025r1)
+- fix for derivation of intra prediction modes in AVC rewrite mode
+- fix in derivation of RestrictedSpatialResolutionChangeFlag (item 33 of JVT-AA025r1)
+- fix in loop filter (for interlaced with I_BL mode)
+- fix in condition for transmission of slice_group_change_cycle (item 51 of JVT-AA025r1)
+- fix for padding before intra upsampling in Mbaff scenarios
+- fix for SVC direct mode (in layers with DQId > 0)
+- update (rewrite) of DPB implementation (+ required changes in encoder)
+- modification of coding order in encoder, in particular (but not only) for low-delay
+  (in low-delay configs, we know have a correct low-delay coding order)
+- fixes for field pictures (in base layer)
+- encoder support for high-delay P pictures
+- configurability of profile
+- implementation of (most) profile constraints in encoder
+- implementation of some additional level constraints in encoder including
+	- maximum number of motion vectors
+	- disabling bi-prediction for blocks smaller than 8x8
+	- maximum slice size in Scalable Baseline and Scalable High
+	- interlaced support
+	- support of CABAC and 8x8 in scalable Baseline
+- support of long-term pictures in decoder (not extensively tested yet)
+- support of SVC encoding with long-term pictures
+- removal of "SCALING_FACTOR_HACK", which resulted in different QP cascading for QCIF
+  (note: due to this change, the rate/PSNR points in validation scripts that include
+         QCIF resolutions might have been significantly changed)
+- addition of new validation scripts
+- correction of validation scripts (options not supported in SVC have been removed)
 
 
 

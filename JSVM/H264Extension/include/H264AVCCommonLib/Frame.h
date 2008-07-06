@@ -124,7 +124,7 @@ public:
   ErrVal  uninitHalfPel   ();
 
   ErrVal  load            ( PicBuffer*        pcPicBuffer );
-  ErrVal  store           ( PicBuffer*        pcPicBuffer );
+  ErrVal  store           ( PicBuffer*        pcPicBuffer, PicType ePicType = FRAME );
   
   ErrVal  addFrameFieldBuffer   ();
 	ErrVal  removeFrameFieldBuffer();
@@ -134,6 +134,13 @@ public:
 
   Void      setDPBUnit      ( DPBUnit*  pcDPBUnit ) { m_pcDPBUnit = pcDPBUnit; }
   DPBUnit*  getDPBUnit      ()                      { return m_pcDPBUnit; }
+  Bool      isLongTerm  ()          const { return m_bLongTerm; }
+  Void      setLongTerm ( Bool b )     
+  {
+    m_bLongTerm = b; 
+    if( NULL != m_pcFrameTopField ) m_pcFrameTopField->setLongTerm( m_bLongTerm );
+    if( NULL != m_pcFrameBotField ) m_pcFrameBotField->setLongTerm( m_bLongTerm );
+  }
 
   const PictureParameters&  getPicParameters()                    const;
   const PictureParameters&  getPicParameters( PicType ePicType )  const;
@@ -233,14 +240,6 @@ public:
   ErrVal  copyAll     ( Frame* pcSrcFrame )
   {
     ASSERT( m_ePicType==FRAME );
-
-    // JVT-Q065 EIDR{
-	  //if(!m_bUnusedForRef) //bug-fix shenqiu EIDR
-	  {
-		  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();
-	  }
-  // JVT-Q065 EIDR}
-
     m_iPoc          = pcSrcFrame->m_iPoc;
     m_iTopFieldPoc  = pcSrcFrame->m_iTopFieldPoc;
     m_iBotFieldPoc  = pcSrcFrame->m_iBotFieldPoc;
@@ -252,9 +251,6 @@ public:
   ErrVal copy             ( Frame* pcSrcFrame, PicType ePicType )
   {
     ASSERT( m_ePicType==FRAME );
-
-    m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
-    	
     if( ePicType==FRAME )
     {
       RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
@@ -288,7 +284,6 @@ public:
 	ErrVal copySlice (Frame* pcSrcFrame, PicType ePicType, UInt uiFirstMB, UInt uiLastMB)
   {
 	  ASSERT( m_ePicType==FRAME );
-	  //m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
 	  if( ePicType==FRAME )
 	  {
 		  RNOK( getFullPelYuvBuffer()->copySlice( pcSrcFrame->getFullPelYuvBuffer(),uiFirstMB,uiLastMB) );
@@ -380,6 +375,22 @@ public:
   Int   getTopFieldPoc()           const { return m_iTopFieldPoc; }
   Int   getBotFieldPoc()           const { return m_iBotFieldPoc; }
 
+  Void  clearPoc      ()
+  {
+    if( m_pcFrameTopField )
+    {
+      m_pcFrameTopField->clearPoc();
+    }
+    if( m_pcFrameBotField )
+    {
+      m_pcFrameBotField->clearPoc();
+    }
+    m_iTopFieldPoc  = MSYS_INT_MIN;
+    m_iBotFieldPoc  = MSYS_INT_MIN;
+    m_iPoc          = MSYS_INT_MIN;
+    m_bPocIsSet     = false;
+  }
+
 	Void  setPoc        ( Int iPoc )       { m_iPoc = iPoc; m_bPocIsSet = true; }
 	Void  setPoc        ( const SliceHeader& rcSH )
 	{ 
@@ -410,31 +421,6 @@ public:
     }
   }
 
-
-//JVT-S036 lsj{
-  Int	getFrameNum()	  const		{ return m_iFrameNum; }
-  Void  setFrameNum( Int iNum )		
-  {
-    m_iFrameNum = iNum;
-//TMM  {
-    if( NULL != m_pcFrameTopField )
-      m_pcFrameTopField->setFrameNum( iNum );
-    if( NULL != m_pcFrameBotField )
-      m_pcFrameBotField->setFrameNum( iNum );
-//TMM }
-  }
-//JVT-S036 lsj}
-
-// JVT-Q065 EIDR{
-  Bool	getUnusedForRef()			  { return m_bUnusedForRef; }
-  Void	setUnusedForRef( Bool b )	  { m_bUnusedForRef = b; }
-// JVT-Q065 EIDR}
-//EIDR 0619{
-	UInt	getIdrPicId()				{return m_uiIdrPicId;}
-	Void	setIdrPicId(UInt ui)				{ m_uiIdrPicId=ui;	}
-//EIDR 0619}
-
-
   Bool  isHalfPel()   { return m_bHalfPel; }
 
   const Frame*  getPic( PicType ePicType ) const;
@@ -446,9 +432,6 @@ public:
   Bool  isExtended () { return m_bExtended; }
   Void  clearExtended() { m_bExtended = false; }
   Void  setExtended  ()                  { m_bExtended = true; }
-
-  UInt getFrameIdInGop()                        { return m_uiFrameIdInGop; }
-  Void setFrameIdInGop( UInt uiFrameIdInGop )   { m_uiFrameIdInGop = uiFrameIdInGop; }
 
   // JVT-R057 LA-RDO{
   Void   initChannelDistortion();
@@ -485,16 +468,13 @@ protected:
   Frame*          m_pcFrameTopField;
   Frame*          m_pcFrameBotField;
   Frame*          m_pcFrame;
-  UInt            m_uiFrameIdInGop;
 
   DPBUnit*        m_pcDPBUnit;
-  Bool			  m_bUnusedForRef; // JVT-Q065 EIDR
-	UInt				m_uiIdrPicId; //EIDR 0619
   // JVT-R057 LA-RDO{
   UInt*            m_piChannelDistortion;
   // JVT-R057 LA-RDO}
 
-  Int			  m_iFrameNum; //JVT-S036 lsj
+  Bool      m_bLongTerm;
   Bool      m_bUnvalid;
 };
 
