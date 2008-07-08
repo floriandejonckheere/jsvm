@@ -1,6 +1,15 @@
 ﻿[Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_13 -> JSVM_9_13_1
+========================
+- encoder fix for combining slices (only SliceMode 1) with so-called MGS fragments
+- removal of extra (non-required) coding path for IROI's
+- correction of validation scripts using slices
+  (the SliceMode and SliceArgument variables have been moved from the main
+   configuration files to the layer config files in JSVM_9_13)
+
+
 
 JSVM_9_12_2 -> JSVM_9_13
 ========================

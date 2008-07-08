@@ -765,10 +765,7 @@ protected:
   //S051}
 
   // JVT-S054 (ADD) ->
-  Bool                          m_bIroiSliceDivisionFlag;
-  UInt                          m_uiNumSliceMinus1;
   UInt*                         m_puiFirstMbInSlice;
-  UInt*                         m_puiLastMbInSlice;
   // JVT-S054 (ADD) <-
 //JVT-T054{
   UInt                          m_uiLayerCGSSNR;

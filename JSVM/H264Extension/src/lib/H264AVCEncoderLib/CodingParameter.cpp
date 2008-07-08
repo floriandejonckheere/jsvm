@@ -193,6 +193,7 @@ ErrVal LayerParameters::check()
   }
   Bool bUseMGSVectors = getMGSVect( 0 ) != 16;
   ROTREPORT( ( getTCoeffLevelPredictionFlag() || getAVCAdaptiveRewriteFlag() ) && bUseMGSVectors, "MGS Vectors are not allowed with AVC rewriting enabled." );
+  ROTREPORT( m_uiSliceMode == 2 && bUseMGSVectors, "SliceMode 2 not supported in connection with MGS Vectors" );
 
   if( bUseMGSVectors && m_uiMaxAbsDeltaQP )
   {
