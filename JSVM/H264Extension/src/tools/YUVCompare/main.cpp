@@ -1,5 +1,4 @@
 
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -64,7 +63,7 @@ main( int argc, char** argv )
     fprintf( stderr, "\nMemory exceeded!\n\n" );
     return 1;
   }
-  
+
   if( ( testfile = fopen( argv[3], "rb" ) ) == NULL )
   {
     fprintf( stderr, "\nCannot open file \"%s\"!\n\n", argv[3] );

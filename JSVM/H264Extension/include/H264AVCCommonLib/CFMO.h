@@ -1,21 +1,4 @@
 
-/*!
- ***************************************************************************
- *
- * \file CFMO.h
- *
- * \brief
- *    Support for Flexilble Macroblock Ordering (FMO)
- *
- * \date
- *    10 May, 2005
- *
- * \author
- *    Tae Meon Bae	heartles@icu.ac.kr
- *
- **************************************************************************/
-
-
 #if !defined(AFX_CFMO_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_)
 #define AFX_CFMO_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_
 
@@ -32,7 +15,7 @@ class ImageParameter
 public:
 	unsigned PicSizeInMbs;
 	unsigned int field_pic_flag;
-	unsigned PicWidthInMbs;  
+	unsigned PicWidthInMbs;
 	unsigned PicHeightInMapUnits;
 	int slice_group_change_cycle;
 };
@@ -42,12 +25,12 @@ class FMO_PPS
 {
 
 public:
-	
+
 	unsigned num_slice_group_map_units_minus1;
 	unsigned num_slice_groups_minus1;
 	unsigned slice_group_map_type;
 	unsigned run_length_minus1[Max_Num_Slice_Groups];
-	unsigned top_left[Max_Num_Slice_Groups];		
+	unsigned top_left[Max_Num_Slice_Groups];
 	unsigned bottom_right[Max_Num_Slice_Groups];
 	bool slice_group_change_direction_flag;
 	unsigned slice_group_change_rate_minus1;
@@ -132,10 +115,10 @@ class FMO
 	int NumberOfSliceGroups_;    // the number of slice groups  (0 == scan order, 7 == maximum)
 
 	int *MbToSliceGroupMap_;
-	int *MapUnitToSliceGroupMap_; 
+	int *MapUnitToSliceGroupMap_;
 	unsigned PicSizeInMapUnits_ ;
 	int *numMbInSliceGroup_;
-	
+
 	//enc
 	int FirstMBInSlice[Max_Num_Slice_Groups];
 
@@ -154,7 +137,7 @@ public :
 
     NumberOfSliceGroups_=rcFmo.NumberOfSliceGroups_;
     PicSizeInMapUnits_=rcFmo.PicSizeInMapUnits_;
-    
+
     img_= rcFmo.img_;
     pps_= rcFmo.pps_;
     sps_= rcFmo.sps_;
@@ -167,8 +150,8 @@ public :
    mallocMbToSliceGroupMap();
    for (i=0;i<(int)(img_.PicSizeInMbs);i++)
      MbToSliceGroupMap_[i]=rcFmo.MbToSliceGroupMap_[i];
-   
-   //MapUnitToSliceGroupMap_ 
+
+   //MapUnitToSliceGroupMap_
    if (MapUnitToSliceGroupMap_)
     delete[] MapUnitToSliceGroupMap_;
 
@@ -176,26 +159,26 @@ public :
    for (i=0;i<(int)GetNumSliceGroupMapUnits();i++)
     MapUnitToSliceGroupMap_[i]=rcFmo.MapUnitToSliceGroupMap_[i];
 
-    //numMbInSliceGroup_   
+    //numMbInSliceGroup_
    if( numMbInSliceGroup_ )
    delete[] numMbInSliceGroup_;
-   
+
   numMbInSliceGroup_ = new int[NumberOfSliceGroups_];
 	for( i=0; i<NumberOfSliceGroups_; i++)
 		numMbInSliceGroup_[i] = rcFmo.numMbInSliceGroup_[i];
 
     return *this;
   }
-  
-  Void setCodedSG(int sgID, int POC)//, int frame) 
-	{ 		
+
+  Void setCodedSG(int sgID, int POC)//, int frame)
+	{
 		if (POC != m_iPOC)// || frame != m_iFrame)
 		{
 			m_iPOC = POC;
 		//	m_iFrame = frame;
 			initCodedSG();
 		}
-		m_siSGId[sgID] = true;	
+		m_siSGId[sgID] = true;
 	}
 	Void setCodedSG(int sgId) { m_siSGId[sgId] = true; }
 	Bool isCodedSG(int sgId) { return m_siSGId[sgId]; }
@@ -203,9 +186,9 @@ public :
 
 
 public:
-	
-	FMO():m_bInitialized(false),MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};	
-	~FMO(){	finit();};		
+
+	FMO():m_bInitialized(false),MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};
+	~FMO(){	finit();};
 
 	int init ();
 	int finit (); //destroy
@@ -220,7 +203,7 @@ public:
 	int StartPicture ();
 
 	int EndPicture ();
-	
+
 	int getPreviousMBNr (int CurrentMbNr);
 	int getFirstMBOfSliceGroup (int SliceGroupID);
 	int getLastCodedMBOfSliceGroup (int SliceGroupID);
@@ -249,10 +232,10 @@ private:
 	void GenerateType4MapUnitMap ();
 	void GenerateType5MapUnitMap ();
 	void GenerateType6MapUnitMap ();
-	
+
 	int GenerateMapUnitToSliceGroupMap();
 	int GenerateMbToSliceGroupMap();
-	
+
 	void printFmoMaps();
 	void mallocMbToSliceGroupMap();
 	int initMapUnitToSliceGroupMap();

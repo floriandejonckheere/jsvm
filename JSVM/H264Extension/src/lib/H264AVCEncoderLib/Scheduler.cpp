@@ -1,7 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
-// JVT-V068 HRD {
 
 #include "H264AVCEncoderLib.h"
 
@@ -89,11 +85,11 @@ ErrVal Scheduler::uninit()
 ErrVal Scheduler::initBuffer( const VUI* pcVui, UInt uiLayerIndex)
 {
   ROF ( m_bInitDone );
-  
+
   RNOK ( xInitHrd (pcVui->getNalHrd(uiLayerIndex), HRD::NAL_HRD) );
   RNOK ( xInitHrd (pcVui->getVclHrd(uiLayerIndex), HRD::VCL_HRD) );
 
-  if(pcVui->getTimingInfo(uiLayerIndex).getTimingInfoPresentFlag() ) 
+  if(pcVui->getTimingInfo(uiLayerIndex).getTimingInfoPresentFlag() )
   {
     m_dClockFrequency = (Double)pcVui->getTimingInfo(uiLayerIndex).getTimeScale() / (Double)pcVui->getTimingInfo(uiLayerIndex).getNumUnitsInTick();
     m_uiOutputTicks = 1;
@@ -112,13 +108,13 @@ ErrVal Scheduler::xInitHrd ( const HRD &rcHrd, const HRD::HrdParamType eHrdParam
   //Double dInitialCpbLevel = m_pcCodingParameter->getVUIParams().getInitialCpbLevel() / 100.0;
   Double dInitialCpbLevel = 0.7; // fixed to 90 percent
 
-  if( rcHrd.getHrdParametersPresentFlag() ) 
+  if( rcHrd.getHrdParametersPresentFlag() )
   {
     UInt uiCpbCnt = rcHrd.getCpbCnt();
     UInt uiBrScale = 6 + rcHrd.getBitRateScale();
     UInt uiCSScale = 4 + rcHrd.getCpbSizeScale();
     m_aacTiming[eHrdParamType].init( uiCpbCnt );
-    for( UInt i=0; i<uiCpbCnt; i++) 
+    for( UInt i=0; i<uiCpbCnt; i++)
     {
       UInt uiBitRate = ( rcHrd.getCntBuf(i).getBitRateValue() << uiBrScale);
       m_aacTiming[eHrdParamType][i].m_iBitRate = uiBitRate;
@@ -127,7 +123,7 @@ ErrVal Scheduler::xInitHrd ( const HRD &rcHrd, const HRD::HrdParamType eHrdParam
       m_aacTiming[eHrdParamType][i].m_dRemoval   = m_aacTiming[eHrdParamType][i].m_uiFirstIrd/Double(90000);
       m_aacTiming[eHrdParamType][i].m_uiIrd      = m_aacTiming[eHrdParamType][i].m_uiFirstIrd;
       m_aacTiming[eHrdParamType][i].m_bCbr       = rcHrd.getCntBuf(i).getVbrCbrFlag();
-    } 
+    }
   }
   return Err::m_nOK;
 }
@@ -173,7 +169,7 @@ ErrVal Scheduler::xCreateBufferingSeiHrd( HRD::HrdParamType eHrdParamType, const
       TimingUnit* myTU = &m_aacTiming[eHrdParamType][i];
       myTU->calcIrd( m_dActualInTime);
       pcBPSei->getSchedSel(eHrdParamType, i).setDelay(myTU->m_uiIrd);
-      pcBPSei->getSchedSel(eHrdParamType, i).setDelayOffset(myTU->m_uiIrdOffset);   
+      pcBPSei->getSchedSel(eHrdParamType, i).setDelayOffset(myTU->m_uiIrdOffset);
       if( NULL != m_pfFileDebug )
       {
         if (HRD::VCL_HRD == eHrdParamType)
@@ -185,7 +181,7 @@ ErrVal Scheduler::xCreateBufferingSeiHrd( HRD::HrdParamType eHrdParamType, const
           fprintf( m_pfFileDebug, "NAL Delay= %d    Offset = %d\n", myTU->m_uiIrd, myTU->m_uiIrdOffset );
         }
       }
-    } 
+    }
   }
   return Err::m_nOK;
 }
@@ -197,9 +193,9 @@ ErrVal Scheduler::createTimingSei( SEI::PicTiming*& rpcPicTiming, const VUI* pcV
   ROF ( m_bInitDone );
 
   RNOK( SEI::PicTiming::create( rpcPicTiming, pcVui, uiLayerIndex ) );
-    
+
   rpcPicTiming->setCpbRemovalDelay(UInt((m_dActualInTime - m_dLastBPTime) * m_dClockFrequency + 0.5) );
-  
+
   if( rcSH.getIdrFlag() )
   {
     m_dLastBPTime = m_dActualInTime;
@@ -207,10 +203,10 @@ ErrVal Scheduler::createTimingSei( SEI::PicTiming*& rpcPicTiming, const VUI* pcV
 
   UInt uiTopAdd = (uiInputFormat==2)?1:0;
   UInt uiBotAdd = (uiInputFormat==1)?1:0;
-  
+
   UInt uiDpbOutputDelay = m_uiInitialOutputDelay + 2*(uiPicNumOffset) + (rcSH.getFieldPicFlag() ? (rcSH.getBottomFieldFlag()?uiBotAdd:uiTopAdd):0);
   rpcPicTiming->setDpbOutputDelay(m_uiOutputTicks*uiDpbOutputDelay);
-  
+
   PicStruct ePictstruct;
 
   if (rcSH.getFieldPicFlag())
@@ -267,12 +263,12 @@ ErrVal Scheduler::calculateTiming( UInt uiVclSize, UInt uiAUSize, Bool bIsIdr, B
 ErrVal Scheduler::xCalculateTiming( HRD::HrdParamType eHrdParamType, UInt uiSize, Bool bIsIdr )
 {
   UInt i;
-  for( i=0; i<m_aacTiming[eHrdParamType].size(); i++) 
+  for( i=0; i<m_aacTiming[eHrdParamType].size(); i++)
   {
     m_aacTiming[eHrdParamType][i].calcTiming( uiSize, m_dActualInTime, bIsIdr);
     if ( HRD::VCL_HRD == eHrdParamType )
     {
-      if( NULL != m_pfFileDebug ) 
+      if( NULL != m_pfFileDebug )
       {
         fprintf( m_pfFileDebug, "Ird = %d   Irdo = %d   Taie = %f   Tai = %f   Taf = %f   Trn = %f   Size = %d\n",
           m_aacTiming[eHrdParamType][i].m_uiIrd, m_aacTiming[eHrdParamType][i].m_uiIrdOffset, m_aacTiming[eHrdParamType][i].m_dInitialArrivalEarliest,
@@ -284,7 +280,7 @@ ErrVal Scheduler::xCalculateTiming( HRD::HrdParamType eHrdParamType, UInt uiSize
   }
   return Err::m_nOK;
 }
- 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //##ModelId=404734B0030E
 Scheduler::TimingUnit::TimingUnit( ) //KR
@@ -305,14 +301,14 @@ Scheduler::TimingUnit::TimingUnit( ) //KR
 ErrVal Scheduler::TimingUnit::calcIrd( Double dTime) //KR
 {
   m_dRemoval = dTime + (Double)m_uiFirstIrd/(Double)90000;
-  UInt uiTmp = UInt((m_dRemoval - m_dFinalArrival) * 90000 + 0.5); // C-16 
-  if(m_bCbr) 
+  UInt uiTmp = UInt((m_dRemoval - m_dFinalArrival) * 90000 + 0.5); // C-16
+  if(m_bCbr)
   {
     m_uiIrd = uiTmp;
     m_dInitialArrivalEarliest = 0;  //not used in this case
     m_uiIrdOffset = 0;
   }
-  else 
+  else
   {
     m_uiIrd = (uiTmp > m_uiFirstIrd) ? m_uiFirstIrd : uiTmp; // final arrival last AU
     m_dInitialArrivalEarliest = m_dRemoval - Double(m_uiIrd)/(Double)90000;
@@ -326,7 +322,7 @@ ErrVal Scheduler::TimingUnit::calcIrd( Double dTime) //KR
 ErrVal Scheduler::TimingUnit::calcTiming( UInt uiSize, Double dTime, Bool bIsIdr) //KR
 {
   m_iDataLength = uiSize * 8; // in Bits
-  if( !bIsIdr) 
+  if( !bIsIdr)
   {
     m_dRemoval = dTime + (Double)m_uiFirstIrd/(Double)90000;
     m_dInitialArrivalEarliest = (m_bCbr) ? 0 : m_dRemoval - Double(m_uiIrd + m_uiIrdOffset)/(Double)90000;
@@ -337,7 +333,6 @@ ErrVal Scheduler::TimingUnit::calcTiming( UInt uiSize, Double dTime, Bool bIsIdr
 
   return Err::m_nOK;
 }
-// JVT-V068 HRD }
 
 // h264 namespace end
 H264AVC_NAMESPACE_END

@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCEncoderLib.h"
 #include "UvlcWriter.h"
@@ -349,9 +266,9 @@ const UInt g_auiISymLen[3][16] =
 
 const UInt g_auiRefSymCode[2][27] =
 {
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
+  {
+    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5,
+    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3,
     0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
   },
   {
@@ -760,7 +677,7 @@ ErrVal UvlcWriter::mbMode( MbDataAccess& rcMbDataAccess )
     uiMbMode--;
   }
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
-	 
+
 	ETRACE_T( "MbMode" );
   RNOK( xWriteUvlcCode( uiMbMode ) );
   ETRACE_N;
@@ -1256,7 +1173,7 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx c
   {
     // Re-pack VLC matrix
     // NB: This only needs to be done once at the start of the slice.
-    
+
     UInt uiMapIdx, ui, uj;
     UChar aucCwMapTO16[4][17];
     UInt uiBw     = uiStop-uiStart;
@@ -1307,7 +1224,7 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
   {
     // Re-pack VLC matrix
     // NB: This only needs to be done once at the start of the slice.
-    
+
     UInt uiMapIdx, ui, uj;
     UChar aucCwMapTO16[4][17];
     UInt uiBw     = uiStop-uiStart;
@@ -1315,7 +1232,7 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
     UInt uiYdim   = min(3, uiBw)+1;
     UInt uiZ[5]   = {0,1,2,4,7};
     UInt uiMaxVal = uiXdim*uiYdim - uiZ[uiYdim];
-    
+
     UInt uiCoeffCountCtxMap = min(uiCoeffCountCtx, 2);
     memcpy(aucCwMapTO16, g_aucCwMapTO16[uiCoeffCountCtxMap], sizeof(UChar)*4*17);
     for( uiMapIdx=1; uiMapIdx<=uiMaxVal; uiMapIdx++ )
@@ -1729,7 +1646,7 @@ ErrVal UvlcWriter::xWriteMotionPredFlag( Bool bFlag )
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop ) 
+ErrVal UvlcWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop )
 {
   ETRACE_T( "transformSize8x8Flag:" );
 
@@ -1897,7 +1814,7 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
   assert( uiTableIdx >= 0 && uiTableIdx <= 4 );
   if(uiTableIdx == 0)
   {
-    // unary code 
+    // unary code
     RNOK ( xWriteUnaryCode (uiSymbol) );
   }
   else if (uiTableIdx == 1)
@@ -1927,7 +1844,7 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
       RNOK (xWriteFlag ( 1 ));
     }
     else
-    {  
+    {
       RNOK (xWriteCodeCB1(uiSymbol+1));
     }
   }
@@ -1935,18 +1852,18 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcWriter::xWriteUnaryCode ( UInt uiSymbol )
 {
   UInt uiStart = 0;
-  do 
+  do
   {
     if(uiSymbol == uiStart)
     {
       RNOK( xWriteFlag (1) );
       break;
     }
-    else 
+    else
     {
       RNOK( xWriteFlag (0) );
       uiStart++;
@@ -1956,7 +1873,7 @@ UvlcWriter::xWriteUnaryCode ( UInt uiSymbol )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcWriter::xWriteCodeCB1 ( UInt uiSymbol )
 {
   // this function writes codeword for the input symbol according to the {2, 2, 3, 3, 4, 4...} codebook
@@ -1964,7 +1881,7 @@ UvlcWriter::xWriteCodeCB1 ( UInt uiSymbol )
   {
     RNOK (xWriteFlag (0));
   }
-  
+
   RNOK (xWriteCode((3-(uiSymbol%2)), 2)) ;
 
   return Err::m_nOK;
@@ -1992,7 +1909,7 @@ UvlcWriter::loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
 	UvlcWriter* pcUvlcWriter = (UvlcWriter*) (pcMbSymbolWriteIf);
 	m_uiBitCounter = pcUvlcWriter->getBitCounter();
 	m_uiPosCounter = pcUvlcWriter->getPosCounter();
-  
+
 	m_uiCoeffCost = pcUvlcWriter->getCoeffCost();
 	m_bTraceEnable = pcUvlcWriter->getTraceEnable();
 

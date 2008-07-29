@@ -1,22 +1,4 @@
 
-/*!
- *****************************************************************************
- *
- * \file Cfmo.c
- *
- * \brief
- *    Support for Flexible Macroblock Ordering (FMO)
- *
- * \author
- *    Main contributors (see contributors.h for copyright, address and affiliation details)
- *    - Stephan Wenger      stewe@cs.tu-berlin.de
- *    - Karsten Suehring    suehring@hhi.de
- *
- *\ modified by
- *    Tae Meon Bae  heartles@icu.ac.kr
- *
- ******************************************************************************
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

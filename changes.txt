@@ -1,6 +1,12 @@
 ﻿[Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_13_1 -> JSVM_9_14
+========================
+- direct 8x8 inference for inter-layer motion prediction in B slices (see JVT-AB010)
+- removal of copyright headers from source files and adding an extra file with copyright information
+
+
 JSVM_9_13 -> JSVM_9_13_1
 ========================
 - encoder fix for combining slices (only SliceMode 1) with so-called MGS fragments

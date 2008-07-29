@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCEncoderLibTest.h"
 #include "H264AVCEncoderTest.h"
@@ -121,7 +38,7 @@ H264AVCEncoderTest::create( H264AVCEncoderTest*& rpcH264AVCEncoderTest )
   rpcH264AVCEncoderTest = new H264AVCEncoderTest;
 
   ROT( NULL == rpcH264AVCEncoderTest );
-  
+
   return Err::m_nOK;
 }
 
@@ -148,12 +65,12 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
     RNOKS( WriteYuvToFile::create( m_apcWriteYuv[uiLayer] ) );
     RNOKS( m_apcWriteYuv[uiLayer]->init( rcLayer.getOutputFilename() ) );
-    RNOKS( ReadYuvFile   ::create( m_apcReadYuv [uiLayer] ) );  
+    RNOKS( ReadYuvFile   ::create( m_apcReadYuv [uiLayer] ) );
 
     ReadYuvFile::FillMode eFillMode = ( rcLayer.isInterlaced() ? ReadYuvFile::FILL_FIELD : ReadYuvFile::FILL_FRAME );
     RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename        (),
                                         rcLayer.getFrameHeightInSamples (),
-                                        rcLayer.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );  
+                                        rcLayer.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );
   }
 
 
@@ -161,7 +78,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
   if( m_pcEncoderCodingParameter->getAVCmode() )
   {
     RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) );
-    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );  
+    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );
   }
   else
   {
@@ -169,7 +86,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
     m_cWriteToBitFileName                     = m_cEncoderIoParameter.cBitstreamFilename;
     m_cEncoderIoParameter.cBitstreamFilename  = m_cWriteToBitFileTempName;
     RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) );
-    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );  
+    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );
   }
 
   //===== create encoder instance =====
@@ -202,24 +119,24 @@ H264AVCEncoderTest::destroy()
 {
   m_cBinDataStartCode.reset();
 
-  if( m_pcH264AVCEncoder )       
+  if( m_pcH264AVCEncoder )
   {
-    RNOK( m_pcH264AVCEncoder->uninit() );       
-    RNOK( m_pcH264AVCEncoder->destroy() );       
+    RNOK( m_pcH264AVCEncoder->uninit() );
+    RNOK( m_pcH264AVCEncoder->destroy() );
   }
 
   for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
   {
-    if( m_apcWriteYuv[ui] )              
+    if( m_apcWriteYuv[ui] )
     {
-      RNOK( m_apcWriteYuv[ui]->uninit () );  
-      RNOK( m_apcWriteYuv[ui]->destroy() );  
+      RNOK( m_apcWriteYuv[ui]->uninit () );
+      RNOK( m_apcWriteYuv[ui]->destroy() );
     }
 
-    if( m_apcReadYuv[ui] )              
+    if( m_apcReadYuv[ui] )
     {
-      RNOK( m_apcReadYuv[ui]->uninit() );  
-      RNOK( m_apcReadYuv[ui]->destroy() );  
+      RNOK( m_apcReadYuv[ui]->uninit() );
+      RNOK( m_apcReadYuv[ui]->destroy() );
     }
   }
 
@@ -229,7 +146,7 @@ H264AVCEncoderTest::destroy()
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
     AOF( m_acActivePicBufferList[uiLayer].empty() );
-    
+
     //===== delete picture buffer =====
     PicBufferList::iterator iter;
     for( iter = m_acUnusedPicBufferList[uiLayer].begin(); iter != m_acUnusedPicBufferList[uiLayer].end(); iter++ )
@@ -305,7 +222,7 @@ H264AVCEncoderTest::xWrite( PicBufferList&  rcPicBufferList,
     PicBuffer* pcBuffer = rcPicBufferList.popFront();
 
     Pel* pcBuf = pcBuffer->getBuffer();
-    RNOK( m_apcWriteYuv[uiLayer]->writeFrame( pcBuf + m_auiLumOffset[uiLayer], 
+    RNOK( m_apcWriteYuv[uiLayer]->writeFrame( pcBuf + m_auiLumOffset[uiLayer],
                                               pcBuf + m_auiCbOffset [uiLayer],
                                               pcBuf + m_auiCrOffset [uiLayer],
                                               m_auiHeight           [uiLayer],
@@ -357,13 +274,13 @@ H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
           uiIdxSend = uiTl0DepRepIdx;
 
         RNOK( m_pcH264AVCEncoder ->writeNestingTl0DepRepIdxSEIMessage( &cExtBinDataAccessor, uiTid, uiIdxSend, uiEfIdrPicId) );
-        
+
         bFirstPkt = false;
 
 	      RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
 	      RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
 	      ruiBytesInFrame += 4 + cExtBinDataAccessor.size();
-        cBinData.reset();       
+        cBinData.reset();
       }
     }
 
@@ -413,15 +330,15 @@ H264AVCEncoderTest::go()
   ExtBinDataAccessorList  cOutExtBinDataAccessorList;
   Bool                    bMoreSets;
 
-  
+
   //===== initialization =====
-  RNOK( m_pcH264AVCEncoder->init( m_pcEncoderCodingParameter ) ); 
+  RNOK( m_pcH264AVCEncoder->init( m_pcEncoderCodingParameter ) );
 
   // JVT-W043 {
   bRateControlEnable = (Bool)((m_pcH264AVCEncoder->getCodingParameter()->m_uiRateControlEnable) > 0 ? true : false );
   if ( bRateControlEnable )
   {
-    Int   iGOPSize     = m_pcEncoderCodingParameter->getGOPSize();    
+    Int   iGOPSize     = m_pcEncoderCodingParameter->getGOPSize();
     Int   iFullGOPs    = uiMaxFrame / iGOPSize;
     Double dMaximumFrameRate = m_pcEncoderCodingParameter->getMaximumFrameRate();
     iGOPSize =  (Int)floor( 0.5F + iGOPSize / (dMaximumFrameRate / (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate)) );
@@ -433,7 +350,7 @@ H264AVCEncoderTest::go()
 
     pcJSVMParams  = new jsvm_parameters;
     pcGenericRC   = new rc_generic( pcJSVMParams );
-    pcQuadraticRC = new rc_quadratic( pcGenericRC, pcJSVMParams );    
+    pcQuadraticRC = new rc_quadratic( pcGenericRC, pcJSVMParams );
 
     // parameter initialization
     pcQuadraticRC->m_iDDquant       = (Int) m_pcH264AVCEncoder->getCodingParameter()->m_uiMaxQpChange;
@@ -442,7 +359,7 @@ H264AVCEncoderTest::go()
     pcJSVMParams->BasicUnit         = m_pcH264AVCEncoder->getCodingParameter()->m_uiBasicUnit;
     pcJSVMParams->basicunit         = m_pcH264AVCEncoder->getCodingParameter()->m_uiBasicUnit;
     pcJSVMParams->RCMaxQP           = m_pcH264AVCEncoder->getCodingParameter()->m_uiRCMaxQP;
-    pcJSVMParams->RCMinQP           = m_pcH264AVCEncoder->getCodingParameter()->m_uiRCMinQP;    
+    pcJSVMParams->RCMinQP           = m_pcH264AVCEncoder->getCodingParameter()->m_uiRCMinQP;
     pcJSVMParams->SetInitialQP      = m_pcH264AVCEncoder->getCodingParameter()->m_uiInitialQp;
     pcJSVMParams->m_uiIntraPeriod   = m_pcEncoderCodingParameter->getIntraPeriod();
     pcJSVMParams->FrameRate         = (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate);
@@ -454,7 +371,7 @@ H264AVCEncoderTest::go()
 
     if ( m_pcH264AVCEncoder->getCodingParameter()->m_uiAdaptInitialQP )
       pcGenericRC->adaptInitialQP();
-  
+
     switch( iGOPSize )
     {
     case 1:
@@ -479,12 +396,12 @@ H264AVCEncoderTest::go()
       exit(1);
       break;
     }
-    
+
     // rate control initialization functions
     pcQuadraticRC->init();
     pcQuadraticRC->rc_init_seq();
     pcQuadraticRC->rc_init_GOP(uiMaxFrame - iNb - 1, iNb);
-    pcGenericRC->generic_alloc();    
+    pcGenericRC->generic_alloc();
   }
   // JVT-W043 }
 
@@ -502,10 +419,10 @@ H264AVCEncoderTest::go()
     h264::SequenceParameterSet* pcAVCSPS = NULL;
     RNOK( m_pcH264AVCEncoder->writeParameterSets( &cExtBinDataAccessor, pcAVCSPS, bMoreSets ) );
 		if( m_pcH264AVCEncoder->getScalableSeiMessage() )
-		{		
+		{
       RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
       RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
-      
+
       uiWrittenBytes += 4 + cExtBinDataAccessor.size();
 		}
     cBinData.reset();
@@ -517,9 +434,9 @@ H264AVCEncoderTest::go()
 
       ExtBinDataAccessor cExtBinDataAccessorl;
       cBinData.setMemAccessor( cExtBinDataAccessorl );
-      
+
       RNOK( m_pcH264AVCEncoder->writeAVCCompatibleHRDSEI( &cExtBinDataAccessorl, pcAVCSPS ) );
-      
+
       RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
       RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessorl ) );
 
@@ -558,8 +475,8 @@ H264AVCEncoderTest::go()
     m_aauiCropping[uiLayer][3]     = rcLayer.getVerPadding      ();
     UInt  uiSize            = ((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN);
     auiPicSize    [uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)*((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*3/2;
-    m_auiLumOffset[uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;  
-    m_auiCbOffset [uiLayer] = ((auiMbX[uiLayer]<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize; 
+    m_auiLumOffset[uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;
+    m_auiCbOffset [uiLayer] = ((auiMbX[uiLayer]<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize;
     m_auiCrOffset [uiLayer] = ((auiMbX[uiLayer]<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiSize/4;
     m_auiHeight   [uiLayer] =   auiMbY[uiLayer]<<4;
     m_auiWidth    [uiLayer] =   auiMbX[uiLayer]<<4;
@@ -604,7 +521,7 @@ H264AVCEncoderTest::go()
     UInt  uiBytesUsed = 0;
     RNOK( xWrite  ( cOutExtBinDataAccessorList, uiBytesUsed ) );
     uiWrittenBytes   += uiBytesUsed;
-    
+
     //===== write and release reconstructed pictures =====
     for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
     {
@@ -613,7 +530,7 @@ H264AVCEncoderTest::go()
     }
   }
 
-  
+
   //===== finish encoding =====
   UInt  uiNumCodedFrames = 0;
   Double  dHighestLayerOutputRate = 0.0;
@@ -659,8 +576,8 @@ H264AVCEncoderTest::go()
 
   if( m_pcWriteBitstreamToFile )
   {
-    RNOK( m_pcWriteBitstreamToFile->uninit() );  
-    RNOK( m_pcWriteBitstreamToFile->destroy() );  
+    RNOK( m_pcWriteBitstreamToFile->uninit() );
+    RNOK( m_pcWriteBitstreamToFile->destroy() );
   }
 
   if( ! m_pcEncoderCodingParameter->getAVCmode() )
@@ -717,11 +634,11 @@ H264AVCEncoderTest::ScalableDealing()
 	fread( pvChar+lpos, 1, lFileLength-lpos, ftemp);
 	fclose(ftemp);
 	fflush(ftemp);
-	fwrite( pvChar, 1, lFileLength, f);	
+	fwrite( pvChar, 1, lFileLength, f);
 	delete pvChar;
 	fclose(f);
 	fflush(f);
-	RNOK( remove( m_cWriteToBitFileTempName.c_str() ) ); 
+	RNOK( remove( m_cWriteToBitFileTempName.c_str() ) );
 
 	return Err::m_nOK;
 }

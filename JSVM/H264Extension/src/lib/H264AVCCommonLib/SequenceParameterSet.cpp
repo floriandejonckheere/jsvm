@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/SequenceParameterSet.h"
@@ -357,7 +274,7 @@ SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt 
   for( Int n = 0; n < 52; n++ )
   {
     const LevelLimit* pcLevelLimit;
-    
+
     if( Err::m_nOK == xGetLevelLimit( pcLevelLimit, n ) )
     {
       UInt  uiMbPerLine  = (UInt)sqrt( (Double) pcLevelLimit->uiMaxFrameSize * 8 );
@@ -404,10 +321,10 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( 0,                                4,      "SPS: reserved_zero_4bits" ) );
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
-  
+
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) );
-    
+
   UInt    uiTmp = getLog2MaxFrameNum();
   ROF   ( uiTmp >= 4 );
   RNOK  ( pcWriteIf->writeUvlc( uiTmp - 4,                                "SPS: log2_max_frame_num_minus_4" ) );
@@ -429,7 +346,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   }
   RNOK  ( pcWriteIf->writeUvlc( getNumRefFrames(),                        "SPS: num_ref_frames" ) );
   RNOK  ( pcWriteIf->writeFlag( getGapsInFrameNumValueAllowedFlag(),      "SPS: gaps_in_frame_num_value_allowed_flag" ) );
-  
+
   RNOK  ( pcWriteIf->writeUvlc( getFrameWidthInMbs  () - 1,               "SPS: pic_width_in_mbs_minus1" ) );
   UInt uiHeight = ( getFrameHeightInMbs()-1) >> (1- getFrameMbsOnlyFlag() );
 
@@ -458,7 +375,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   }
 
   RNOK( m_pcVUI->write( pcWriteIf ) );
-  
+
   ROFRS( m_eNalUnitType == NAL_UNIT_SUBSET_SPS, Err::m_nOK );
 
 
@@ -472,9 +389,9 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     {
       RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1_flag" ) ); //VB-JV 04/08
     }
-    if (getChromaFormatIdc() == 1 )  
+    if (getChromaFormatIdc() == 1 )
     {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) ); 
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
     }
     if( getExtendedSpatialScalability() == ESS_SEQ )
     {
@@ -583,7 +500,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     m_uiFrameCropTopOffset    = 0;
     m_uiFrameCropBottomOffset = 0;
   }
-  
+
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
   m_pcVUI = new VUI(this);
   m_pcVUI->setVuiParametersPresentFlag( bTmp );
@@ -606,7 +523,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,                  "SPS: chroma_phase_x_plus1_flag" ) );  //VB-JV 04/08
       m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
     }
-    if (getChromaFormatIdc() == 1 )  
+    if (getChromaFormatIdc() == 1 )
     {
       RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
       m_uiBaseChromaPhaseYPlus1 = m_uiChromaPhaseYPlus1;
@@ -700,7 +617,7 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
   RNOK( pcReadIf->getFlag( bTmp,                                "SPS: qpprime_y_zero_transform_bypass_flag" ) );
   ROT ( bTmp )
   RNOK( pcReadIf->getFlag( m_bSeqScalingMatrixPresentFlag,      "SPS: seq_scaling_matrix_present_flag") );
-  
+
   ROFRS ( m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
   RNOK  ( m_cSeqScalingMatrix.read( pcReadIf, true ) );
 

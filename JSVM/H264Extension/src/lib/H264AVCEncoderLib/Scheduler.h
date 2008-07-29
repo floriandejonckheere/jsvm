@@ -1,8 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
-
-// JVT-V068 {
 
 #if !defined(AFX_SCHEDULER_H__4242CFD4_A40A_4FCE_B740_60624D030E86__INCLUDED_)
 #define AFX_SCHEDULER_H__4242CFD4_A40A_4FCE_B740_60624D030E86__INCLUDED_
@@ -92,5 +87,3 @@ protected:
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_Scheduler_H__4242CFD4_A40A_4FCE_B740_60624D030E86__INCLUDED_)
-
-// JVT-V068 }

@@ -1,6 +1,5 @@
 
-
-#include <stdio.h>	
+#include <stdio.h>
 #include "ResizeParameters.h"
 #include "H264AVCCommonLib/SliceHeader.h"
 

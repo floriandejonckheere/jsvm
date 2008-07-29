@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCCommonLib.h"
 
@@ -154,7 +71,7 @@ ErrVal MotionCompensation::initSlice( const SliceHeader& rcSH )
   }
 //TMM_WP
       m_pcSampleWeighting->initSliceForWeighting(rcSH);
-//TMM_WP 
+//TMM_WP
 
   RNOK( MotionVectorCalculation::initSlice( rcSH ) );
 
@@ -203,7 +120,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   if( rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag() )
   {
     xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, BLK_8x8 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 
     xPredLuma(   apcTarBuffer, 8, 8, cMC8x8D, SPART_4x4_0 );
     xPredChroma( apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
@@ -211,7 +128,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   else
   {
     xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, BLK_4x4 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_1 );
@@ -254,7 +171,7 @@ ErrVal MotionCompensation::initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDat
 Void MotionCompensation::xPredLuma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D )
 {
   YuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -364,7 +281,7 @@ __inline Void MotionCompensation::xPredChroma( YuvMbBuffer* pcDesBuffer, YuvPicB
   cMv.limitComponents( m_cMin, m_cMax );
 
   Int iOffset = (cMv.getHor() >> 3) + (cMv.getVer() >> 3) * iSrcStride;
- 
+
   xPredChromaPel( pcDesBuffer->getUBlk( cIdx ),          iDesStride,
                   pcSrcBuffer->getUBlk( cIdx )+ iOffset, iSrcStride,
                   cMv, iSizeY, iSizeX );
@@ -377,7 +294,7 @@ __inline Void MotionCompensation::xPredChroma( YuvMbBuffer* pcDesBuffer, YuvPicB
 Void MotionCompensation::xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D )
 {
   YuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -495,7 +412,7 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
                                     Frame*       pcMCFrame,
                                     Frame*       pcPrdFrame,
                                     ListIdx         eListPrd,
-                                    Int             iRefIdx) 
+                                    Int             iRefIdx)
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
 
@@ -507,14 +424,14 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
   case MODE_16x16:
     {
       MC8x8 cMC8x8D( B_8x8_0 );
-  
+
       if( rcMbDataAccess.getMbData().getMbMotionData(eListPrd).getRefIdx() == iRefIdx )
       {
         if(eListPrd == LIST_0)
           xGetMbPredData( rcMbDataAccess, pcMCFrame, NULL, cMC8x8D );
         else
           xGetMbPredData( rcMbDataAccess, NULL, pcMCFrame, cMC8x8D );
-      
+
         xUpdateBlk(   pcPrdFrame, 16, 16, cMC8x8D);
       }
     }
@@ -542,7 +459,7 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
           xGetMbPredData( rcMbDataAccess, pcMCFrame, NULL, cMC8x8D1 );
         else
           xGetMbPredData( rcMbDataAccess, NULL, pcMCFrame, cMC8x8D1 );
-      
+
         xUpdateBlk(   pcPrdFrame, 16, 8, cMC8x8D1 );
       }
     }
@@ -589,7 +506,7 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
       else
       {
         MC8x8 cMC8x8D( B_8x8_0 );
-      
+
         if(rcMbDataAccess.getMbMotionData(eListPrd).getRefIdx(PART_8x16_0) != iRefIdx)
           return Err::m_nOK;
 
@@ -618,11 +535,11 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
 }
 
 
-ErrVal MotionCompensation::updateDirectBlock( MbDataAccess&   rcMbDataAccess, 
+ErrVal MotionCompensation::updateDirectBlock( MbDataAccess&   rcMbDataAccess,
                                               Frame*       pcMCFrame,
                                               Frame*       pcPrdFrame,
                                               ListIdx         eListPrd,
-                                              Int             iRefIdx,                                             
+                                              Int             iRefIdx,
                                               B8x8Idx         c8x8Idx )
 {
   Par8x8 ePar8x8 = c8x8Idx.b8x8Index();
@@ -659,7 +576,7 @@ ErrVal MotionCompensation::updateDirectBlock( MbDataAccess&   rcMbDataAccess,
 
 Void MotionCompensation::xUpdateBlk( Frame* pcPrdFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D)
 {
-  UShort weight; 
+  UShort weight;
   xUpdateLuma( pcPrdFrame, iSizeX, iSizeY, rcMc8x8D, &weight);
   xUpdateChroma(pcPrdFrame, iSizeX/2, iSizeY/2, rcMc8x8D, &weight);
 }
@@ -712,7 +629,7 @@ Void MotionCompensation::xUpdateLuma( Frame* pcPrdFrame, Int iSizeX, Int iSizeY,
 }
 
 
-Void MotionCompensation::updateBlkAdapt( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
+Void MotionCompensation::updateBlkAdapt( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX,
                                       UShort *usWeight)
 {
   XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
@@ -736,7 +653,7 @@ Void MotionCompensation::updateBlkAdapt( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer
 
 #define BUF_W   19
 #define BUF_H   19
-Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy,
                                     UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax )
 {
   Int methodId;
@@ -751,11 +668,11 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
 
   if(weight > wMax/2)
   {
-    methodId = 2; 
+    methodId = 2;
   }
   else if(weight > 0)
   {
-    methodId = 1; 
+    methodId = 1;
   }
   else
     return;
@@ -801,7 +718,7 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
 }
 
 
-__inline Void MotionCompensation::xUpdateChroma( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv, 
+__inline Void MotionCompensation::xUpdateChroma( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv,
                                                 Int iSizeY, Int iSizeX, UShort *usWeight)
 {
   const Int iDesStride  = pcDesBuffer->getCStride();
@@ -899,12 +816,12 @@ ErrVal MotionCompensation::compensateSubMb( B8x8Idx         c8x8Idx,
   {
     xCalc8x8( c8x8Idx, rcMbDataAccess, NULL, bFaultTolerant );
   }
-  
+
   Int       iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( c8x8Idx.b8x8() );
   Int       iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( c8x8Idx.b8x8() );
   Frame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameList0[ iRefIdx0 ] : NULL );
   Frame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameList1[ iRefIdx1 ] : NULL );
-  
+
   xPredMb8x8Mode( c8x8Idx, rcMbDataAccess, pcRefFrame0, pcRefFrame1, pcRecBuffer );
 
   return Err::m_nOK;
@@ -922,7 +839,7 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
 
   MC8x8 cMC8x8D( ePar8x8 );
   xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, eBlkMode );
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 
   switch( eBlkMode )
   {
@@ -1020,8 +937,8 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
   {
     iRefH      /= 2;
   }
-  Int iShiftX   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefW ) ); 
-  Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) ); 
+  Int iShiftX   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefW ) );
+  Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) );
   Int iScaleX   = ( ( (UInt)iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
   Int iScaleY   = ( ( (UInt)iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
   Int iBaseMbX0 = ( ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
@@ -1155,7 +1072,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
       }
 
       MC8x8 cMC8x8D( B_8x8_0 );
-  
+
       Int       iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx();
       Int       iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx();
       Frame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameList0[ iRefIdx0 ] : NULL );
@@ -1239,7 +1156,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
             AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
             AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
             AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx1++;
-            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) ); 
+            AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx1.b8x8(), bOneMv, false, pcL0, pcL1 ) );
           }
           else
           {
@@ -1270,12 +1187,12 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
         }
 
         MC8x8 cMC8x8D( B_8x8_0 );
-      
+
         Int       iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( PART_8x16_0 );
         Int       iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( PART_8x16_0 );
         Frame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameList0[ iRefIdx0 ] : NULL );
         Frame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameList1[ iRefIdx1 ] : NULL );
-        
+
         xGetMbPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D );
 
         xPredLuma(   pcRecBuffer, 16, 16, cMC8x8D );
@@ -1320,7 +1237,7 @@ __inline Void MotionCompensation::xGetMbPredData(       MbDataAccess& rcMbDataAc
     rcMbDataAccess.getMbMotionData( eLstIdx ).getMv3D( rcMv3D, rcMC8x8D.m_cIdx );
 
     rcMC8x8D.m_aacMvd[eLstIdx][SPART_4x4_0] = rcMbMvdData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_0 );
-    if( pcRefFrame != NULL ) 
+    if( pcRefFrame != NULL )
     {
       iPredCount++;
       rcMv3D.limitComponents( m_cMin, m_cMax );
@@ -1368,7 +1285,7 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
     rcMv3D.limitComponents( m_cMin, m_cMax );
 
     rcMC8x8D.m_aacMvd[eLstIdx][SPART_4x4_0] = rcMbMvdData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_0 );
-    if( pcRefFrame != NULL ) 
+    if( pcRefFrame != NULL )
     {
       iPredCount++;
 			rcMC8x8D.m_sChromaOffset[eLstIdx] = xCorrectChromaMv( rcMbDataAccess, pcRefFrame->getPicType() );
@@ -1454,9 +1371,9 @@ TCoeff aiNormMatrix8x8[64] =
 
 
 ErrVal
-MotionCompensation::xCompensateMbAllModes(MbDataAccess&       rcMbDataAccess, 
-                                          RefFrameList&       rcRefFrameList0, 
-                                          RefFrameList&       rcRefFrameList1, 
+MotionCompensation::xCompensateMbAllModes(MbDataAccess&       rcMbDataAccess,
+                                          RefFrameList&       rcRefFrameList0,
+                                          RefFrameList&       rcRefFrameList1,
                                           YuvMbBuffer*     pcYuvMbBuffer )
 {
   if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )

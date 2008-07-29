@@ -1,21 +1,4 @@
 
-/*!
- ***************************************************************************
- * \file
- *    rc_quadratic.h
- *
- * \author
- *    Zhengguo LI
- *    Athanasios Leontaris <aleon@dolby.com>
- *
- * \date
- *    14 Jan 2003
- *
- * \brief
- *    Headerfile for rate control
- **************************************************************************
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -86,7 +69,7 @@ private:
   int    m_iTotalNumberofBasicUnit;
   int    m_iCodedBasicUnit;
 
-  int    m_iNumberofCodedPFrame;  
+  int    m_iNumberofCodedPFrame;
   int    m_iNumberofPPicture;
 
   double m_dCurrentFrameMAD;

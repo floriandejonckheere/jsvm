@@ -1,88 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
-
-
 
 #if !defined(AFX_MBMVDATA_H__06960F25_0FB8_4A65_935D_B06282FFDF6E__INCLUDED_)
 #define AFX_MBMVDATA_H__06960F25_0FB8_4A65_935D_B06282FFDF6E__INCLUDED_
@@ -105,7 +20,7 @@ public:
   MbMvData()
     : m_bFieldFlag( false )
   {
-    clear();  
+    clear();
   }
 
   Void clear()
@@ -178,16 +93,16 @@ protected:
 #endif
 
 
-class H264AVCCOMMONLIB_API RefPicIdc 
+class H264AVCCOMMONLIB_API RefPicIdc
 {
 public:
   RefPicIdc() : m_iPoc(0), m_ePicType(NOT_SPECIFIED), m_pcFrame(0) {}
 
   Void  set( const Frame* pcFrame );
-  
+
   Bool          isValid ()  const;
   const Frame*  getPic  ()  const;
-  
+
   Bool  operator==( const RefPicIdc& rcRefPicIdc )  const { return ( ( m_iPoc == rcRefPicIdc.m_iPoc ) && ( m_ePicType == rcRefPicIdc.m_ePicType ) ); }
   Bool  operator!=( const RefPicIdc& rcRefPicIdc )  const { return ( ( m_iPoc != rcRefPicIdc.m_iPoc ) || ( m_ePicType != rcRefPicIdc.m_ePicType ) ); }
 
@@ -207,13 +122,13 @@ public:
   Void copyFrom( const MbMotionData& rcMbMotionData );
 
   BlkMode getBlkMode( const ParIdx8x8 eParIdx, BlkMode eBlkMode );
-  
-  MbMotionData() 
+
+  MbMotionData()
     : MbMvData        ()
     , m_usMotPredFlags( 0x0000 )
   {
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = BLOCK_NOT_AVAILABLE;
-    m_usMotPredFlags = 0; 
+    m_usMotPredFlags = 0;
   }
 
   Void reset()
@@ -237,7 +152,7 @@ public:
   Void  setRefIdx( SChar scRefIdx, ParIdx16x8 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x8  eParIdx  );
-  
+
   SChar getRefIdx()                      const  { return m_ascRefIdx[ 0         ]; }
   SChar getRefIdx( ParIdx16x8 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
   SChar getRefIdx( ParIdx8x16 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
@@ -303,20 +218,20 @@ private:
 
 
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx )
 {
   m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = scRefIdx;
 }
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx16x8 eParIdx )
 {
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]   ] = scRefIdx;
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]+1 ] = scRefIdx;
 }
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx )
 {
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]   ] = scRefIdx;

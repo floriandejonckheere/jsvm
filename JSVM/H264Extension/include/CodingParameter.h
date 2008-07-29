@@ -1,85 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
 
 #if !defined(AFX_CODINGPARAMETER_H__8403A680_A65D_466E_A411_05C3A7C0D59F__INCLUDED_)
 #define AFX_CODINGPARAMETER_H__8403A680_A65D_466E_A411_05C3A7C0D59F__INCLUDED_
@@ -123,7 +41,7 @@ public:
     , m_uiFullPelDFunc    ( DF_SAD )
     , m_uiSubPelDFunc     ( DF_SAD )
     , m_uiSearchRange     ( 64 )
-    , m_uiDirectMode      ( 0 ) 
+    , m_uiDirectMode      ( 0 )
     , m_uiELSearchRange   ( 0 )
     , m_uiFastBiSearch    ( 0 )
     , m_bELSearch         ( false )
@@ -233,7 +151,7 @@ public:
   // JVT-Q065 EIDR}
     , m_uiMGSVectorMode                      ( 0 )
     , m_dQpModeDecisionLP ( 0.00 )
-    , m_uiNumSliceGroupMapUnitsMinus1 ( 0 ) 
+    , m_uiNumSliceGroupMapUnitsMinus1 ( 0 )
     // JVT-S054 (ADD) ->
     , m_uiNumSliceMinus1 (0)
     , m_bSliceDivisionFlag (false)
@@ -249,7 +167,7 @@ public:
     , m_bAVCAdaptiveRewriteFlag          ( 0 )   // JVT-V035
     , m_uiSliceSkip                      ( 0 )
     , m_uiSliceSkipTLevelStart           ( 0 )
-    , m_uiLowComplexMbEnable             ( 0 )   // JVT-V079    
+    , m_uiLowComplexMbEnable             ( 0 )   // JVT-V079
 
 	//S051{
 	, m_cOutSIPFileName					("none")
@@ -356,11 +274,11 @@ public:
   UInt                            getBaseQualityLevel               () const {return m_uiBaseQualityLevel; }
   UInt                            getMotionInfoMode                 () const {return m_uiMotionInfoMode; }
   const std::string&              getMotionInfoFilename             () const {return m_cMotionInfoFilename; }
-  
+
 //JVT-V079 Low-complexity MB mode decision {
   UInt                            getLowComplexMbEnable             () const   { return m_uiLowComplexMbEnable; }
 //JVT-V079 Low-complexity MB mode decision }
-  
+
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
   UInt                            getNotCodedStages                 () const {return m_uiNotCodedStages    ; }
   UInt                            getTemporalResolution             () const {return m_uiTemporalResolution; }
@@ -375,7 +293,7 @@ public:
   UInt                            getPAff                           () const {return m_uiPAff;}
   Bool                            getUseRedundantSliceFlag          () const {return m_uiUseRedundantSlice == 1; }  //JVT-Q054 Red. Picture
   Bool                            getUseRedundantKeySliceFlag       () const {return m_uiUseRedundantKeySlice == 1; }   //JVT-W049
-  //--ICU/ETRI FMO Implementation :  FMO start 
+  //--ICU/ETRI FMO Implementation :  FMO start
   UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}  //for test
   UInt          getSliceGroupMapType() const {return  m_uiSliceGroupMapType;  }
   Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
@@ -386,7 +304,7 @@ public:
   UInt          getSliceArgument() const { return m_uiSliceArgument ;}
   const std::string&   getSliceGroupConfigFileName() const{ return m_cSliceGroupConfigFileName;}
   UInt          getUseRedundantSlice() const { return m_uiUseRedundantSlice;}
-  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}  
+  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
@@ -400,12 +318,12 @@ public:
   UInt*         getSGID () const {return (UInt*)m_uiSGID;}
   UInt*         getSLID () const {return (UInt*)m_uiSLID;}
   //--> consider ROI Extraction ICU/ETRI DS
-  
+
   UInt getMGSVect                        (UInt uiNum) const { return m_uiMGSVectorMode ? m_uiMGSVect[uiNum] : (uiNum == 0 ? 16 : 0); }
   Bool getTCoeffLevelPredictionFlag ()               const { return m_bAVCRewriteFlag==1; }
   Bool getAVCAdaptiveRewriteFlag ()       const { return m_bAVCAdaptiveRewriteFlag==1; }
   Void setAVCRewrite( UInt ui ) { m_bAVCRewriteFlag = ui; }
-  
+
   UInt getSliceSkip() const { return m_uiSliceSkip; }
   UInt getSliceSkipTLevelStart()  const { return m_uiSliceSkipTLevelStart; }
   Void setSliceSkip( UInt uiSliceSkip ) { m_uiSliceSkip = uiSliceSkip; }
@@ -431,7 +349,7 @@ public:
   Void setInterLayerPredictionMode        (UInt   p) { m_uiInterLayerPredictionMode       = p; }
   Void setMotionInfoMode                  (UInt   p) { m_uiMotionInfoMode                 = p; }
   Void setMotionInfoFilename              (Char*  p) { m_cMotionInfoFilename              = p; }
-  
+
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
   Void setNotCodedStages                  (UInt   p) { m_uiNotCodedStages                 = p; }
   Void setTemporalResolution              (UInt   p) { m_uiTemporalResolution             = p; }
@@ -533,7 +451,7 @@ public:
     Bool    xIsHighProfile                ( CodingParameter*  pcCodingParameter );
     ErrVal  xForceHighProfile             ( CodingParameter*  pcCodingParameter );
     Bool    xIsIntraOnly                  ( CodingParameter*  pcCodingParameter );
-    
+
     Bool    xHasRestrictedESS             ( CodingParameter*  pcCodingParameter );
     Bool    xIsScalableBaselineProfile    ( CodingParameter*  pcCodingParameter );
     ErrVal  xForceScalableBaselineProfile ( CodingParameter*  pcCodingParameter );
@@ -556,7 +474,7 @@ public:
 
   UInt                      m_uiMaxAbsDeltaQP;
   Double                    m_dBaseQpResidual;
-  
+
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   Double                    m_dQpModeDecisionLP;
   UInt                      m_uiInterLayerPredictionMode;
@@ -568,11 +486,11 @@ public:
 
   UInt                      m_uiMotionInfoMode;
   std::string               m_cMotionInfoFilename;
-  
+
   //JVT-V079 Low-complexity MB mode decision {
   Int                     m_uiLowComplexMbEnable;
   //JVT-V079 Low-complexity MB mode decision }
-  
+
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;
   UInt                      m_uiNotCodedStages    ;
@@ -583,7 +501,7 @@ public:
   UInt                      m_uiBaseLayerSpatRes;
   UInt                      m_uiBaseLayerTempRes;
 
-  //----- ESS ---- 
+  //----- ESS ----
   ResizeParameters          m_cResizeParameters;
   std::string               m_cESSFilename;
 
@@ -591,9 +509,9 @@ public:
   UInt                      m_uiPAff;
 
   //--ICU/ETRI FMO Implementation : FMO start
-  UInt         m_uiNumSliceGroupsMinus1;  
-  UInt         m_uiSliceGroupMapType;  
-  UInt         m_uiRunLengthMinus1[CodParMAXNumSliceGroupsMinus1];  
+  UInt         m_uiNumSliceGroupsMinus1;
+  UInt         m_uiSliceGroupMapType;
+  UInt         m_uiRunLengthMinus1[CodParMAXNumSliceGroupsMinus1];
   UInt         m_uiTopLeft[CodParMAXNumSliceGroupsMinus1];
   UInt         m_uiBottomRight[CodParMAXNumSliceGroupsMinus1];
   Bool         m_bSliceGroupChangeDirection_flag;
@@ -751,10 +669,10 @@ public:
 	  , m_uiLARDOEnable                   ( 0 )      //JVT-R057 LA-RDO
 		, m_uiEssRPChkEnable									( 0 )
 		, m_uiMVThres													( 20 )
-	  , m_uiPreAndSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj 
+	  , m_uiPreAndSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj
 	  , m_uiMMCOBaseEnable			      ( 0 ) //JVT-S036 lsj
 //JVT-T073 {
-	  , m_uiNestingSEIEnable              ( 0 ) 
+	  , m_uiNestingSEIEnable              ( 0 )
 	  , m_uiSceneInfoEnable               ( 0 )
 //JVT-T073 }
 		, m_uiIntegrityCheckSEIEnable       ( 0 )//JVT-W052 wxwan
@@ -809,12 +727,12 @@ public:
 //TMM_WP
   SampleWeightingParams&           getSampleWeightingParams(UInt uiLayerId)  {return m_cSampleWeightingParams[uiLayerId];}
 //TMM_WP
-  
+
   const std::string&              getInputFile            ()              const   { return m_cInputFile; }
   Double                          getMaximumFrameRate     ()              const   { return m_dMaximumFrameRate; }
   Double                          getMaximumDelay         ()              const   { return m_dMaximumDelay; }
   UInt                            getTotalFrames          ()              const   { return m_uiTotalFrames; }
-  UInt                            getGOPSize              ()              const   { return m_uiGOPSize; }  
+  UInt                            getGOPSize              ()              const   { return m_uiGOPSize; }
   UInt                            getDecompositionStages  ()              const   { return m_uiDecompositionStages; }
   UInt                            getIntraPeriod          ()              const   { return m_uiIntraPeriod; }
   UInt                            getIntraPeriodLowPass   ()              const   { return m_uiIntraPeriodLowPass; }
@@ -898,7 +816,7 @@ public:
   Void                            setMaxRefIdxActiveP       ( UInt    p )   { m_uiMaxRefIdxActiveP        = p; }
 
   ErrVal                          check                     ();
-  
+
   Int					              		  getNonRequiredEnable      ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
 
 //JVT-T054{
@@ -1006,7 +924,7 @@ protected:
 	UInt						m_uiEssRPChkEnable;
 	UInt						m_uiMVThres;
 
-  UInt						m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj 
+  UInt						m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj
   UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
 //JVT-T054{
@@ -1021,7 +939,7 @@ protected:
 	UInt											m_uiIntegrityCheckSEIEnable;
 	//JVT-W052
 
-// JVT-U085 LMI 
+// JVT-U085 LMI
   UInt                      m_uiTlevelNestingFlag;
 // JVT-U116,W062 LMI
   //UInt                      m_uiTl0PicIdxPresentFlag;

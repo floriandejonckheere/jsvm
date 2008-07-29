@@ -1,7 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
-// JVT-V068 HRD {
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/Hrd.h"
@@ -15,8 +11,8 @@ H264AVC_NAMESPACE_BEGIN
 
 ErrVal HRD::Cnt::read( HeaderSymbolReadIf *pcReadIf )
 {
-  RNOKS( pcReadIf->getUvlc( m_uiBitRateValueMinus1, "HRD: bit_rate_value_minus1" ) ); 
-  RNOKS( pcReadIf->getUvlc( m_uiCpbSizeValueMinus1, "HRD: cpb_size_value_minus1" ) ); 
+  RNOKS( pcReadIf->getUvlc( m_uiBitRateValueMinus1, "HRD: bit_rate_value_minus1" ) );
+  RNOKS( pcReadIf->getUvlc( m_uiCpbSizeValueMinus1, "HRD: cpb_size_value_minus1" ) );
   RNOKS( pcReadIf->getFlag( m_bVbrCbrFlag,    "HRD: vbr_cbr_flag" ) );
   return Err::m_nOK;
 }
@@ -24,8 +20,8 @@ ErrVal HRD::Cnt::read( HeaderSymbolReadIf *pcReadIf )
 
 ErrVal HRD::Cnt::write( HeaderSymbolWriteIf *pcWriteIf ) const
 {
-  RNOK( pcWriteIf->writeUvlc( m_uiBitRateValueMinus1, "HRD: bit_rate_value_minus1")); 
-  RNOK( pcWriteIf->writeUvlc( m_uiCpbSizeValueMinus1, "HRD: cpb_size_value_minus1")); 
+  RNOK( pcWriteIf->writeUvlc( m_uiBitRateValueMinus1, "HRD: bit_rate_value_minus1"));
+  RNOK( pcWriteIf->writeUvlc( m_uiCpbSizeValueMinus1, "HRD: cpb_size_value_minus1"));
   RNOK( pcWriteIf->writeFlag( m_bVbrCbrFlag,    "HRD: vbr_cbr_flag"));
   return Err::m_nOK;
 }
@@ -63,12 +59,12 @@ ErrVal HRD::read( HeaderSymbolReadIf *pcReadIf )
 
   UInt uiTmp = 0;
 
-  
+
   RNOKS( pcReadIf->getUvlc( uiTmp,                                    "HRD: cpb_cnt_minus1"));
   uiTmp++;
   ROTRS( uiTmp > 32, Err::m_nInvalidParameter );
   setCpbCnt(uiTmp);
-  
+
 
   RNOKS( pcReadIf->getCode( m_uiBitRateScale, 4,                       "HRD: bit_rate_scale"));
   RNOKS( pcReadIf->getCode( m_uiCpbSizeScale, 4,                       "HRD: cpb_size_scale"));
@@ -104,7 +100,7 @@ ErrVal HRD::write( HeaderSymbolWriteIf* pcWriteIf) const
 
   const UInt uiCpbCnt = getCpbCnt();
 
-  RNOK( pcWriteIf->writeUvlc( uiCpbCnt-1,                             "HRD: cpb_cnt_minus1")); 
+  RNOK( pcWriteIf->writeUvlc( uiCpbCnt-1,                             "HRD: cpb_cnt_minus1"));
   RNOK( pcWriteIf->writeCode( getBitRateScale(), 4,                   "HRD: bit_rate_scale"));
   RNOK( pcWriteIf->writeCode( getCpbSizeScale(), 4,                   "HRD: cpb_size_scale"));
 
@@ -122,4 +118,3 @@ ErrVal HRD::write( HeaderSymbolWriteIf* pcWriteIf) const
 
 // h264 namespace end
 H264AVC_NAMESPACE_END
-// JVT-V068 HRD }

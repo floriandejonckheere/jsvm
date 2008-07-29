@@ -1,6 +1,3 @@
-/*
- *  Author : Kai Zhang    kzhang@jdl.ac.cn
- */
 
 #include "SIPParameters.h"
 

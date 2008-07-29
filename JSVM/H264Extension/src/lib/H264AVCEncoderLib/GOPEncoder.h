@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #if !defined(AFX_GOPENCODER_H__75F41F36_C28D_41F9_AB5E_4C90D66D160C__INCLUDED_)
 #define AFX_GOPENCODER_H__75F41F36_C28D_41F9_AB5E_4C90D66D160C__INCLUDED_
@@ -142,7 +59,7 @@ typedef MyList<UInt>        UIntList;
 class H264AVCENCODERLIB_API AccessUnitData
 {
 public:
-  AccessUnitData  ( UInt uiAUIndex ) : m_uiAUIndex( uiAUIndex )   
+  AccessUnitData  ( UInt uiAUIndex ) : m_uiAUIndex( uiAUIndex )
   , m_pcNonRequiredSei ( NULL )  //NonRequired JVT-Q066 (06-04-08)
   {}
   ~AccessUnitData ()                                            {}
@@ -284,7 +201,7 @@ public:
                                       const PictureParameterSet&      rcPPSHP );
 
   ErrVal        uninit              ();
- 
+
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
   Bool          firstGOPCoded       ()                                { return m_bFirstGOPCoded; }
   ErrVal        initGOP             ( AccessUnitData&                 rcAccessUnitData,
@@ -357,7 +274,7 @@ public:
 	//JVT-W051 }
 	//JVT-X046 {
   ErrVal xEncodeNonKeyPictureSlices(  UInt               uiBaseLevel,
-								                      UInt               uiFrame, 
+								                      UInt               uiFrame,
 								                      AccessUnitData&    rcAccessUnitData,
 								                      PicBufferList&		 rcPicBufferInputList,
 								                      PicOutputDataList& rcPicOutputDataList,
@@ -389,7 +306,7 @@ protected:
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
 
-  
+
   ErrVal  xInitBitCounts                ();
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
@@ -399,7 +316,7 @@ protected:
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
                                           ExtBinDataAccessor*         pcExtBinDataAccessor );
-  
+
   //===== decomposition / composition =====
   ErrVal  xMotionEstimationFrame        ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame
@@ -441,7 +358,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   ErrVal  xSetScalingFactors            ();
  	ErrVal  xSetBaseLayerData             ( UInt                        uiFrameIdInGOP,
 		                                      PicType                     ePicType );
-  Void    xPAffDecision                 ( UInt                        uiFrame );              
+  Void    xPAffDecision                 ( UInt                        uiFrame );
 
   ErrVal  xClearBufferExtensions        ();
   ErrVal  xGetPredictionLists           ( RefFrameList&               rcRefList0,
@@ -451,13 +368,13 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           PicType                     ePicType,
                                           RefListUsage                eRefListUsage,
                                           Bool                        bHalfPel = false );
-  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
+  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData,
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,      //TMM_ESS
                                           Bool                        bMotion,
                                           RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
-																					PicType                     ePicType ); 
+																					PicType                     ePicType );
 
   ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
@@ -467,7 +384,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   ErrVal  xInitControlDataLowPass       ( UInt                        uiFrameIdInGOP,
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,
-                                          PicType                     ePicType );  
+                                          PicType                     ePicType );
 
   ErrVal  xInitControlDataHighPass      ( UInt                        uiFrameIdInGOP,
                                           UInt                        uiBaseLevel,   //TMM_ESS
@@ -475,7 +392,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           PicType                     ePicType );
 
   //===== stage encoding =====
-  ErrVal  xEncodeKeyPicture             ( Bool&                       rbKeyPicCoded,                         
+  ErrVal  xEncodeKeyPicture             ( Bool&                       rbKeyPicCoded,
                                           UInt                        uiFrame,
                                           AccessUnitData&             rcAccessUnitData,
                                           PicOutputDataList&          rcPicOutputDataList );
@@ -502,7 +419,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
 
   ErrVal  xEncodeHighPassSignal         ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
                                           ControlData&                rcControlData,
-                                          Frame*                   pcOrgFrame, 
+                                          Frame*                   pcOrgFrame,
                                           Frame*                   pcFrame,
                                           Frame*                   pcResidual,
                                           Frame*                   pcPredSignal,
@@ -518,7 +435,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           RefFrameList*               pcRefFrameList1,
                                           MbDataCtrl*                 pcMbDataCtrl,
                                           SliceHeader&                rcSH);
-  
+
   ErrVal  xMotionEstimation             ( RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
                                           MbDataCtrl*                 pcMbDataCtrlCol,
@@ -568,9 +485,9 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
   ErrVal		xWritePrefixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//prefix unit
   //NonRequired JVT-Q066 (06-04-08){{
-  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit ); 
+  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit );
   ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
-  //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit ); 
+  //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit );
   //NonRequired JVT-Q066 (06-04-08)}}
 
   // JVT-V068 HRD {
@@ -586,8 +503,8 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
 	//JVT-W052 wxwan
 
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
-  
-  UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj 
+
+  UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj
 	UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
   //S051{
@@ -595,7 +512,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   //S051}
   Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
 
-  ErrVal  xInitCodingOrder              ( UInt                  uiDecompositionStages,  
+  ErrVal  xInitCodingOrder              ( UInt                  uiDecompositionStages,
                                           UInt                  uiTemporalSubSampling,
                                           UInt                  uiMaxFrameDelay );
   ErrVal  xInitRefFrameLists            ( UInt                  uiFrameIdInGOP,
@@ -697,7 +614,7 @@ protected:
   UInt                          m_uiGOPNumber;                        // number of coded GOP's
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
-	UInt													m_uiIdrPicId;	//EIDR 0619 
+	UInt													m_uiIdrPicId;	//EIDR 0619
 
   //----- frame memories -----
   Frame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
@@ -713,11 +630,11 @@ protected:
   Frame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
   Frame*                     m_pcBaseLayerFrame;                   // base layer frame
   Frame*                     m_pcBaseLayerResidual;                // base layer residual
-	  
+
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
-  MbDataCtrl*                   m_pcBaseLayerCtrlField; 
+  MbDataCtrl*                   m_pcBaseLayerCtrlField;
   MbDataCtrl*                   m_pcRedundantCtrl;//RPIC bug fix
   MbDataCtrl*                   m_pcRedundant1Ctrl;//RPIC bug fix
 
@@ -735,7 +652,7 @@ protected:
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
 
   //----- ESS -----
-  ResizeParameters*				m_pcResizeParameters; 
+  ResizeParameters*				m_pcResizeParameters;
   FILE*                   m_pESSFile;
 
   Bool*                         m_pbFieldPicFlag;
@@ -744,14 +661,14 @@ protected:
   Int           						  	m_iIDRPeriod;
 // JVT-Q065 EIDR}
   //JVT-R057 LA-RDO{
-  Bool                          m_bLARDOEnable;     
+  Bool                          m_bLARDOEnable;
   //JVT-R057 LA-RD}
   UInt                          m_uiEssRPChkEnable;
   UInt                          m_uiMVThres;
 
   UInt							            m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
 
-  UInt							            m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj 
+  UInt							            m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj
   UInt							            m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
   //S051{
@@ -777,9 +694,9 @@ protected:
   Bool                          m_bDiscardable;
   UInt                          m_uiQLDiscardable;
 //~DS_FIX_FT_09_2007
-// JVT-U085 LMI 
+// JVT-U085 LMI
   Bool                          m_bTlevelNestingFlag;
-// JVT-U116 W062 LMI 
+// JVT-U116 W062 LMI
   Bool                          m_bTl0DepRepIdxEnable;
   //JVT-U106 Behaviour at slice boundaries{
   Bool                          m_bCIUFlag;
@@ -807,7 +724,7 @@ protected:
   ParameterSetMng* m_pcParameterSetMng;
   Bool    m_bEnableHrd;
 // JVT-V068 HRD }
-	
+
 	// JVT-W049 {
   UInt m_uiNumberLayersCnt;
   // JVT-W049 }
@@ -830,7 +747,7 @@ protected:
   Bool          m_abMaxLongTermIdxSend        [    MAX_DSTAGES +1];
   UIntList      m_acActiveRefListFrameNum     [    MAX_DSTAGES +1];
   UIntList      m_cActiveRefBasePicListFrameNum;
-	
+
 	//JVT-W051 {
 public:
 	Double	m_dFrameBits;

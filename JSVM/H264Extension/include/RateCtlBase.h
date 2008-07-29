@@ -1,21 +1,4 @@
 
-/*!
- ***************************************************************************
- * \file
- *    ratectl.h
- *
- * \author
- *    Zhengguo LI
- *    Athanasios Leontaris <aleon@dolby.com>
- *
- * \date
- *    14 Jan 2003
- *
- * \brief
- *    Headerfile for rate control
- **************************************************************************
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -80,7 +63,7 @@ public:
 	float bit_rate;
 
 	int current_mb_nr;
-	int current_frame_number;  
+	int current_frame_number;
 	int successive_Bframe;
 	int jumpd;
 	int Frame_Total_Number_MB;
@@ -111,7 +94,7 @@ public:
   int HierarchicalLevels;
 
   unsigned int m_uiLayerId;
-  unsigned int m_uiIntraPeriod;  
+  unsigned int m_uiIntraPeriod;
 };
 
 class rc_generic {
@@ -128,7 +111,7 @@ public:
   int   m_iNumberofBasicUnitTextureBits;
   // frame stats
   int   m_iNumberofGOP;
-  int   m_iNumberofCodedBFrame;  
+  int   m_iNumberofCodedBFrame;
   // MAD stats
   Int64 m_i64TotalMADBasicUnit;
   int   *m_piMADofMB;

@@ -1,23 +1,4 @@
 
-/*!
- ***************************************************************************
- * \file rc_quadratic.c
- *
- * \brief
- *    Rate Control algorithm
- *
- * \author
- *    Main contributors (see contributors.h for copyright, address and affiliation details)
- *     - Siwei Ma             <swma@jdl.ac.cn>
- *     - Zhengguo LI          <ezgli@lit.a-star.edu.sg>
- *     - Athanasios Leontaris <aleon@dolby.com>
- *
- * \date
- *   16 Jan. 2003
- *   18 Mar. 2007
- **************************************************************************
- */
-
 #include "H264AVCEncoderLib.h"
 #include "H264AVCCommonLib.h"
 #include "RateCtlBase.h"
@@ -210,11 +191,11 @@ void rc_quadratic::rc_init_seq( void )
   // basic unit layer rate control
   m_iPAveHeaderBits1 = 0;
   m_iPAveHeaderBits3 = 0;
-  
+
   m_uiMBPerRow = m_pcJSVMParams->PicWidthInMbs;
 
   // adaptive field/frame coding
-  m_pcGenericRC->m_iFieldControl=0;  
+  m_pcGenericRC->m_iFieldControl=0;
 }
 
 /*!
@@ -575,12 +556,12 @@ void rc_quadratic::updateBparams( int iComplexity )
 {
   m_iXb = iComplexity;
   m_iNb--;
-  m_dWb = m_iXb / m_fTHETA;     
+  m_dWb = m_iXb / m_fTHETA;
   m_iNumberofBFrames++;
   m_pcGenericRC->m_iNumberofCodedBFrame++;
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    update after frame encoding
@@ -620,7 +601,7 @@ void rc_quadratic::rc_update_pict_frame(int iNbits)
         m_pcGenericRC->m_iNoGranularFieldRC = 0;
     }
     break;
-  }   
+  }
 }
 
 /*!
@@ -1682,14 +1663,14 @@ void rc_quadratic::init( void )
   m_i64IPrevBits = 0;
 	m_i64PPrevBits = 0;
 
-  m_pcJSVMParams->FrameSizeInMbs = (m_pcJSVMParams->height / MB_BLOCK_SIZE) * 
+  m_pcJSVMParams->FrameSizeInMbs = (m_pcJSVMParams->height / MB_BLOCK_SIZE) *
     (m_pcJSVMParams->width / MB_BLOCK_SIZE );
   if ( m_pcJSVMParams->FrameSizeInMbs % m_pcJSVMParams->BasicUnit != 0 ) {
     fprintf(stderr, "\nBasicUnit is required to be fraction of the total number of 16x16 MBs\n");
     assert(0); // some compilers do not compile assert in release/Ox mode
     exit(1);
   }
-  
+
 	m_pcJSVMParams->jumpd = m_pcJSVMParams->successive_Bframe;
 	m_pcJSVMParams->PicInterlace = FRAME_CODING;
 	m_pcJSVMParams->MbInterlace = 0;
@@ -1717,10 +1698,10 @@ void rc_quadratic::init( void )
   m_pcJSVMParams->size = m_pcJSVMParams->width * m_pcJSVMParams->height;
   if ( m_pcJSVMParams->successive_Bframe > 1 )
     m_pcJSVMParams->HierarchicalCoding = 2;
-  else 
+  else
     m_pcJSVMParams->HierarchicalCoding = 0;
 
-  rc_alloc();  
+  rc_alloc();
 }
 
 

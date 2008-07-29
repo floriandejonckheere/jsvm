@@ -1,85 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
 
 #if !defined(AFX_SEI_H__06FFFAD0_FB36_4BF0_9392_395C7389C1F4__INCLUDED_)
 #define AFX_SEI_H__06FFFAD0_FB36_4BF0_9392_395C7389C1F4__INCLUDED_
@@ -242,16 +160,16 @@ public:
     Void setExactInterlayerPredFlag ( UInt uilayer, Bool bFlag )            { m_exact_interlayer_pred_flag  [uilayer] = bFlag; }        //JVT-S036 lsj
 		//SEI changes update {
 		Void setExactSampleValueMatchFlag ( UInt uilayer, Bool bFlag )            { m_exact_sample_value_match_flag  [uilayer] = bFlag; }
-//JVT-W046 {    
+//JVT-W046 {
 		//Void setAvcLayerConversionFlag ( UInt uilayer, Bool bFlag )               { m_avc_layer_conversion_flag [uilayer]         = bFlag;     }
 		//Void setAvcInfoFlag ( UInt uilayer, UInt bType, Bool bFlag )              { m_avc_info_flag             [uilayer][bType]  = bFlag;     }
-		//Void setAvcConversionTypeIdc ( UInt uilayer, UInt uiIdc )                 { m_avc_conversion_type_idc   [uilayer]         = uiIdc;     } 
+		//Void setAvcConversionTypeIdc ( UInt uilayer, UInt uiIdc )                 { m_avc_conversion_type_idc   [uilayer]         = uiIdc;     }
 		//Void setAvcProfileLevelIdc ( UInt uilayer, UInt bType, Int32 uiIdc )      { m_avc_profile_level_idc     [uilayer][bType]  = uiIdc;     }
 		//Void setAvcAvgBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_avc_avg_bitrate           [uilayer][bType]  = uiBitrate; }
 		//Void setAvcMaxBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_avc_max_bitrate           [uilayer][bType]  = uiBitrate; }
 		Void setLayerConversionFlag ( UInt uilayer, Bool bFlag )                        { m_layer_conversion_flag [uilayer]         = bFlag;     }
 		Void setRewritingInfoFlag ( UInt uilayer, UInt bType, Bool bFlag )              { m_rewriting_info_flag             [uilayer][bType]  = bFlag;     }
-		Void setConversionTypeIdc ( UInt uilayer, UInt uiIdc )                          { m_conversion_type_idc   [uilayer]                   = uiIdc;     } 
+		Void setConversionTypeIdc ( UInt uilayer, UInt uiIdc )                          { m_conversion_type_idc   [uilayer]                   = uiIdc;     }
 		Void setRewritingProfileLevelIdc ( UInt uilayer, UInt bType, Int32 uiIdc )      { m_rewriting_profile_level_idc     [uilayer][bType]  = uiIdc;     }
 		Void setRewritingAvgBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_avg_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
 		Void setRewritingMaxBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_max_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
@@ -259,7 +177,7 @@ public:
 		//SEI changes update }
 		Void setLayerOutputFlag      ( UInt uilayer,Bool bFlag )                       {m_layer_output_flag													[uilayer] = bFlag; }//JVT-W047 wxwan
 	//Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_idc                      [uilayer] = uiIdc; }
-		
+
 		Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_level_idc                      [uilayer] = uiIdc; }//JVT-W051
   //SEI changes update {
 		//  Void setLayerConstraintSet0Flag ( UInt uilayer, Bool bFlag )              { m_layer_constraint_set0_flag            [uilayer] = bFlag; }
@@ -556,9 +474,9 @@ public:
     UInt getPrMaxBitrateCode( UInt uilayer, UInt uiIndex ) const { return m_pr_max_bitrate [uilayer][uiIndex]; }
 		UInt getPrAvgBitrateBPS ( UInt uilayer, UInt uiIndex ) const { return xConvertToBPS( m_pr_avg_bitrate [uilayer][uiIndex] ); }
 		UInt getPrMaxBitrateBPS ( UInt uilayer, UInt uiIndex ) const { return xConvertToBPS( m_pr_max_bitrate [uilayer][uiIndex] ); }
-		//void setQualityLayerInfoPresentFlag ( Bool bFlag ) { m_quality_layer_info_present_flag = bFlag; }	
+		//void setQualityLayerInfoPresentFlag ( Bool bFlag ) { m_quality_layer_info_present_flag = bFlag; }
 		void setPriorityLayerInfoPresentFlag ( Bool bFlag ) { m_priority_layer_info_present_flag = bFlag; }
-		//void setBitstreamRestrictionFlag ( UInt uilayer, Bool bFlag ){ m_bitstream_restriction_info_present_flag [uilayer] = bFlag; }	
+		//void setBitstreamRestrictionFlag ( UInt uilayer, Bool bFlag ){ m_bitstream_restriction_info_present_flag [uilayer] = bFlag; }
 		void setBitstreamRestrictionInfoPresentFlag ( UInt uilayer, Bool bFlag ){ m_bitstream_restriction_info_present_flag [uilayer] = bFlag; }
     //SEI changes update }
 		void setMotionVectorsOverPicBoundariesFlag ( UInt uilayer, Bool bFlag ) { m_motion_vectors_over_pic_boundaries_flag [uilayer] = bFlag; }
@@ -566,7 +484,7 @@ public:
 		void setMaxBitsPerMbDenom ( UInt uilayer, UInt uiMaxBitsPerMbDenom ) { m_max_bits_per_mb_denom [uilayer] = uiMaxBitsPerMbDenom; }
 		void setLog2MaxMvLengthHorizontal ( UInt uilayer, UInt uiLog2MaxMvLengthHorizontal ) { m_log2_max_mv_length_horizontal [uilayer] = uiLog2MaxMvLengthHorizontal; }
 		void setLog2MaxMvLengthVertical ( UInt uilayer, UInt uiLog2MaxMvLengthVertical ) { m_log2_max_mv_length_vertical [uilayer] = uiLog2MaxMvLengthVertical; }
-		void setMaxDecFrameBuffering ( UInt uilayer, UInt uiMaxDecFrameBuffering ) { m_max_dec_frame_buffering [uilayer] = uiMaxDecFrameBuffering; }	
+		void setMaxDecFrameBuffering ( UInt uilayer, UInt uiMaxDecFrameBuffering ) { m_max_dec_frame_buffering [uilayer] = uiMaxDecFrameBuffering; }
 		void setNumReorderFrames ( UInt uilayer, UInt uiNumReorderFrames ) { m_num_reorder_frames [uilayer] = uiNumReorderFrames; }
 		//SEI changes update {
     //void setQlNumdIdMinus1 (UInt uiQlNumdIdMinus1) { m_ql_num_dId_minus1 = uiQlNumdIdMinus1; }
@@ -585,7 +503,7 @@ public:
 		void setPrMaxBitrateBPS ( UInt uilayer, UInt uiIndex, Double dPrMaxBitrate ) { m_pr_max_bitrate [uilayer][uiIndex] = xConvertFromBPS(dPrMaxBitrate); }
     //JVT-W051 }
     //SEI changes update }
- 
+
 protected:
     static UInt  xConvertToBPS( UInt x )
     {
@@ -646,7 +564,7 @@ private:
     Bool m_parameter_sets_info_present_flag[MAX_SCALABLE_LAYERS];//SEI changes update
     Bool m_exact_interlayer_pred_flag[MAX_SCALABLE_LAYERS];  //JVT-S036 lsj
 		//SEI changes update {
-		Bool m_exact_sample_value_match_flag[MAX_SCALABLE_LAYERS];  
+		Bool m_exact_sample_value_match_flag[MAX_SCALABLE_LAYERS];
 	//JVT-W046 {
 	//Bool    m_avc_layer_conversion_flag[MAX_SCALABLE_LAYERS];
  // Bool    m_avc_info_flag[MAX_SCALABLE_LAYERS][2];
@@ -685,7 +603,7 @@ private:
 		//rename
 		//UInt m_max_bitrate_decoded_picture[MAX_SCALABLE_LAYERS];//
 		UInt m_max_bitrate_layer_representation[MAX_SCALABLE_LAYERS];//
-		//JVT-W051 } 
+		//JVT-W051 }
     UInt m_max_bitrate_calc_window[MAX_SCALABLE_LAYERS];//
 
     UInt m_constant_frm_rate_idc[MAX_SCALABLE_LAYERS];
@@ -780,7 +698,7 @@ private:
 		UInt m_log2_max_mv_length_horizontal[MAX_SCALABLE_LAYERS];
 		UInt m_log2_max_mv_length_vertical[MAX_SCALABLE_LAYERS];
 		UInt m_num_reorder_frames[MAX_SCALABLE_LAYERS];
-		UInt m_max_dec_frame_buffering[MAX_SCALABLE_LAYERS];		
+		UInt m_max_dec_frame_buffering[MAX_SCALABLE_LAYERS];
 		//SEI changes update {
     UInt m_pr_num_dId_minus1;
 		UInt m_pr_dependency_id[MAX_LAYERS];
@@ -1033,7 +951,7 @@ private:
 //  Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
   private:
     UInt  m_uiTemporalId;
-  //JVT-W062 }  
+  //JVT-W062 }
     Bool  m_bAllPicturesInAuFlag;
     UInt  m_uiNumPictures;
     UInt  m_auiDependencyId[MAX_LREP_IN_ACCESS_UNIT];
@@ -1131,7 +1049,7 @@ private:
     UInt m_uiSeqParameterSetId;
     Bool m_bHrdParametersPresentFlag[2];
     StatBuf <DynBuf< SchedSel >, 2>  m_aacSchedSel;
-  }; 
+  };
 
   class H264AVCCOMMONLIB_API PicTiming :
     public SEIMessage
@@ -1177,13 +1095,13 @@ private:
     };
 
   protected:
-    PicTiming( const VUI* pcVUI, UInt uiLayerIndex ) 
+    PicTiming( const VUI* pcVUI, UInt uiLayerIndex )
       : SEIMessage          ( PIC_TIMING )
       , m_pcVUI             ( pcVUI )
       , m_uiLayerIndex      ( uiLayerIndex )
       , m_uiCpbRemovalDelay ( MSYS_UINT_MAX )
       , m_uiDpbOutputDelay  ( MSYS_UINT_MAX )
-      , m_ePicStruct        ( PS_NOT_SPECIFIED ) 
+      , m_ePicStruct        ( PS_NOT_SPECIFIED )
     {}
 
   public:
@@ -1194,11 +1112,11 @@ private:
     Int  getTimestamp( UInt uiNum = 0, UInt uiLayerIndex = 0 );
     ErrVal setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp );
 
-    Int  getCpbRemovalDelay() { return m_uiCpbRemovalDelay; } 
-    ErrVal setCpbRemovalDelay( UInt uiCpbRemovalDelay ); 
+    Int  getCpbRemovalDelay() { return m_uiCpbRemovalDelay; }
+    ErrVal setCpbRemovalDelay( UInt uiCpbRemovalDelay );
 
-    UInt  getDpbOutputDelay() { return m_uiDpbOutputDelay; }                
-    ErrVal setDpbOutputDelay( UInt uiDpbOutputDelay ); 
+    UInt  getDpbOutputDelay() { return m_uiDpbOutputDelay; }
+    ErrVal setDpbOutputDelay( UInt uiDpbOutputDelay );
 
     UInt getNumClockTs();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
@@ -1222,7 +1140,7 @@ private:
   public:
 
   protected:
-    AVCCompatibleHRD( VUI* pcVUI ) 
+    AVCCompatibleHRD( VUI* pcVUI )
       : SEIMessage          ( AVC_COMPATIBLE_HRD_SEI )
       , m_pcVUI             ( pcVUI )
     {}
@@ -1261,9 +1179,9 @@ public:
 	Void setMotionMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                        { m_motion_match_flag[uidId][uiqId][uiredupic] = bFlag;                     }
 	Void setResidualMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                      { m_residual_match_flag[uidId][uiqId][uiredupic] = bFlag;                   }
 	Void setIntraSamplesMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                  { m_intra_samples_match_flag[uidId][uiqId][uiredupic] = bFlag;              }
-    
+
 	UInt getNumDIdMinus1( )                                                                         const { return m_num_dId_minus1;                                                  }
-	UInt getDependencyId ( UInt uidId )                                                             const { return m_dependency_id[uidId];                                            }	
+	UInt getDependencyId ( UInt uidId )                                                             const { return m_dependency_id[uidId];                                            }
   UInt getNumQIdMinus1 ( UInt uidId )                                                             const { return m_num_qId_minus1[uidId];                                           }
 	UInt getQualityId ( UInt uidId, UInt uiqId )                                                    const { return m_quality_id[uidId][uiqId];                                        }
 	UInt getNumRedundantPicsMinus1 ( UInt uidId, UInt uiqId )                                       const { return m_num_redundant_pics_minus1[uidId][uiqId];                         }
@@ -1303,7 +1221,7 @@ private:
 		UInt					getNumInfoEntriesMinus1()							{ return m_uinuminfoentriesminus1; }
 		UInt          getEntryDependencyId(UInt uilayer)		{ return m_uientrydependency_id[uilayer]; }
 		UInt          getQualityLayerCRC  (UInt uilayer)		{ return m_uiquality_layer_crc [uilayer]; }
-		Void          setNumInfoEntriesMinus1(UInt ui )     { m_uinuminfoentriesminus1 = ui; } 
+		Void          setNumInfoEntriesMinus1(UInt ui )     { m_uinuminfoentriesminus1 = ui; }
 		Void					setEntryDependencyId(UInt uilayer, UInt ui)    { m_uientrydependency_id[uilayer] = ui; }
 		Void					setQualityLayerCRC  (UInt uilayer, UInt ui)		 { m_uiquality_layer_crc [uilayer] = ui; }
 	private:
@@ -1325,7 +1243,7 @@ public:
   ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf      );
 
   Void setDeltaFrameNum( UInt ui )                                                                       { m_delta_frame_num = ui;                                                    }
-    
+
 	Int getDeltaFrameNum( )                                                                         const { return m_delta_frame_num;                                                  }
 
 private:
@@ -1383,7 +1301,7 @@ private:
 
 protected:
   static ErrVal xRead               ( HeaderSymbolReadIf*   pcReadIf,
-                                      SEIMessage*&          rpcSEIMessage 
+                                      SEIMessage*&          rpcSEIMessage
                                       // JVT-V068 {
                                       ,ParameterSetMng* pcParameterSetMng
                                       // JVT-V068 }

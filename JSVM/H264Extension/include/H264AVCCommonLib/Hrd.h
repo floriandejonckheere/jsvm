@@ -1,6 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
 
 #if !defined(AFX_HRD_H__1424F649_9AFB_480A_ADF6_5C3B6AB5B804__INCLUDED_)
 #define AFX_HRD_H__1424F649_9AFB_480A_ADF6_5C3B6AB5B804__INCLUDED_
@@ -24,8 +21,8 @@ class H264AVCCOMMONLIB_API HRD
 public:
   enum HrdParamType
   {
-    VCL_HRD = 0, 
-    NAL_HRD 
+    VCL_HRD = 0,
+    NAL_HRD
   };
   class Cnt
   {
@@ -51,12 +48,12 @@ public:
 
 	// For non-scalable profile bitstreams, only the first element of m_cLayer is used to contain HRD parameters.
 	// For scalable profile bitstreams, m_uiNumLayersMinus1 controls the total number of sets of HRD parameters.
-	
+
   HRD();
   virtual ~HRD();
 
-  ErrVal init( UInt uiCpbCnt ); 
-  
+  ErrVal init( UInt uiCpbCnt );
+
   ErrVal read( HeaderSymbolReadIf *pcReadIf );
   ErrVal write( HeaderSymbolWriteIf *pcWriteIf )  const;
 
@@ -64,7 +61,7 @@ public:
 
   Void setCntBufferData();
 
-  Bool getHrdParametersPresentFlag()        const { return m_bHrdParametersPresentFlag; }	
+  Bool getHrdParametersPresentFlag()        const { return m_bHrdParametersPresentFlag; }
 
   UInt getCpbCnt()                          const { return m_uiCpbCnt; }
   UInt getBitRateScale()                    const { return m_uiBitRateScale; }

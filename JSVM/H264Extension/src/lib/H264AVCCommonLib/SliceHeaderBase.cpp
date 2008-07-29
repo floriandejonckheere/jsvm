@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCCommonLib.h"
 
@@ -136,7 +53,7 @@ RplrCommand::write( HeaderSymbolWriteIf&  rcWriteIf,
     RNOK( rcWriteIf.writeUvlc( m_uiValue,  "RPLR: long_term_pic_num" ) );
     break;
   default:
-    RERR(); 
+    RERR();
   }
   return Err::m_nOK;
 }
@@ -162,7 +79,7 @@ RplrCommand::read( HeaderSymbolReadIf&  rcReadIf,
     RNOK( rcReadIf.getUvlc( m_uiValue, "RPLR: long_term_pic_num" ) );
     break;
   default:
-    RERR(); 
+    RERR();
   }
   return Err::m_nOK;
 }
@@ -425,7 +342,7 @@ DecRefPicMarking::hasMMCO5() const
   {
     Mmco   eMmcoOp  = get( iIndex ).getCommand();
     ROTRS( eMmcoOp == MMCO_RESET, true );
-    bEnd            = ( eMmcoOp == MMCO_END ); 
+    bEnd            = ( eMmcoOp == MMCO_END );
   }
   return false;
 }
@@ -892,7 +809,7 @@ NalUnitHeader::copy( const NalUnitHeader& rcNalUnitHeader, Bool bInclusiveSVCExt
   m_eNalRefIdc            = rcNalUnitHeader.m_eNalRefIdc;
   m_eNalUnitType          = rcNalUnitHeader.m_eNalUnitType;
   ROFVS( bInclusiveSVCExtension );
-  
+
   m_bReservedOneBit       = rcNalUnitHeader.m_bReservedOneBit;
   m_bIdrFlag              = rcNalUnitHeader.m_bIdrFlag;
   m_uiPriorityId          = rcNalUnitHeader.m_uiPriorityId;
@@ -970,8 +887,8 @@ NalUnitHeader::read( HeaderSymbolReadIf& rcReadIf )
     m_uiTemporalId          = 0;
     m_bUseRefBasePicFlag    = false;
     m_bDiscardableFlag      = false;
-    m_bOutputFlag           = ( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR || 
-                                m_eNalUnitType == NAL_UNIT_CODED_SLICE || 
+    m_bOutputFlag           = ( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ||
+                                m_eNalUnitType == NAL_UNIT_CODED_SLICE ||
                                 m_eNalUnitType == NAL_UNIT_CODED_SLICE_DATAPART_A ||
                                 m_eNalUnitType == NAL_UNIT_CODED_SLICE_DATAPART_B ||
                                 m_eNalUnitType == NAL_UNIT_CODED_SLICE_DATAPART_C );
@@ -1373,7 +1290,7 @@ SliceHeaderSyntax::writePrefix( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveN
 
 
 ErrVal
-SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnitHeader ) const 
+SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnitHeader ) const
 {
   ROF( parameterSetsInitialized() );
 
@@ -1448,7 +1365,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
     }
     if( ( getPPS().getWeightedPredFlag() && isPorSPSlice() ) || ( getPPS().getWeightedBiPredIdc() == 1 && isBSlice() ) )
     {
-      if( ! getNoInterLayerPredFlag() ) 
+      if( ! getNoInterLayerPredFlag() )
       {
         RNOK(   rcWriteIf.writeFlag ( m_bBasePredWeightTableFlag,                     "SH: base_pred_weight_table_flag" ) );
       }
@@ -1503,7 +1420,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
   }
   if( getPPS().getNumSliceGroupsMinus1() > 0 &&
       getPPS().getSliceGroupMapType() >= 3 && getPPS().getSliceGroupMapType() <= 5 )
-  {    
+  {
     RNOK(       rcWriteIf.writeCode ( m_uiSliceGroupChangeCycle,
                                       getPPS().getLog2MaxSliceGroupChangeCycle( getSPS().getMbInFrame() ),
                                                                                       "SH: slice_group_change_cycle" ) );
@@ -1519,7 +1436,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
     if( getSPS().getExtendedSpatialScalability() == ESS_PICT )
     {
       RNOK(     rcWriteIf.writeFlag ( m_bRefLayerChromaPhaseXPlus1Flag,               "SH: ref_layer_chroma_phase_x_plus1_flag" ) );
-      RNOK(     rcWriteIf.writeCode ( m_uiRefLayerChromaPhaseYPlus1, 2,               "SH: ref_layer_chroma_phase_y_plus1" ) );				
+      RNOK(     rcWriteIf.writeCode ( m_uiRefLayerChromaPhaseYPlus1, 2,               "SH: ref_layer_chroma_phase_y_plus1" ) );
       RNOK(     rcWriteIf.writeSvlc ( m_iScaledRefLayerLeftOffset,                    "SH: scaled_ref_layer_left_offset" ) );
       RNOK(     rcWriteIf.writeSvlc ( m_iScaledRefLayerTopOffset,                     "SH: scaled_ref_layer_top_offset" ) );
       RNOK(     rcWriteIf.writeSvlc ( m_iScaledRefLayerRightOffset,                   "SH: scaled_ref_layer_right_offset" ) );
@@ -1536,11 +1453,11 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
     else
     {
       RNOK(     rcWriteIf.writeFlag ( m_bAdaptiveBaseModeFlag,                        "SH: adaptive_base_mode_flag" ) );
-      if( !m_bAdaptiveBaseModeFlag ) 
+      if( !m_bAdaptiveBaseModeFlag )
       {
         RNOK(   rcWriteIf.writeFlag ( m_bDefaultBaseModeFlag,                         "SH: default_base_mode_flag" ) );
       }
-      if( !m_bDefaultBaseModeFlag ) 
+      if( !m_bDefaultBaseModeFlag )
       {
         RNOK(   rcWriteIf.writeFlag ( m_bAdaptiveMotionPredictionFlag,                "SH: adaptive_motion_prediction_flag" ) );
         if( !m_bAdaptiveMotionPredictionFlag )
@@ -1556,10 +1473,10 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
     }
     if( getSPS().getAVCAdaptiveRewriteFlag() )
     {
-      RNOK(     rcWriteIf.writeFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );	
+      RNOK(     rcWriteIf.writeFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );
     }
   }
-  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag ) 
+  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag )
   {
     UInt  uiScanIdxStart  = ( m_uiScanIdxStart == m_uiScanIdxStop ? 1 : m_uiScanIdxStart );
     UInt  uiScanIdxEnd    = ( m_uiScanIdxStart == m_uiScanIdxStop ? 0 : m_uiScanIdxStop - 1 );
@@ -1584,7 +1501,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
   m_eSliceType = SliceType( uiSliceType );
   RNOK(         rcReadIf.getUvlc ( m_uiPicParameterSetId,                          "SH: pic_parameter_set_id" ) );
   RNOK( xInitParameterSets( rcParameterSetMng, m_uiPicParameterSetId, getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ) );
-  
+
   RNOK(         rcReadIf.getCode ( m_uiFrameNum,
                                    getSPS().getLog2MaxFrameNum(),                  "SH: frame_num" ) );
   if( ! getSPS().getFrameMbsOnlyFlag() )
@@ -1648,7 +1565,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
     }
     if( ( getPPS().getWeightedPredFlag() && isPorSPSlice() ) || ( getPPS().getWeightedBiPredIdc() == 1 && isBSlice() ) )
     {
-      if( ! getNoInterLayerPredFlag() ) 
+      if( ! getNoInterLayerPredFlag() )
       {
         RNOK(   rcReadIf.getFlag ( m_bBasePredWeightTableFlag,                     "SH: base_pred_weight_table_flag" ) );
       }
@@ -1705,7 +1622,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
   }
   if( getPPS().getNumSliceGroupsMinus1() > 0 &&
       getPPS().getSliceGroupMapType() >= 3 && getPPS().getSliceGroupMapType() <= 5 )
-  {    
+  {
     RNOK(       rcReadIf.getCode ( m_uiSliceGroupChangeCycle,
                                    getPPS().getLog2MaxSliceGroupChangeCycle( getSPS().getMbInFrame() ),
                                                                                    "SH: slice_group_change_cycle" ) );
@@ -1721,7 +1638,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
     if( getSPS().getExtendedSpatialScalability() == ESS_PICT )
     {
       RNOK(     rcReadIf.getFlag ( m_bRefLayerChromaPhaseXPlus1Flag,               "SH: ref_layer_chroma_phase_x_plus1_flag" ) );
-      RNOK(     rcReadIf.getCode ( m_uiRefLayerChromaPhaseYPlus1, 2,               "SH: ref_layer_chroma_phase_y_plus1" ) );				
+      RNOK(     rcReadIf.getCode ( m_uiRefLayerChromaPhaseYPlus1, 2,               "SH: ref_layer_chroma_phase_y_plus1" ) );
       RNOK(     rcReadIf.getSvlc ( m_iScaledRefLayerLeftOffset,                    "SH: scaled_ref_layer_left_offset" ) );
       RNOK(     rcReadIf.getSvlc ( m_iScaledRefLayerTopOffset,                     "SH: scaled_ref_layer_top_offset" ) );
       RNOK(     rcReadIf.getSvlc ( m_iScaledRefLayerRightOffset,                   "SH: scaled_ref_layer_right_offset" ) );
@@ -1749,11 +1666,11 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
     else
     {
       RNOK(     rcReadIf.getFlag ( m_bAdaptiveBaseModeFlag,                        "SH: adaptive_base_mode_flag" ) );
-      if( !m_bAdaptiveBaseModeFlag ) 
+      if( !m_bAdaptiveBaseModeFlag )
       {
         RNOK(   rcReadIf.getFlag ( m_bDefaultBaseModeFlag,                         "SH: default_base_mode_flag" ) );
       }
-      if( !m_bDefaultBaseModeFlag ) 
+      if( !m_bDefaultBaseModeFlag )
       {
         RNOK(   rcReadIf.getFlag ( m_bAdaptiveMotionPredictionFlag,                "SH: adaptive_motion_prediction_flag" ) );
         if( !m_bAdaptiveMotionPredictionFlag )
@@ -1769,10 +1686,10 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
     }
     if( getSPS().getAVCAdaptiveRewriteFlag() )
     {
-      RNOK(     rcReadIf.getFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );	
+      RNOK(     rcReadIf.getFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );
     }
   }
-  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag ) 
+  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag )
   {
     RNOK(       rcReadIf.getCode ( m_uiScanIdxStart, 4,                            "SH: scan_idx_start" ) );
     RNOK(       rcReadIf.getCode ( m_uiScanIdxStop,  4,                            "SH: scan_idx_end" ) );
@@ -1937,21 +1854,21 @@ SliceHeaderSyntax::xInitScalingMatrix()
     {
       switch( uiIndex )
       {
-      case 0: 
-      case 1: 
-      case 2: 
-        puc = g_aucScalingMatrixDefault4x4Intra; 
+      case 0:
+      case 1:
+      case 2:
+        puc = g_aucScalingMatrixDefault4x4Intra;
         break;
       case 3:
       case 4:
       case 5:
-        puc = g_aucScalingMatrixDefault4x4Inter; 
+        puc = g_aucScalingMatrixDefault4x4Inter;
         break;
       case 6:
-        puc = g_aucScalingMatrixDefault8x8Intra; 
+        puc = g_aucScalingMatrixDefault8x8Intra;
         break;
-      case 7: 
-        puc = g_aucScalingMatrixDefault8x8Inter; 
+      case 7:
+        puc = g_aucScalingMatrixDefault8x8Inter;
         break;
       default:
         RERR();
@@ -1990,7 +1907,7 @@ SliceHeaderSyntax::xInitParameterSets( const SequenceParameterSet& rcSPS, const 
   m_iScaledRefLayerRightOffset      = rcSPS.getScaledBaseRightOffset();
   m_iScaledRefLayerBottomOffset     = rcSPS.getScaledBaseBottomOffset();
   m_bTCoeffLevelPredictionFlag      = rcSPS.getTCoeffLevelPredictionFlag();
-  
+
   RNOK( xInitScalingMatrix() );
   return Err::m_nOK;
 }

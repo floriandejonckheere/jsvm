@@ -1,85 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
 
 #include "H264AVCEncoderLib.h"
 #include "MbEncoder.h"
@@ -244,7 +162,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
       }
       // basic unit layer rate control
       else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ) {
-        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0
           && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
             // frame coding
             if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
@@ -328,7 +246,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 			{
 				RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
 					pcMbDataAccessBase,
-					(uiMbAddress == uiLastMbAddress), 
+					(uiMbAddress == uiLastMbAddress),
 					true ) );
 			}
 		}
@@ -336,11 +254,11 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 		{
 			RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
 				pcMbDataAccessBase,
-				(uiMbAddress == uiLastMbAddress), 
+				(uiMbAddress == uiLastMbAddress),
 				true ) );
 			if ((rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1) && (!m_pcMbCoder->bSliceCodedDone))
 				rcControlData.m_bSliceGroupAllCoded = true;
-			if (m_pcMbCoder->bSliceCodedDone==true)	
+			if (m_pcMbCoder->bSliceCodedDone==true)
 			{
 				rcControlData.m_uiCurrentFirstMB = uiMbAddress;
 				rcSliceHeader.setNumMbsInSlice(uiCodedMBNumber-1);
@@ -352,11 +270,11 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 				break;
 			}
 		}
-		else 
+		else
 		{
 			RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
 				pcMbDataAccessBase,
-				(uiMbAddress == uiLastMbAddress), 
+				(uiMbAddress == uiLastMbAddress),
 				true ) );
 		}
 		//JVT-X046 }
@@ -402,7 +320,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
   SliceHeader&  rcSliceHeader           = *rcControlData.getSliceHeader           ( ePicType );
   MbDataCtrl*   pcMbDataCtrl      =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl   =  rcControlData.getBaseLayerCtrl         ();
-  
+
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
   if( pcBaseLayerCtrl )
@@ -424,7 +342,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 		if( pcBaseLayer )  RNOK( pcBaseLayer ->addFieldBuffer( ePicType ) );
 		if( pcPredSignal ) RNOK( pcPredSignal->addFieldBuffer( ePicType ) );
 	}
-  
+
 	//JVT-X046 {
 	UInt uiCodedMBNumber = 0;
 	m_pcMbCoder->bSliceCodedDone = false;
@@ -442,7 +360,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
       }
       // basic unit layer rate control
       else if ( pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 ) {
-        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0
           && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
             // frame coding
             if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
@@ -498,7 +416,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     //JVT-X046 {
 		uiCodedMBNumber++;
 		if (m_uiSliceMode==1) //fixed slice size in number of MBs
-		{		
+		{
 			if (uiCodedMBNumber >= m_uiSliceArgument)//reach the fixed MB number
 			{
 				RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
@@ -800,7 +718,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
     // JVT-W043 {
     if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
     {
-      pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;      
+      pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;
       pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->number );
       pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
       pcGenericRC->m_pcJSVMParams->current_mb_nr = uiMbAddress;
@@ -810,7 +728,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       }
       // basic unit layer rate control
       else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ) {
-        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0
           && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
             // frame coding
             if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
@@ -912,7 +830,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       }
       // JVT-W043 }
       // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
-      if( pcBaseSubband && ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag() ) )	
+      if( pcBaseSubband && ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag() ) )
       {
         YuvPicBuffer* pcBaseResidual = pcBaseSubband->getPic( ePicType )->getFullPelYuvBuffer();
         pcBaseResidual->clearCurrMb();
@@ -1042,7 +960,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
 					                                  pcMbDataAccessBase,
 																						(uiMbAddressMbAff == uiLastMbAddress ),
 																						(eP == 1)  ) );
-		
+
         ruiMbCoded++;
       }
       else
@@ -1077,7 +995,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
         {
           ruiMbCoded++;
         }
-       
+
          RNOK( apcPredSignal[uiLI]->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
       }
     }
@@ -1223,7 +1141,7 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
                                                    dLambda,
                                                    dCost,
                                                    abSkipModeAllowed[eP] ) );
-	  
+
       auiLastQpTest[bField] = pcMbDataAccess->getMbData().getQp();
 
       if( adCost[eP>>1] != DOUBLE_MAX )
@@ -1476,7 +1394,7 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
     if( pcMbDataAccess->isSCoeffPred() || ( pcMbDataAccess->getMbData().isIntraBL() && pcMbDataAccessBase->getMbData().isIntraButnotIBL() ) )
     {
       if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
-        pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );    
+        pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
     }
 
     // set I_PCM mode (for deblocking) when CBP is 0, mbMode is I_BL, and base layer mbMode is I_PCM
@@ -1503,7 +1421,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
   Frame*     pcBaseLayerSbb        =  rcControlData.getBaseLayerSbb         ();
   UInt          uiMbAddress           =  0;
   UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
- 
+
   //====== initialization ======
   RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, DECODE_PROCESS, false, NULL ) );
 
@@ -1605,7 +1523,7 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
 			    // transform type.  This makes intra predition work correctly, etc.
 			    if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
 				    pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
-  	
+
 			    xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
 		    }
 

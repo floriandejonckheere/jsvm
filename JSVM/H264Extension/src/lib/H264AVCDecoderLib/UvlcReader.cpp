@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCDecoderLib.h"
 
@@ -98,7 +15,7 @@ H264AVC_NAMESPACE_BEGIN
 #define MAX_VALUE     0xdead
 #define TOTRUN_NUM    15
 
-const UInt g_auiIncVlc[7] = 
+const UInt g_auiIncVlc[7] =
 {
   0, 3, 6, 12, 24, 48, 32768
 };
@@ -337,9 +254,9 @@ const UInt g_auiISymLen[3][16] =
 
 const UInt g_auiRefSymCode[2][27] =
 {
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
+  {
+    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5,
+    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3,
     0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
   },
   {
@@ -753,7 +670,7 @@ Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
     DTRACE_N;
   }
   rcMbDataAccess.getMbData().setSkipFlag( m_uiRun != 0 );
-  
+
   return ( rcMbDataAccess.getMbData().getSkipFlag() );
 }
 
@@ -905,7 +822,7 @@ ErrVal UvlcReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx
   {
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
-  
+
   DTRACE_COUNT(m_uiBitCounter);
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
@@ -936,11 +853,11 @@ ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx c
   {
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
-  
+
   DTRACE_COUNT(m_uiBitCounter);
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
-  
+
   return Err::m_nOK;
 }
 
@@ -1175,7 +1092,7 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   return Err::m_nOK;
 }
 
-ErrVal UvlcReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess ) 
+ErrVal UvlcReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess )
 {
   DTRACE_T( "transformSize8x8Flag:" );
 
@@ -1521,7 +1438,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
     {
       uiVlcTable = (( uiRunCount > RUNBEFORE_NUM) ? RUNBEFORE_NUM : uiRunCount) - 1;
       UInt uiRun = 0;
-      
+
       xGetRun( uiVlcTable, uiRun );
       aiLevelRun[uiCoeffCnt+0x10] = uiRun;
 
@@ -1669,7 +1586,7 @@ ErrVal UvlcReader::xGetLevelVLC0( Int& iLevel )
 }
 
 ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
-{  
+{
   UInt uiTemp;
   UInt uiLength;
   UInt uiCode;
@@ -1678,11 +1595,11 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
   UInt uiSign;
   UInt uiAddBit;
   UInt uiOffset;
-  
+
   UInt uiNumPrefix = 0;
   UInt uiShift     = uiVlcLength - 1;
   UInt uiEscape    = (15<<uiShift)+1;
-  
+
   // read pre zeros
   do
   {
@@ -1693,11 +1610,11 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
   uiLength = uiNumPrefix;
   uiCode   = 1;
   uiNumPrefix--;
-  
+
   if (uiNumPrefix < 15)
   {
     uiLevAbs = (uiNumPrefix<<uiShift) + 1;
-    
+
     if ( uiVlcLength-1 )
     {
       RNOK( m_pcBitReadBuffer->get( uiSb, uiVlcLength-1 ) );
@@ -1728,7 +1645,7 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
     uiCode = (uiCode << 1)| uiSign;
     uiLength++;
   }
-  
+
   iLevel = (uiSign) ? -(Int)uiLevAbs : (Int)uiLevAbs;
 
   DTRACE_POS;
@@ -1778,7 +1695,7 @@ ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
   for ( uiBlk  = 0; uiBlk < 4; uiBlk++ )
    for ( uiPos = 0; uiPos < 32; uiPos++ )
      aaiLevelRun[uiBlk][uiPos] = 0;
-  
+
   {
     UInt uiBitPos = c8x8Idx;
     rcMbDataAccess.getMbData().setBCBP( uiBitPos,   1);

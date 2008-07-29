@@ -1,85 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
 
 #include "H264AVCDecoderLib.h"
 #include "GOPDecoder.h"
@@ -370,7 +288,7 @@ DPBUnit::markUnusedForRef( PicType ePicType, Bool bRemoveOutputFlag )
   if( bRemoveOutputFlag )
   {
     ROF( ePicType == FRAME );
-    m_bWaitForOutput = false; 
+    m_bWaitForOutput = false;
   }
   return Err::m_nOK;
 }
@@ -453,7 +371,7 @@ CurrDPBUnit::destroy()
 
 ErrVal
 CurrDPBUnit::xCreateData( const SequenceParameterSet& rcSPS,
-                          Bool                        bCreateRefBasePicBuffer, 
+                          Bool                        bCreateRefBasePicBuffer,
                           Bool                        bBaseLayer )
 {
   ROT ( m_pcControlData );
@@ -934,7 +852,7 @@ DecodedPicBuffer::xDeleteData()
 }
 
 ErrVal
-DecodedPicBuffer::initCurrDPBUnit( CurrDPBUnit*&  rpcCurrDPBUnit, 
+DecodedPicBuffer::initCurrDPBUnit( CurrDPBUnit*&  rpcCurrDPBUnit,
                                    PicBuffer*&    rpcPicBuffer,
                                    SliceHeader&   rcSliceHeader,
                                    PocCalculator& rcPocCalculator,
@@ -1137,7 +1055,7 @@ DecodedPicBuffer::xCheckGapsInFrameNum( const SliceHeader& rcSliceHeader, PocCal
   ROTRS( rcSliceHeader.getIdrFlag   (),                                                       Err::m_nOK );
   ROTRS( rcSliceHeader.getFrameNum  () == ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ),  Err::m_nOK );
 
-  SliceHeader*  pcNonExSliceHeader  = 0; 
+  SliceHeader*  pcNonExSliceHeader  = 0;
   UInt          uiCurrFrameNum      = rcSliceHeader.getFrameNum();
   UInt          uiMissingFrames     = uiCurrFrameNum - m_uiLastRefFrameNum - 1 + ( uiCurrFrameNum <= m_uiLastRefFrameNum ? m_uiMaxFrameNum : 0 );
   if( !rcSliceHeader.getSPS().getGapsInFrameNumValueAllowedFlag() )
@@ -1191,7 +1109,7 @@ DecodedPicBuffer::xUpdateAndStoreCurrentPic( PocCalculator& rcPocCalculator, Pic
   UInt  uiCurrFrameNum    = pcSliceHeader->getFrameNum  ();
   Bool  bIsIDR            = pcSliceHeader->getIdrFlag   ();
   Bool  bIsRefPic         = pcSliceHeader->isRefPic     ();
-  Bool  bIsOutput         = pcSliceHeader->getOutputFlag(); 
+  Bool  bIsOutput         = pcSliceHeader->getOutputFlag();
   Bool  bIs2ndFld         = xIs2ndFieldOfCompFieldPair  ();
   Bool  bIs2ndFldBase     = xIs2ndFieldOfCompFieldPair  ( true );
   Bool  bStoredAsLongTerm = false;
@@ -1199,7 +1117,7 @@ DecodedPicBuffer::xUpdateAndStoreCurrentPic( PocCalculator& rcPocCalculator, Pic
   //===== possible output of single non-reference field that might occupy an extra DPB unit (for output of complementary field pairs) =====
   if( ! bIs2ndFld )
   {
-    RNOK  ( xBumpingOutput    ( rcOutputList, rcUnusedList ) ); 
+    RNOK  ( xBumpingOutput    ( rcOutputList, rcUnusedList ) );
     RNOK  ( xCheckBufferStatus() );
   }
 
@@ -1225,7 +1143,7 @@ DecodedPicBuffer::xUpdateAndStoreCurrentPic( PocCalculator& rcPocCalculator, Pic
     RNOK  ( xDumpDPB                ( "after update (non-ref 2nd field)" ) );
     return Err::m_nOK;
   }
-  
+
   //===== non-reference/output frame/field (not 2nd field of a complementary field pair) =====
   if( ! bIsRefPic )
   {
@@ -1395,7 +1313,7 @@ DecodedPicBuffer::xBumpingOutput( PicBufferList& rcOutputList, PicBufferList& rc
     DPBUnit* pcDPBUnitToOutput = cSortedByPocList.popFront();
     ROF ( pcDPBUnitToOutput );
     RNOK( pcDPBUnitToOutput->output( m_cPicBufferList, rcOutputList, rcUnusedList ) );
-    if( ! pcDPBUnitToOutput->isUsedForRef() )    
+    if( ! pcDPBUnitToOutput->isUsedForRef() )
     {
       cNonRequiredList.push_back( pcDPBUnitToOutput );
       uiNumRequiredNonRef--;
@@ -1471,7 +1389,7 @@ DecodedPicBuffer::xMMCO( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHea
 {
   Mmco                    eMmcoOp;
   UInt                    uiVal1, uiVal2;
-  UInt                    uiCurrFrameNum  = rcSliceHeader.getFrameNum (); 
+  UInt                    uiCurrFrameNum  = rcSliceHeader.getFrameNum ();
   PicType                 eCurrPicType    = rcSliceHeader.getPicType  ();
   const DecRefPicMarking& rcMmcoBuffer    = ( bRefBasePic ? rcSliceHeader.getDecRefBasePicMarking() : rcSliceHeader.getDecRefPicMarking() );
   Int                     iIndex          = 0;
@@ -1772,9 +1690,9 @@ DecodedPicBuffer::xIsAvailableForRefLists( const DPBUnit* pcDPBUnit, Bool bField
 }
 
 ErrVal
-DecodedPicBuffer::xCreateOrderedDPBUnitLists( DPBUnitList& rcOrderedShortTermList0, 
-                                              DPBUnitList& rcOrderedShortTermList1, 
-                                              DPBUnitList& rcOrderedLongTermList, 
+DecodedPicBuffer::xCreateOrderedDPBUnitLists( DPBUnitList& rcOrderedShortTermList0,
+                                              DPBUnitList& rcOrderedShortTermList1,
+                                              DPBUnitList& rcOrderedLongTermList,
                                               Bool&        rbShortTermListIdentical,
                                               SliceHeader& rcSliceHeader )
 {
@@ -2199,7 +2117,7 @@ LayerDecoder::init( UInt                   uiDependencyId,
                    YuvBufferCtrl*         pcYuvFullPelBufferCtrl,
                    DecodedPicBuffer*      pcDecodedPictureBuffer,
                    MotionCompensation*    pcMotionCompensation,
-				           ReconstructionBypass*  pcReconstructionBypass 
+				           ReconstructionBypass*  pcReconstructionBypass
 #ifdef SHARP_AVC_REWRITE_OUTPUT
                    ,RewriteEncoder*       pcRewriteEncoder
 #endif
@@ -2312,7 +2230,7 @@ LayerDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
 }
 
 ErrVal
-LayerDecoder::updateDPB( PicBufferList& rcPicBufferOutputList, 
+LayerDecoder::updateDPB( PicBufferList& rcPicBufferOutputList,
                          PicBufferList& rcPicBufferUnusedList )
 {
   ROF ( m_bInitialized );
@@ -2346,7 +2264,7 @@ LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
   //===== init DPB unit =====
   RNOK( xInitDPBUnit              ( *rpcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList ) );
 
-  //===== init resize parameters =====  ---> write new function xInitResizeParameters, which is somewhat nicer 
+  //===== init resize parameters =====  ---> write new function xInitResizeParameters, which is somewhat nicer
   RNOK( xInitESSandCroppingWindow ( *rpcSliceHeader, *m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl(), m_pcCurrDPBUnit->getCtrlData() ) );
 
   //===== update parameters =====
@@ -2417,7 +2335,7 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
                                          &rcRefFrameList0,
                                          &rcRefFrameList1,
                                          pcMbDataCtrl0L1,
-                                         bReconstructMCMbs ) ); 
+                                         bReconstructMCMbs ) );
   }
   else
   {
@@ -2450,7 +2368,7 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
 }
 
 ErrVal
-LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader, 
+LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
                                           PicBufferList&          rcPicBufferOutputList,
                                           PicBufferList&          rcPicBufferUnusedList,
                                           const SliceDataNALUnit& rcSliceDataNalUnit,
@@ -2519,7 +2437,7 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
 }
 
 ErrVal
-LayerDecoder::xFinishSlice( SliceHeader&            rcSliceHeader, 
+LayerDecoder::xFinishSlice( SliceHeader&            rcSliceHeader,
                             PicBufferList&          rcPicBufferOutputList,
                             PicBufferList&          rcPicBufferUnusedList,
                             const SliceDataNALUnit& rcSliceDataNalUnit,
@@ -2628,7 +2546,7 @@ LayerDecoder::xSetLoopFilterQPs( SliceHeader& rcSliceHeader, MbDataCtrl& rcMbDat
       RNOK( rcMbDataCtrl.initMb( pcMbDataAccess, uiMbY, uiMbX ) );
 
       if( uiMbAddress != uiFirstMbInSliceGroup &&
-          pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() && 
+          pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() &&
          !pcMbDataAccess->getSH().getNoInterLayerPredFlag() &&
          !pcMbDataAccess->getMbData().isIntra16x16() &&
           pcMbDataAccess->getMbData().getMbExtCbp() == 0 )
@@ -2667,7 +2585,7 @@ LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataC
         pcLastSliceHeader = m_pacMbStatus[ uiMbAddress ].getSliceHeader();
         rcMbDataCtrl.initSlice( *pcLastSliceHeader, DECODE_PROCESS, false, 0 );
       }
-      
+
       //===== process macroblock =====
       MbDataAccess* pcMbDataAccess  = 0;
       UInt          uiMbX           = 0;
@@ -2684,7 +2602,7 @@ LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataC
 #endif
 
 ErrVal
-LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader, 
+LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
                                SliceDataNALUnit&  rcSliceDataNalUnit )
 {
   //===== parse prefix header when available =====
@@ -2756,7 +2674,7 @@ LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUn
   }
 
   //===== infer prediction weights when required =====
-  if( rcSliceHeader.getPPS().getWeightedBiPredIdc () == 1       && 
+  if( rcSliceHeader.getPPS().getWeightedBiPredIdc () == 1       &&
       rcSliceHeader.getSliceType                  () == B_SLICE &&
      !rcSliceHeader.getNoInterLayerPredFlag       ()            &&
       rcSliceHeader.getBasePredWeightTableFlag    ()              )
@@ -2768,7 +2686,7 @@ LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUn
     rcSliceHeader.getPredWeightTableL0().copy( pcBaseSliceHeader->getPredWeightTableL0 () );
     rcSliceHeader.getPredWeightTableL1().copy( pcBaseSliceHeader->getPredWeightTableL1 () );
   }
-  else if( rcSliceHeader.getPPS().getWeightedPredFlag ()            && 
+  else if( rcSliceHeader.getPPS().getWeightedPredFlag ()            &&
            rcSliceHeader.getSliceType                 () == P_SLICE &&
           !rcSliceHeader.getNoInterLayerPredFlag      ()            &&
            rcSliceHeader.getBasePredWeightTableFlag   ()              )
@@ -2827,13 +2745,13 @@ LayerDecoder::xInitSPS( const SliceHeader& rcSliceHeader )
 
 ErrVal
 LayerDecoder::xInitDPBUnit( SliceHeader&   rcSliceHeader,
-                            PicBuffer*     pcPicBuffer, 
-                            PicBufferList& rcPicBufferOutputList, 
+                            PicBuffer*     pcPicBuffer,
+                            PicBufferList& rcPicBufferOutputList,
                             PicBufferList& rcPicBufferUnusedList )
 {
-  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, pcPicBuffer, rcSliceHeader, 
+  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, pcPicBuffer, rcSliceHeader,
                                                    *m_pcPocCalculator, rcPicBufferOutputList, rcPicBufferUnusedList,
-                                                   !m_bDependencyRepresentationInitialized, 
+                                                   !m_bDependencyRepresentationInitialized,
                                                    !m_bLayerRepresentationInitialized ) );
 
   m_pcCurrDPBUnit->getCtrlData().setBaseLayerRec      ( 0 );
@@ -2889,15 +2807,15 @@ LayerDecoder::getBaseLayerData( SliceHeader&      rcELSH,
   {
     RNOK( m_apcFrameTemp[0]->copy( pcFrame, pcSliceHeader->getPicType() ) );
     pcFrame = m_apcFrameTemp[0];
-    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, NULL, pcMbDataCtrl, 
+    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, NULL, pcMbDataCtrl,
                                    &rcELSH.getInterLayerDeblockingFilterParameter(),
                                    pcBaseDPBUnit->getCtrlData().getSpatialScalability() ) );
   }
-  
+
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
 {
   UInt uiIndex;
@@ -2934,7 +2852,7 @@ LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
 }
 
 
-ErrVal 
+ErrVal
 LayerDecoder::xDeleteData()
 {
   UInt uiIndex;
@@ -3008,7 +2926,7 @@ ErrVal
 LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
                                          MbDataCtrl&   rcMbDataCtrl,
                                          ControlData&  rcControlData)
-{ 
+{
   m_cResizeParameters.updateCurrLayerParameters( rcSliceHeader );
   m_pcCurrDPBUnit->getFrame()->setPicParameters( m_cResizeParameters, &rcSliceHeader );
 
@@ -3035,7 +2953,7 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
   Int iScaledBaseOrigY  = m_cResizeParameters.m_iTopFrmOffset;
   Int iScaledBaseWidth  = m_cResizeParameters.m_iScaledRefFrmWidth;
   Int iScaledBaseHeight = m_cResizeParameters.m_iScaledRefFrmHeight;
-     
+
 	if( ! m_cResizeParameters.m_bIsMbAffFrame && ! m_cResizeParameters.m_bFieldPicFlag )
 	{
     for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY++ )
@@ -3077,7 +2995,7 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   rcControlData.setBaseLayerSbb       ( 0 );
   rcControlData.setBaseLayerCtrl      ( 0 );
   rcControlData.setBaseLayerCtrlField ( 0 );
-  
+
   Frame*        pcBaseFrame         = 0;
   Frame*        pcBaseResidual      = 0;
   MbDataCtrl*   pcBaseDataCtrl      = 0;
@@ -3086,9 +3004,9 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   if( ! pcSliceHeader->getNoInterLayerPredFlag() )
   {
     RNOK( xGetBaseLayerData( rcControlData,
-                             pcBaseFrame, 
-                             pcBaseResidual, 
-                             pcBaseDataCtrl, 
+                             pcBaseFrame,
+                             pcBaseResidual,
+                             pcBaseDataCtrl,
                              m_cResizeParameters ) );
     rcControlData.setSpatialScalability( m_cResizeParameters.getSpatialResolutionChangeFlag() );
   }
@@ -3132,7 +3050,7 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
     {
       Frame*  pcTempBaseFrame = m_apcFrameTemp[0];
       Frame*  pcTempFrame     = m_apcFrameTemp[1];
-      RNOK( m_pcBaseLayerFrame->intraUpsampling( pcBaseFrame, pcTempBaseFrame, pcTempFrame, m_cDownConvert, &m_cResizeParameters, 
+      RNOK( m_pcBaseLayerFrame->intraUpsampling( pcBaseFrame, pcTempBaseFrame, pcTempFrame, m_cDownConvert, &m_cResizeParameters,
                                                  pcBaseDataCtrl, m_pcBaseLayerCtrl, m_pcBaseLayerCtrlField,
                                                  m_pcReconstructionBypass, rcControlData.getSliceHeader()->getConstrainedIntraResamplingFlag() ) );
     }
@@ -3149,7 +3067,7 @@ Void
 LayerDecoder::xSetMCResizeParameters( ResizeParameters& rcResizeParameters )
 {
   m_pcMotionCompensation->setResizeParameters( &rcResizeParameters );
-} 
+}
 
 
 ErrVal
@@ -3158,15 +3076,15 @@ LayerDecoder::xGetBaseLayerData( ControlData&      rcControlData,
                                  Frame*&           rpcBaseResidual,
                                  MbDataCtrl*&      rpcBaseDataCtrl,
                                  ResizeParameters& rcResizeParameters )
- 
+
 {
   SliceHeader* pcSliceHeader = rcControlData.getSliceHeader();
 
 	RNOK( m_pcH264AVCDecoder->getBaseLayerData( *pcSliceHeader,
-                                              rpcBaseFrame, 
-   	                                          rpcBaseResidual, 
+                                              rpcBaseFrame,
+   	                                          rpcBaseResidual,
    	                                          rpcBaseDataCtrl,
-   	                                          rcResizeParameters, 
+   	                                          rcResizeParameters,
     																					pcSliceHeader->getRefLayerDependencyId() ) );
   return Err::m_nOK;
 }

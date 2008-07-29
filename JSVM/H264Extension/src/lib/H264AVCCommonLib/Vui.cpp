@@ -1,7 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
-// JVT-V068 HRD {
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/Vui.h"
@@ -237,8 +233,8 @@ VUI::~VUI()
 ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, UInt uiCpbSize)
 {
   HRD& rcHrd = (eHrdType == HRD::NAL_HRD) ? m_acNalHrd[uiIndex] : m_acVclHrd[uiIndex];
-   
-  if( rcHrd.getHrdParametersPresentFlag()) 
+
+  if( rcHrd.getHrdParametersPresentFlag())
   {
     // we provide only one set of parameters. the following code is pretty hard coded
     rcHrd.setCpbCnt(1);
@@ -247,13 +243,13 @@ ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, U
     rcHrd.setBitRateScale(uiExponentBR-6);
     rcHrd.setCpbSizeScale(uiExponentCpb-4);
     rcHrd.init(1);
-    for( UInt CpbCnt=0; CpbCnt<1; CpbCnt++) 
+    for( UInt CpbCnt=0; CpbCnt<1; CpbCnt++)
     {
       Int iBitNumLSBZeros = gGetNumberOfLSBZeros(uiBitRate);
       Int iCpbNumLSBZeros = gGetNumberOfLSBZeros(uiCpbSize);
       // we're doing a bit complicated rounding here to find the nearest value
       // probably we should use the exact or bigger bit rate value:
-      //for values with 6 or more LSBZeros:  
+      //for values with 6 or more LSBZeros:
       if( iBitNumLSBZeros >= 5)
       {
         rcHrd.getCntBuf(CpbCnt).setBitRateValue((UInt)floor ( ((Double)(uiBitRate) /  (1 << uiExponentBR))));
@@ -263,7 +259,7 @@ ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, U
         rcHrd.getCntBuf(CpbCnt).setBitRateValue((UInt)floor ( ((Double)(uiBitRate) /  (1 << uiExponentBR)) + 0.5));
       }
 
-      //for values with 4 or more LSBZeros:  
+      //for values with 4 or more LSBZeros:
       if( iCpbNumLSBZeros >= 3)
       {
         rcHrd.getCntBuf(CpbCnt).setCpbSizeValue((UInt)floor ( ((Double)(uiCpbSize) /  (1<< uiExponentCpb)) ));
@@ -272,7 +268,7 @@ ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, U
       {
         rcHrd.getCntBuf(CpbCnt).setCpbSizeValue((UInt)floor ( ((Double)(uiCpbSize) /  (1<< uiExponentCpb)) + 0.5));
       }
-      //0 VBR 1 CBR      
+      //0 VBR 1 CBR
       rcHrd.getCntBuf(CpbCnt).setVbrCbrFlag(0);// 1: stuffing needed
     }
     rcHrd.setInitialCpbRemovalDelayLength(24);
@@ -335,7 +331,7 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(m_uiDefaultIdx),        "VUI: pic_struct_present_flag"));
 
   RNOK( m_cBitstreamRestriction.write( pcWriteIf ) );
- 
+
   return Err::m_nOK;
 }
 
@@ -361,7 +357,7 @@ ErrVal VUI::writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf ) const
   return Err::m_nOK;
 }
 
-ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf ) 
+ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf )
 {
   RNOKS( pcReadIf->getCode( m_uiTemporalId, 3,               "VUI: temporal_level"));
   RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,               "VUI: dependency_id"));

@@ -1,87 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
-
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbData.h"
@@ -166,7 +82,7 @@ MvScaleParam::MvScaleParam( ResizeParameters& rcResizeParameters, RefFrameList* 
 }
 
 
-MotionUpsampling::MotionUpsampling( MbDataCtrl&       rcMbDataCtrlCurr, 
+MotionUpsampling::MotionUpsampling( MbDataCtrl&       rcMbDataCtrlCurr,
                                     SliceHeader&      rcSliceHeaderCurr,
                                     ResizeParameters& rcResizeParameters,
                                     MbDataCtrl&       rcMbDataCtrlBase,
@@ -176,6 +92,7 @@ MotionUpsampling::MotionUpsampling( MbDataCtrl&       rcMbDataCtrlCurr,
                                     Bool              bCheckResidualPred,
                                     Int               iMvThreshold )
 : m_bCheckResidualPred  ( bCheckResidualPred )
+, m_bDirect8x8Inference ( rcSliceHeaderCurr.getSPS().getDirect8x8InferenceFlag() )
 , m_iMvThreshold        ( iMvThreshold )
 , m_bCurrFieldMb        ( bFieldMacroblocks )
 , m_eSliceType          ( rcSliceHeaderCurr.getSliceType   () )
@@ -206,7 +123,7 @@ MotionUpsampling::resample( Int iMbXCurr, Int iMbYCurr )
 {
   RNOK( xInitMb         ( iMbXCurr, iMbYCurr ) );
   RNOK( xSetPartIdcArray() );
-  
+
   if( m_bInCropWindow && ! m_bIntraBL )
   {
     for( Int iListIdx = 0; iListIdx < m_iMaxListIdx; iListIdx++ )
@@ -320,7 +237,7 @@ MotionUpsampling::xGetRefLayerMb( Int   iXInsideCurrMb,
     riYInsideBaseMb = ( iBasePosY & ( 15 + 16 * iFieldMb ) ) >> iFieldMb;
     return Err::m_nOK;
   }
-  
+
   //===== field-to-frame conversion (subclause G.6.1.1) =====
   if( ! m_bCurrFieldMb )
   {
@@ -364,7 +281,7 @@ MotionUpsampling::xGetRefLayerPartIdc( Int  iXInsideCurrMb,
     riPartIdc = -2; // not available
     return Err::m_nOK;
   }
-  
+
   //===== check whether intra =====
   MbData& rcMbDataBase = m_rcMbDataCtrlBase.getMbDataByIndex( (UInt)iBaseMbIdx );
   if( rcMbDataBase.isIntra() )
@@ -403,7 +320,7 @@ MotionUpsampling::xGetRefLayerPartIdc( Int  iXInsideCurrMb,
 
     //===== determine macroblock partition index =====
     iBase8x8MbPartIdx = aauiNxNPartIdx[ eMbModeBase ][ iB8x8IdxBase ];
-  
+
     //===== determine sub-macroblock partition index =====
     if( eMbModeBase == MODE_8x8 || eMbModeBase == MODE_8x8ref0 )
     {
@@ -473,7 +390,7 @@ MotionUpsampling::xSetPartIdcArray()
           Int iYCInv  = ( iYP << 1 ) + iYSInv;
           Int iXCInv  = ( iXP << 1 ) + iXSInv;
           aabProcI4x4Blk[iXS][iYS] = true;
-          
+
           if( ! aabProcI4x4Blk[iXSInv][iYS] && m_aaiPartIdc[iXCInv][iYC] != -1 )
           {
             m_aaiPartIdc[iXC][iYC] = m_aaiPartIdc[iXCInv][iYC];
@@ -530,7 +447,7 @@ MotionUpsampling::xSetPartIdcArray()
           m_aaiPartIdc[iXO  ][iYO+1] = m_aaiPartIdc[iXOInv][iYOInv];
           m_aaiPartIdc[iXO+1][iYO+1] = m_aaiPartIdc[iXOInv][iYOInv];
         }
-      }      
+      }
     }
   }
 
@@ -632,11 +549,11 @@ MotionUpsampling::xGetRefIdxAndInitialMvPred( ListIdx eListIdx )
     for( Int i4x4BlkY = 0; i4x4BlkY < 4; i4x4BlkY++ )
     for( Int i4x4BlkX = 0; i4x4BlkX < 4; i4x4BlkX++ )
     {
-      RNOK( xGetInitialBaseRefIdxAndMv( i4x4BlkX, i4x4BlkY, eListIdx, m_aaiPartIdc[i4x4BlkX][i4x4BlkY], 
+      RNOK( xGetInitialBaseRefIdxAndMv( i4x4BlkX, i4x4BlkY, eListIdx, m_aaiPartIdc[i4x4BlkX][i4x4BlkY],
                                         m_aaiRefIdxTemp[i4x4BlkX][i4x4BlkY], m_aaacMv[eListIdx][i4x4BlkX][i4x4BlkY] ) );
     }
   }
-      
+
   //===== set reference indices =====
   m_aaaiRefIdx[eListIdx][0][0] = m_aaiRefIdxTemp[0][0];
   m_aaaiRefIdx[eListIdx][0][1] = m_aaiRefIdxTemp[0][2];
@@ -663,7 +580,7 @@ MotionUpsampling::xGetRefIdxAndInitialMvPred( ListIdx eListIdx )
     {
       Int iY = ( i8x8BlkY << 1 ) + iYS;
       Int iX = ( i8x8BlkX << 1 ) + iXS;
-      
+
       if( m_aaaiRefIdx[eListIdx][i8x8BlkX][i8x8BlkY] != m_aaiRefIdxTemp[iX][iY] )
       {
         Int iYInv = ( i8x8BlkY << 1 ) + 1 - iYS;
@@ -683,7 +600,7 @@ MotionUpsampling::xGetRefIdxAndInitialMvPred( ListIdx eListIdx )
           m_aaacMv[eListIdx][iX][iY] = m_aaacMv[eListIdx][iXInv][iYInv];
         }
       }
-    }    
+    }
   }
 
   return Err::m_nOK;
@@ -708,6 +625,21 @@ MotionUpsampling::xDeriveBlockModeAndUpdateMv( Int i8x8BlkIdx )
   Bool  bHorMatch           = true;
   Bool  bVerMatch           = true;
 
+  //===== unify 8x8 blocks when direct_8x8_inference_flag is equal to 1 =====
+  if( m_bDirect8x8Inference && ! m_cMvScale.m_bRSChangeFlag && m_eSliceType == B_SLICE )
+  {
+    Int iXC = ( iXO >> 1 ) * 3;
+    Int iYC = ( iYO >> 1 ) * 3;
+    for( Int iListIdx = 0; iListIdx < m_iMaxListIdx; iListIdx++ )
+    {
+      Mv  cTmpMv  = m_aaacMv[iListIdx][iXC][iYC];
+      m_aaacMv[iListIdx][iXO  ][iYO  ]  = cTmpMv;
+      m_aaacMv[iListIdx][iXO+1][iYO  ]  = cTmpMv;
+      m_aaacMv[iListIdx][iXO  ][iYO+1]  = cTmpMv;
+      m_aaacMv[iListIdx][iXO+1][iYO+1]  = cTmpMv;
+    }
+  }
+
   //===== derive partition size =====
   {
     for( Int iListIdx = 0; iListIdx < m_iMaxListIdx; iListIdx++ )
@@ -731,7 +663,7 @@ MotionUpsampling::xDeriveBlockModeAndUpdateMv( Int i8x8BlkIdx )
       {
       case BLK_8x8:
         {
-          Mv  cNewMv  = ( m_aaacMv[iListIdx][iXO  ][iYO  ] + m_aaacMv[iListIdx][iXO+1][iYO  ] + 
+          Mv  cNewMv  = ( m_aaacMv[iListIdx][iXO  ][iYO  ] + m_aaacMv[iListIdx][iXO+1][iYO  ] +
                           m_aaacMv[iListIdx][iXO  ][iYO+1] + m_aaacMv[iListIdx][iXO+1][iYO+1] + Mv(2,2) ) >> 2;
           m_aaacMv[iListIdx][iXO  ][iYO  ]  = cNewMv;
           m_aaacMv[iListIdx][iXO+1][iYO  ]  = cNewMv;
@@ -840,7 +772,7 @@ MotionUpsampling::xSetInterIntraIdc()
     RNOK( xGetRefLayerPartIdc( iXPos, iYPos, iPartIdc ) );
     m_aabBaseIntra[iX][iY] = ( iPartIdc == -1 );
   }
-  return Err::m_nOK;   
+  return Err::m_nOK;
 }
 
 
@@ -869,7 +801,7 @@ MotionUpsampling::xSetResPredSafeFlag()
       m_bResPredSafe  = bSomeNoInter;
       continue;
     }
-      
+
     //===== check differences =====
     for( Int iListIdx = 0; iListIdx < 2 && m_bResPredSafe; iListIdx++ )
     {
@@ -901,7 +833,7 @@ MotionUpsampling::xSetResPredSafeFlag()
       }
     }
   }
-  return Err::m_nOK;   
+  return Err::m_nOK;
 }
 
 
@@ -985,7 +917,7 @@ MotionUpsampling::xSetPredMbData()
       rcMbData.copyIntraPred( rcMbDataBase );
     }
   }
- 
+
   return Err::m_nOK;
 }
 
@@ -1145,7 +1077,7 @@ MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl, PicType ePicType )
   UInt    uiNumLines  = m_uiSize / uiStride;
   MbData* pcMbDataDes = &( m_pcMbData             [ uiMbOffset ] );
   MbData* pcMbDataSrc = &( rcMbDataCtrl.m_pcMbData[ uiMbOffset ] );
-  
+
   for( Int y = 0; y < (Int)uiNumLines; y++, pcMbDataDes += uiStride, pcMbDataSrc += uiStride )
   {
     for( Int x = 0; x < m_iMbPerLine; x++ )
@@ -1162,7 +1094,7 @@ MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl, PicType ePicType )
 ErrVal
 MbDataCtrl::upsampleMotion( SliceHeader*      pcSliceHeader,
                             ResizeParameters* pcResizeParameters,
-                            MbDataCtrl*       pcBaseMbDataCtrl, 
+                            MbDataCtrl*       pcBaseMbDataCtrl,
                             RefFrameList*     pcRefFrameList0,
                             RefFrameList*     pcRefFrameList1,
                             Bool              bFieldResampling,
@@ -1231,8 +1163,8 @@ ErrVal MbDataCtrl::reset()
 ErrVal MbDataCtrl::initUsedField( SliceHeader& rcSH, RefFrameList& rcRefFrameList1 )
 {
    if( /*!rcSH.getFieldPicFlag() &&*/
-        rcRefFrameList1.getSize() !=0 && 
-        rcRefFrameList1[1]->getPic(TOP_FIELD) != NULL && 
+        rcRefFrameList1.getSize() !=0 &&
+        rcRefFrameList1[1]->getPic(TOP_FIELD) != NULL &&
         rcRefFrameList1[1]->getPic(BOT_FIELD) != NULL )
    {
      Int iCurrPoc     = rcSH.getPoc();
@@ -1245,9 +1177,9 @@ ErrVal MbDataCtrl::initUsedField( SliceHeader& rcSH, RefFrameList& rcRefFrameLis
 }
 //TMM }
 
-ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, 
-                              ProcessingState eProcessingState, 
-                              Bool bDecoder, 
+ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
+                              ProcessingState eProcessingState,
+                              Bool bDecoder,
                               MbDataCtrl* pcMbDataCtrl )
 {
   AOF_DBG( m_bInitDone );
@@ -1331,10 +1263,10 @@ const MbData& MbDataCtrl::xGetColMbData( UInt uiIndex )
   return (( m_pcMbDataCtrl0L1 == NULL ) ? xGetOutMbData() : m_pcMbDataCtrl0L1->getMbData( uiIndex ));
 }
 
-const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, 
-                                         Int uiCurrSliceID, 
-                                         Int iMbY, 
-                                         Int iMbX, 
+const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId,
+                                         Int uiCurrSliceID,
+                                         Int iMbY,
+                                         Int iMbX,
                                          Bool bLoopFilter )
 {
   // check whether ref mb is inside
@@ -1402,7 +1334,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
     uiIdxColBot       = uiCurrIdx   - m_iColocatedOffset;
     uiIdxColTop       = uiIdxColBot + m_iColocatedOffset - m_iMbPerLine;
   }
-  
+
   if( m_pcMbDataAccess )
   {
     m_ucLastMbQp    = m_pcMbDataAccess->getMbData().getQp();
@@ -1443,9 +1375,9 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 
   m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess( rcMbDataCurr,                                      // current
                                                           	rcMbDataComp,                                    // complementary
-                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left        
-                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above                                                                 
-                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left  
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
 																													((bMbAff && (uiMbY % 2 == 1)) ? xGetOutMbData() : xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf )), // above right
 																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX  , bLf ), // above above
 																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX-1, bLf ), // above above left
@@ -1517,7 +1449,7 @@ ControlData::init( SliceHeader*  pcSliceHeader,
   m_pcSliceHeader = pcSliceHeader;
   m_pcMbDataCtrl  = pcMbDataCtrl;
   m_dLambda       = dLambda;
-  
+
   m_pcMbDataCtrl0L1       = 0;
   m_pcBaseLayerRec        = 0;
   m_pcBaseLayerSbb        = 0;
@@ -1535,12 +1467,12 @@ ControlData::init( SliceHeader*  pcSliceHeader )
   ROF( m_pcMbDataCtrl  );
 
   m_pcSliceHeader         = pcSliceHeader;
-  
+
   m_pcMbDataCtrl0L1       = 0;
   m_pcBaseLayerRec        = 0;
   m_pcBaseLayerSbb        = 0;
   m_pcBaseLayerCtrl       = 0;
-  m_pcBaseLayerCtrlField  = 0; 
+  m_pcBaseLayerCtrlField  = 0;
   m_uiUseBLMotion         = 0;
 
   return Err::m_nOK;
@@ -1558,7 +1490,7 @@ const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 }
 
 
-ErrVal 
+ErrVal
 MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const
 {
   ruiMask         = 0;
@@ -1621,7 +1553,7 @@ MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, U
 }
 
 
-ErrVal 
+ErrVal
 MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, UInt uiCurrentSliceID ) const
 {
   ROF( iMbY >= 0 && iMbY < m_iMbPerColumn && iMbX >= 0 && iMbX < m_iMbPerLine );
@@ -1640,7 +1572,7 @@ MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiM
   Bool  bAvailableBotRight    = false; //0x800
 
   Int   iMbY0                 = ( iMbY >> 1 ) << 1;
-  Int   iMbFieldOffset        = ( iMbY - iMbY0 ) * (Int)m_uiMbStride; 
+  Int   iMbFieldOffset        = ( iMbY - iMbY0 ) * (Int)m_uiMbStride;
 
   Bool  bMbPairAvailableTop   = ( iMbY0 > 0 );
   Bool  bMbPairAvailableBot   = ( iMbY0 < m_iMbPerColumn - 2 );

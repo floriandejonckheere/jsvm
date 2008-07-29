@@ -1,7 +1,3 @@
-/**************************************************************************
-// JVT-V068 HRD
-**************************************************************************/
-// JVT-V068 HRD {
 
 #if !defined(AFX_VUI_H__3B47C8E4_5FE6_487B_81D8_597C908E65AD__INCLUDED_)
 #define AFX_VUI_H__3B47C8E4_5FE6_487B_81D8_597C908E65AD__INCLUDED_
@@ -270,4 +266,3 @@ protected:
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_VUI_H__3B47C8E4_5FE6_487B_81D8_597C908E65AD__INCLUDED_)
-// JVT-V068 HRD }

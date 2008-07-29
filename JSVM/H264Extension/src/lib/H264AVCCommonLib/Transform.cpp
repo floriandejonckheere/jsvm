@@ -1,87 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
-
 
 #include "H264AVCCommonLib.h"
 
@@ -99,21 +15,21 @@ CoeffLevelPred::~CoeffLevelPred()
 {
 }
 
-ErrVal 
+ErrVal
 CoeffLevelPred::ScaleCoeffLevels( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt uiNumCoeffs )
 {
-	// DECLARATIONS	
-	UInt uiScaleFactor[6] = {8, 9, 10, 11, 13, 14};	
+	// DECLARATIONS
+	UInt uiScaleFactor[6] = {8, 9, 10, 11, 13, 14};
 	UInt uiDeltaQp;
 
-	// DETERMINE THE SCALING FACTOR	
+	// DETERMINE THE SCALING FACTOR
 	uiDeltaQp = uiRefQp - uiQp;
 	if( uiDeltaQp < 0 )
 		uiDeltaQp = 0;
 
-	// PREDICT THE COEFFICIENTS		
+	// PREDICT THE COEFFICIENTS
 	for( UInt n=0; n<uiNumCoeffs; n++ )
-	{		
+	{
 		piCoeff[n] = piRefCoeff[n]<<(uiDeltaQp/6);
 		piCoeff[n] *= uiScaleFactor[ uiDeltaQp%6 ];
 		piCoeff[n] += ( piCoeff[n]>0 ) ? 4 : -4;
@@ -456,11 +372,11 @@ Void Transform::xQuantDequantNonUniformLuma( TCoeff* piQCoeff, TCoeff* piCoeff, 
     iLevel     = ( iLevel << 4 ) / pucScale[0];
   }
   iLevel       = ( iLevel + 2 * rcQp.add() ) >> ( rcQp.bits() + 1 );
-  
+
   ruiDcAbs    += iLevel;
   iLevel       = ( uiSign ? -iLevel : iLevel );
   piQCoeff[0]  = iLevel;
-    
+
 
   UInt uiAcAbs = 0;
   for( Int n = 1; n < 16; n++ )
@@ -522,12 +438,12 @@ Void Transform::xQuantDequantNonUniformChroma( TCoeff* piQCoeff,
       iLevel      = ( iLevel << 4 ) / pucScale[0];
     }
     iLevel        = ( iLevel + 2*rcQp.add() ) >> ( rcQp.bits() + 1 );
-  
+
     ruiDcAbs   += iLevel;
     iLevel      = ( uiSign ? -iLevel : iLevel );
-    piQCoeff[0] = iLevel; 
+    piQCoeff[0] = iLevel;
     // dequantize DC also
-    piCoeff [0] = iLevel * ( pucScale ? pucScale[0] : 16 ) * g_aaiDequantCoef[rcQp.rem()][0] << rcQp.per();   
+    piCoeff [0] = iLevel * ( pucScale ? pucScale[0] : 16 ) * g_aaiDequantCoef[rcQp.rem()][0] << rcQp.per();
   }
 
   UInt uiAcAbs = 0;
@@ -589,7 +505,7 @@ Void Transform::xQuantDequantUniform4x4( TCoeff*                      piQCoeff,
   {
     Int iLevel  = piCoeff[n];
     Int iSign   = iLevel;
-    
+
     iLevel      = abs( iLevel ) * g_aaiQuantCoef[rcQp.rem()][n];
     if( pucScale )
     {
@@ -626,11 +542,11 @@ Void Transform::xQuantDequantUniform4x4( TCoeff*                      piQCoeff,
 
 // for SVC to AVC rewrite
 ErrVal Transform::predict4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRefQp, UInt& ruiAbsSum  )
-{	
+{
 	// DECLARATIONS
 	TCoeff cPredCoeff[16];
-	
-	// PREDICT THE COEFFICIENTS	
+
+	// PREDICT THE COEFFICIENTS
 	ScaleCoeffLevels( cPredCoeff, piRefCoeff, getLumaQp().value(), uiRefQp, 16 );
 
 	// ADJUST THE TRANSMITTED COEFFICIENTS
@@ -640,7 +556,7 @@ ErrVal Transform::predict4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRef
 		piCoeff[n] -= cPredCoeff[n];
 		ruiAbsSum += (piCoeff[n]>0) ? piCoeff[n].getCoeff() : (-1*piCoeff[n].getCoeff());
 	}
-	
+
 	return Err::m_nOK;
 }
 
@@ -649,9 +565,9 @@ ErrVal Transform::predict8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRef
 	// DECLARATIONS
 	TCoeff cPredCoeff[64];
 
-	// PREDICT THE COEFFICIENTS		
+	// PREDICT THE COEFFICIENTS
     ScaleCoeffLevels( cPredCoeff, piRefCoeff, getLumaQp().value(), uiRefQp, 64 );
-	
+
 
 	// ADJUST THE TRANSMITTED COEFFICIENTS
 	for( Int n=0; n<64; n++ )
@@ -660,7 +576,7 @@ ErrVal Transform::predict8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRef
 		piCoeff[n] -= cPredCoeff[n];
 		ruiAbsSum += (piCoeff[n]>0) ? piCoeff[n].getCoeff() : -1*piCoeff[n].getCoeff();
 	}
-	
+
 	return Err::m_nOK;
 }
 
@@ -683,12 +599,12 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
   int i;
 
 	for( UInt x=0; x<0x40; x+=0x10 )
-	{		
+	{
 		ScaleCoeffLevels( &cScaledRef[x], &piRef[x], getChromaQp().value(), uiRefQp, 16 );
 
 		for( UInt n=0; n<16; n++ )
-		{			
-			piCoeff[x+n] -= cScaledRef[x+n];		
+		{
+			piCoeff[x+n] -= cScaledRef[x+n];
 		}
   }
 
@@ -698,10 +614,10 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
 
 	for(i=0; i<64; i++ )
 		ruiAcAbs += abs( (Int)piCoeff[i] );
-    
+
 	for( i=0; i<64; i+=16 )
 		ruiDcAbs += abs( (Int)piCoeff[i] );
-	  
+
 	ruiAcAbs -= ruiDcAbs;
 
 	return Err::m_nOK;
@@ -730,7 +646,7 @@ Transform::predictScaledACCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, 
 	// Substitute
 	for( UInt x=0x00; x<0x40; x+=0x10 )
 		for( UInt n=1; n<16; n++ )
-			piCoeff[x+n] = cPredCoeff[x+n];	
+			piCoeff[x+n] = cPredCoeff[x+n];
 
 
 	return Err::m_nOK;
@@ -769,10 +685,10 @@ Transform::predictScaledChromaCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRef
 
 
 ErrVal Transform::addPrediction4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt &uiCoded  )
-{	
+{
 	// DECLARATIONS
 	TCoeff cPredCoeff[16];
-	
+
 	// PREDICT THE COEFFICIENTS
 	ScaleCoeffLevels( cPredCoeff, piRefCoeff, uiQp, uiRefQp, 16 );
 
@@ -783,7 +699,7 @@ ErrVal Transform::addPrediction4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt
 		if( piCoeff[n] )
 			uiCoded++;
 	}
-	
+
 	return Err::m_nOK;
 }
 
@@ -792,7 +708,7 @@ ErrVal Transform::addPrediction8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt
 	// DECLARATIONS
 	TCoeff cPredCoeff[64];
 
-	// PREDICT THE COEFFICIENTS	
+	// PREDICT THE COEFFICIENTS
 	ScaleCoeffLevels( cPredCoeff, piRefCoeff, uiQp, uiRefQp, 64 );
 
 	// ADJUST THE TRANSMITTED COEFFICIENTS
@@ -802,7 +718,7 @@ ErrVal Transform::addPrediction8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt
 		if( piCoeff[n] )
 			bCoded = true;
 	}
-	
+
 	return Err::m_nOK;
 }
 
@@ -810,14 +726,14 @@ ErrVal Transform::addPredictionChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UIn
 {
 
 	// DECLARATIONS
-	TCoeff cScaledRef[64];	
+	TCoeff cScaledRef[64];
 
 	for( UInt x=0; x<0x40; x+=0x10 )
 	{
 		ScaleCoeffLevels( &cScaledRef[x], &piRef[x], uiQp, uiRefQp, 16 );
 
 		for( UInt n=0; n<16; n++ )
-		{			
+		{
 			piCoeff[x+n] += cScaledRef[x+n];
 
 			if( piCoeff[x+n] )
@@ -826,9 +742,9 @@ ErrVal Transform::addPredictionChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UIn
 					bACflag = true;
 				else
 					bDCflag = true;
-			}			
+			}
 		}
-	}	
+	}
 
 	return Err::m_nOK;
 
@@ -864,10 +780,10 @@ ErrVal Transform::transform4x4Blk( YuvMbBuffer*              pcOrgData,
 
   xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
   xQuantDequantUniform4x4( piCoeff, aiTemp, m_cLumaQp, pucScale, ruiAbsSum );
- 
+
   if( m_storeCoeffFlag ) // store the coefficients
   {
-    for( UInt ui=0; ui<16; ui++ )      
+    for( UInt ui=0; ui<16; ui++ )
     {
       piCoeff[ui].setLevel( aiTemp[ui].getCoeff() );
     }
@@ -887,7 +803,7 @@ Transform::transform8x8BlkCGS( YuvMbBuffer* pcOrgData,
                             const UChar*    pucScale,
                             UInt&           ruiAbsSum )
 {
-  TCoeff  aiTemp[64];  	  
+  TCoeff  aiTemp[64];
   Int normAdjust[] = { 8, 9, 5, 9,   8, 9, 5, 9 };
 
   XPel*   pOrg    = pcOrgData->getLumBlk();
@@ -896,13 +812,13 @@ Transform::transform8x8BlkCGS( YuvMbBuffer* pcOrgData,
 
   xForTransform8x8Blk     ( pOrg, pRec, iStride, aiTemp );
   UInt ui=0;
-  
-  // get the baselayer coefficients  
+
+  // get the baselayer coefficients
   for( ui=0; ui<64; ui++ )
 	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/8]*normAdjust[ui%8]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
 
   xQuantDequantUniform8x8 ( piCoeff, aiTemp, m_cLumaQp, pucScale, ruiAbsSum );
-  
+
   // add the base layer coeff back
   for( ui=0; ui<64; ui++ )
   {
@@ -919,7 +835,7 @@ Transform::transform8x8BlkCGS( YuvMbBuffer* pcOrgData,
 }
 
 ErrVal Transform::transform4x4BlkCGS( YuvMbBuffer*         pcOrgData,
-                                   YuvMbBuffer*            pcPelData,                                   
+                                   YuvMbBuffer*            pcPelData,
                                    TCoeff*                    piCoeff,
                                    TCoeff*                    piCoeffBase,
                                    const UChar*               pucScale,
@@ -934,7 +850,7 @@ ErrVal Transform::transform4x4BlkCGS( YuvMbBuffer*         pcOrgData,
   xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
   UInt ui=0;
 
-  // get the baselayer coefficients  
+  // get the baselayer coefficients
   for( ui=0; ui<16; ui++ )
 	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/4]*normAdjust[ui%4]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
 
@@ -942,7 +858,7 @@ ErrVal Transform::transform4x4BlkCGS( YuvMbBuffer*         pcOrgData,
 
   // add the base layer coeff back
   for( ui=0; ui<16; ui++ )
-  {	  
+  {
     aiTemp[ui] = piCoeffBase[ui].getLevel() + aiTemp[ui].getCoeff();
 
     // store the coefficients
@@ -951,7 +867,7 @@ ErrVal Transform::transform4x4BlkCGS( YuvMbBuffer*         pcOrgData,
 
   }
 
-  xInvTransform4x4Blk( pRec, iStride, aiTemp );  
+  xInvTransform4x4Blk( pRec, iStride, aiTemp );
 
   return Err::m_nOK;
 }
@@ -1077,7 +993,7 @@ ErrVal Transform::transformMb16x16( YuvMbBuffer* pcOrgData, YuvMbBuffer* pcPelDa
   {
     xQuantDequantNonUniformLuma( &piCoeff[n<<4], &aiCoeff[n<<4], m_cLumaQp, pucScale, ruiDcAbs, ruiAcAbs );
   }
-  
+
   for( n = 0; n < 16; n ++ )
   {
     aiCoeff[n<<4] = piCoeff[n<<4];
@@ -1137,11 +1053,11 @@ ErrVal Transform::transformChromaBlocks( XPel*          pucOrg,
   xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
   xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
   xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
- 
+
   if( m_storeCoeffFlag )
   {
     for( UInt ui=0; ui<64; ui++ )
-    {    
+    {
       piCoeff[ui].setLevel( piQuantCoeff[ui].getCoeff() );  // store the dequantized coeffs in TCoeff.level
     }
   }
@@ -1150,7 +1066,7 @@ ErrVal Transform::transformChromaBlocks( XPel*          pucOrg,
 }
 
 ErrVal Transform::transformChromaBlocksCGS( XPel*       pucOrg,
-                                         XPel*          pucRec,                                         
+                                         XPel*          pucRec,
                                          const CIdx     cCIdx,
                                          Int            iStride,
                                          TCoeff*        piCoeff,
@@ -1173,12 +1089,12 @@ ErrVal Transform::transformChromaBlocksCGS( XPel*       pucOrg,
 
   xForTransformChromaDc( piQuantCoeff );
 
-  // substract the baselayer coefficients  
+  // substract the baselayer coefficients
   for( UInt uiOffset = 0; uiOffset<0x40; uiOffset+=0x10 )
   {
-    piQuantCoeff[uiOffset+0] = ( piQuantCoeff[uiOffset+0].getCoeff() - ( ( piCoeffBase[uiOffset+0].getLevel() + (1<<4) ) >> 5 ) );	        
+    piQuantCoeff[uiOffset+0] = ( piQuantCoeff[uiOffset+0].getCoeff() - ( ( piCoeffBase[uiOffset+0].getLevel() + (1<<4) ) >> 5 ) );
 	  for( UInt ui=1; ui<16; ui++ )
-		  piQuantCoeff[uiOffset+ui] = ( piQuantCoeff[uiOffset+ui].getCoeff() - ( ( normAdjust[ui/4] * normAdjust[ui%4] * piCoeffBase[uiOffset+ui].getLevel() + (1<<5) ) >> 6 ) );		  
+		  piQuantCoeff[uiOffset+ui] = ( piQuantCoeff[uiOffset+ui].getCoeff() - ( ( normAdjust[ui/4] * normAdjust[ui%4] * piCoeffBase[uiOffset+ui].getLevel() + (1<<5) ) >> 6 ) );
   }
 
   xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
@@ -1235,7 +1151,7 @@ Transform::transform8x8Blk( YuvMbBuffer* pcOrgData,
 
   xForTransform8x8Blk     ( pOrg, pRec, iStride, aiTemp );
   xQuantDequantUniform8x8 ( piCoeff, aiTemp, m_cLumaQp, pucScale, ruiAbsSum );
-   
+
   if( m_storeCoeffFlag )
   {
     for( UInt ui=0; ui<64; ui++ )
@@ -1251,7 +1167,7 @@ Transform::transform8x8Blk( YuvMbBuffer* pcOrgData,
 
 ErrVal
 Transform::invTransform8x8Blk( XPel*    puc,
-                               Int      iStride, 
+                               Int      iStride,
                                TCoeff*  piCoeff )
 {
   Int aai[8][8];
@@ -1262,7 +1178,7 @@ Transform::invTransform8x8Blk( XPel*    puc,
     TCoeff* pi = piCoeff + n*8;
     Int     ai1[8];
     Int     ai2[8];
-    
+
     ai1[0] = pi[0] + pi[4];
     ai1[2] = pi[0] - pi[4];
 
@@ -1379,7 +1295,7 @@ Transform::xForTransform8x8Blk( XPel* pucOrg, XPel* pucRec, Int iStride, TCoeff*
     ai[5] = pucOrg[5] - pucRec[5];
     ai[6] = pucOrg[6] - pucRec[6];
     ai[7] = pucOrg[7] - pucRec[7];
-    
+
     ai1[0] = ai[0] + ai[7];
     ai1[1] = ai[1] + ai[6];
     ai1[2] = ai[2] + ai[5];

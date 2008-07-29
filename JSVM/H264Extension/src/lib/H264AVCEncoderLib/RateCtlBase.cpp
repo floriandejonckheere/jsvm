@@ -1,22 +1,4 @@
 
-/*!
- ***************************************************************************
- * \file ratectl.c
- *
- * \brief
- *    Rate Control algorithm
- *
- * \author
- *    Main contributors (see contributors.h for copyright, address and affiliation details)
- *     - Siwei Ma <swma@jdl.ac.cn>
- *     - Zhengguo LI<ezgli@lit.a-star.edu.sg>
- *     - Athanasios Leontaris <aleon@dolby.com>
- *
- * \date
- *   16 Jan. 2003
- **************************************************************************
- */
-
 #include "H264AVCEncoderLib.h"
 #include "H264AVCCommonLib.h"
 #include "RateCtlBase.h"
@@ -46,7 +28,7 @@ void rc_generic::update_rc(unsigned int currentMAD)
   if(m_pcJSVMParams->basicunit < m_pcJSVMParams->FrameSizeInMbs)
   {
     m_i64TotalMADBasicUnit += m_piMADofMB[m_pcJSVMParams->current_mb_nr];
-  }  
+  }
 }
 
 /*!

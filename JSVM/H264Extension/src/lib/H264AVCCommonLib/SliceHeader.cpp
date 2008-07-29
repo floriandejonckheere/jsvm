@@ -1,86 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
-
-
 
 #include "H264AVCCommonLib.h"
 
@@ -199,7 +116,7 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
     ::memset( m_aauiNumRefIdxActiveUpdate[ui] , 0x00, 2*sizeof(UInt));
   }
 }
- 
+
 SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 : SliceHeaderSyntax         ( rcSliceHeader )
 , m_eErrorConcealMode       ( EC_NONE )
@@ -316,7 +233,7 @@ Void
 SliceHeader::getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, UInt uiMbAddress ) const
 {
   AOF( parameterSetsInitialized() );
-  
+
   UInt uiMbsInRow = getSPS().getFrameWidthInMbs();
   if( isMbaffFrame() )
   {
@@ -414,13 +331,13 @@ SliceHeader::getPicType() const
 Int
 SliceHeader::getPoc() const
 {
-  return ( getFieldPicFlag() ? ( getBottomFieldFlag() ? m_iBotFieldPoc : m_iTopFieldPoc ) : min( m_iTopFieldPoc, m_iBotFieldPoc ) ); 
+  return ( getFieldPicFlag() ? ( getBottomFieldFlag() ? m_iBotFieldPoc : m_iTopFieldPoc ) : min( m_iTopFieldPoc, m_iBotFieldPoc ) );
 }
 
 Int
 SliceHeader::getPoc( PicType ePicType ) const
 {
-  return ( ePicType == FRAME ? min( m_iTopFieldPoc, m_iBotFieldPoc ) : ePicType == BOT_FIELD ? m_iBotFieldPoc : m_iTopFieldPoc ); 
+  return ( ePicType == FRAME ? min( m_iTopFieldPoc, m_iBotFieldPoc ) : ePicType == BOT_FIELD ? m_iBotFieldPoc : m_iTopFieldPoc );
 }
 
 Void
@@ -561,17 +478,17 @@ SliceHeader::sliceHeaderBackup ( SliceHeader*                pcSH )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 SliceHeader::FMOInit()
 {
-  m_cFMO.sps_.frame_mbs_only_flag            = getSPS().getFrameMbsOnlyFlag(); 
-  m_cFMO.sps_.mb_adaptive_frame_field_flag   = getSPS().getMbAdaptiveFrameFieldFlag(); 
+  m_cFMO.sps_.frame_mbs_only_flag            = getSPS().getFrameMbsOnlyFlag();
+  m_cFMO.sps_.mb_adaptive_frame_field_flag   = getSPS().getMbAdaptiveFrameFieldFlag();
   m_cFMO.sps_.pic_height_in_map_units_minus1 = ( getSPS().getFrameMbsOnlyFlag() ? getSPS().getFrameHeightInMbs() : getSPS().getFrameHeightInMbs() >> 1 ) - 1;
   m_cFMO.sps_.pic_width_in_mbs_minus1        = getSPS().getFrameWidthInMbs() - 1;
 
   m_cFMO.pps_.num_slice_groups_minus1 = getPPS().getNumSliceGroupsMinus1();
   m_cFMO.pps_.slice_group_map_type    = getPPS().getSliceGroupMapType();
-  m_cFMO.pps_.num_slice_group_map_units_minus1 = getPPS().getNumSliceGroupMapUnitsMinus1();	  
+  m_cFMO.pps_.num_slice_group_map_units_minus1 = getPPS().getNumSliceGroupMapUnitsMinus1();
   m_cFMO.pps_.copy_run_length_minus1(getPPS().getArrayRunLengthMinus1());
   m_cFMO.pps_.copy_top_left(getPPS().getArrayTopLeft());
   m_cFMO.pps_.copy_bottom_right(getPPS().getArrayBottomRight());
@@ -580,7 +497,7 @@ SliceHeader::FMOInit()
   m_cFMO.pps_.copy_slice_group_id(getPPS().getArraySliceGroupId());
 
   m_cFMO.img_.field_pic_flag      = getFieldPicFlag();
-  m_cFMO.img_.PicHeightInMapUnits = m_cFMO.sps_.pic_height_in_map_units_minus1 + 1; 
+  m_cFMO.img_.PicHeightInMapUnits = m_cFMO.sps_.pic_height_in_map_units_minus1 + 1;
   m_cFMO.img_.PicWidthInMbs       = getSPS().getFrameWidthInMbs();
   m_cFMO.img_.PicSizeInMbs        = (getSPS().getFrameHeightInMbs()>> (UChar)getFieldPicFlag())*getSPS().getFrameWidthInMbs();
   m_cFMO.img_.slice_group_change_cycle = getSliceGroupChangeCycle();
@@ -590,7 +507,7 @@ SliceHeader::FMOInit()
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 SliceHeader::FMOUninit()
 {
   m_cFMO.finit();
@@ -599,7 +516,7 @@ SliceHeader::FMOUninit()
 
 Int
 SliceHeader::getNumMbInSlice()
-{  
+{
   Int SliceID = m_cFMO.getSliceGroupId(getFirstMbInSlice());
   return m_cFMO.getNumMbInSliceGroup(SliceID);
 }

@@ -1,84 +1,3 @@
-/*
-********************************************************************************
-
-NOTE - One of the two copyright statements below may be chosen
-       that applies for the software.
-
-********************************************************************************
-
-This software module was originally developed by
-
-Heiko Schwarz    (Fraunhofer HHI),
-Tobias Hinz      (Fraunhofer HHI),
-Karsten Suehring (Fraunhofer HHI)
-
-in the course of development of the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video
-Coding) for reference purposes and its performance may not have been optimized.
-This software module is an implementation of one or more tools as specified by
-the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding).
-
-Those intending to use this software module in products are advised that its
-use may infringe existing patents. ISO/IEC have no liability for use of this
-software module or modifications thereof.
-
-Assurance that the originally developed software module can be used
-(1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
-ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
-
-To the extent that Fraunhofer HHI owns patent rights that would be required to
-make, use, or sell the originally developed software module or portions thereof
-included in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) in a
-conforming product, Fraunhofer HHI will assure the ISO/IEC that it is willing
-to negotiate licenses under reasonable and non-discriminatory terms and
-conditions with applicants throughout the world.
-
-Fraunhofer HHI retains full right to modify and use the code for its own
-purpose, assign or donate the code to a third party and to inhibit third
-parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
-
-This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
-
-********************************************************************************
-
-COPYRIGHT AND WARRANTY INFORMATION
-
-Copyright 2005, International Telecommunications Union, Geneva
-
-The Fraunhofer HHI hereby donate this source code to the ITU, with the following
-understanding:
-    1. Fraunhofer HHI retain the right to do whatever they wish with the
-       contributed source code, without limit.
-    2. Fraunhofer HHI retain full patent rights (if any exist) in the technical
-       content of techniques and algorithms herein.
-    3. The ITU shall make this code available to anyone, free of license or
-       royalty fees.
-
-DISCLAIMER OF WARRANTY
-
-These software programs are available to the user without any license fee or
-royalty on an "as is" basis. The ITU disclaims any and all warranties, whether
-express, implied, or statutory, including any implied warranties of
-merchantability or of fitness for a particular purpose. In no event shall the
-contributor or the ITU be liable for any incidental, punitive, or consequential
-damages of any kind whatsoever arising from the use of these programs.
-
-This disclaimer of warranty extends to the user of these programs and user's
-customers, employees, agents, transferees, successors, and assigns.
-
-The ITU does not represent or warrant that the programs furnished hereunder are
-free of infringement of any third-party patents. Commercial implementations of
-ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
-the ITU Web site at http://www.itu.int.
-
-THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
-
-********************************************************************************
-*/
-
 
 #ifdef DOWN_CONVERT_STATIC
 #else
@@ -115,7 +34,7 @@ H264AVC_NAMESPACE_BEGIN
 
 //=================================================
 //
-//   G E N E R A L   M A I N   F U N C T I O N S   
+//   G E N E R A L   M A I N   F U N C T I O N S
 //
 //=================================================
 
@@ -124,7 +43,7 @@ DownConvert::DownConvert()
 , m_paiImageBuffer		      ( 0 )
 , m_paiTmp1dBuffer		      ( 0 )
 #ifdef DOWN_CONVERT_STATIC
-, m_padFilter			          ( 0 )     
+, m_padFilter			          ( 0 )
 , m_aiTmp1dBufferInHalfpel  ( 0 )
 , m_aiTmp1dBufferInQ1pel    ( 0 )
 , m_aiTmp1dBufferInQ3pel    ( 0 )
@@ -201,12 +120,12 @@ DownConvert::destroy()
 
 //===========================================================================
 //
-//   M A I N   F U N C T I O N S   F O R   D O W N C O N V E R T   T O O L   
+//   M A I N   F U N C T I O N S   F O R   D O W N C O N V E R T   T O O L
 //
 //===========================================================================
 
 void
-DownConvert::cropping( unsigned char*    pucBufferY, int iStrideY, 
+DownConvert::cropping( unsigned char*    pucBufferY, int iStrideY,
                        unsigned char*    pucBufferU, int iStrideU,
                        unsigned char*    pucBufferV, int iStrideV,
                        ResizeParameters* pcParameters )
@@ -249,7 +168,7 @@ DownConvert::cropping( unsigned char*    pucBufferY, int iStrideY,
 
 
 void
-DownConvert::upsamplingDyadic( unsigned char*    pucBufferY,   int iStrideY, 
+DownConvert::upsamplingDyadic( unsigned char*    pucBufferY,   int iStrideY,
                                unsigned char*    pucBufferU,   int iStrideU,
                                unsigned char*    pucBufferV,   int iStrideV,
                                ResizeParameters* pcParameters )
@@ -285,9 +204,9 @@ DownConvert::upsamplingDyadic( unsigned char*    pucBufferY,   int iStrideY,
 
 
 void
-DownConvert::upsamplingLanczos( unsigned char*    pucBufferY,   int iStrideY, 
-                                unsigned char*    pucBufferU,   int iStrideU, 
-                                unsigned char*    pucBufferV,   int iStrideV, 
+DownConvert::upsamplingLanczos( unsigned char*    pucBufferY,   int iStrideY,
+                                unsigned char*    pucBufferU,   int iStrideU,
+                                unsigned char*    pucBufferV,   int iStrideV,
                                 ResizeParameters* pcParameters )
 {
   int iInWidth    = pcParameters->m_iRefLayerFrmWidth;
@@ -316,9 +235,9 @@ DownConvert::upsamplingLanczos( unsigned char*    pucBufferY,   int iStrideY,
 
 
 void
-DownConvert::upsampling6tapBilin( unsigned char*    pucBufferY,   int iStrideY, 
-                                  unsigned char*    pucBufferU,   int iStrideU, 
-                                  unsigned char*    pucBufferV,   int iStrideV, 
+DownConvert::upsampling6tapBilin( unsigned char*    pucBufferY,   int iStrideY,
+                                  unsigned char*    pucBufferU,   int iStrideU,
+                                  unsigned char*    pucBufferV,   int iStrideV,
                                   ResizeParameters* pcParameters )
 {
   int iInWidth    = pcParameters->m_iRefLayerFrmWidth;
@@ -360,7 +279,7 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
                                     pcParameters->m_bRefLayerFieldPicFlag     == false  &&
                                     pcParameters->m_bFrameMbsOnlyFlag         == false  &&
                                     pcParameters->m_bFieldPicFlag             == false    );
-  bool  bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   && 
+  bool  bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   &&
                                     pcParameters->m_bRefLayerFrameMbsOnlyFlag == true     );
   bool  bVerticalInterpolation  = ( bFrameBasedResampling                     == false  &&
                                     pcParameters->m_bFieldPicFlag             == false    );
@@ -457,7 +376,7 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
     xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation );
     xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideV << iCurrField );
   }
-} 
+}
 
 
 void
@@ -605,7 +524,7 @@ DownConvert::downsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
     xCompDownsampling   ( pcParameters, true,   bBotFieldFlag,        bVerticalDownsampling  );
     xCopyFromImageBuffer( pDes,         iBaseW, iBaseH >> iBaseField, iStrideV << iBaseField );
   }
-} 
+}
 
 #else
 
@@ -614,19 +533,19 @@ DownConvert::downsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
 
 //=========================================================================
 //
-//   M A I N   F U N C T I O N S   F O R   E N C O D E R / D E C O D E R   
+//   M A I N   F U N C T I O N S   F O R   E N C O D E R / D E C O D E R
 //
 //=========================================================================
 
 void
-DownConvert::intraUpsampling( Frame*                pcFrame, 
+DownConvert::intraUpsampling( Frame*                pcFrame,
                               Frame*                pcBaseFrame,
                               Frame*                pcTempFrame,
                               Frame*                pcTempBaseFrame,
                               ResizeParameters*     pcParameters,
-                              MbDataCtrl*           pcMbDataCtrlBase, 
-                              MbDataCtrl*           pcMbDataCtrlPredFrm, 
-                              MbDataCtrl*           pcMbDataCtrlPredFld, 
+                              MbDataCtrl*           pcMbDataCtrlBase,
+                              MbDataCtrl*           pcMbDataCtrlPredFrm,
+                              MbDataCtrl*           pcMbDataCtrlPredFld,
                               ReconstructionBypass* pcReconstructionBypass,
                               Bool*                 pabBaseModeAllowedFlagArrayFrm,
                               Bool*                 pabBaseModeAllowedFlagArrayFld,
@@ -668,7 +587,7 @@ DownConvert::intraUpsampling( Frame*                pcFrame,
   while( !cSliceIdList.empty() )
   {
     unsigned int  uiSliceId = cSliceIdList.popFront();
-    
+
     //--- basic resampling ---
     pcTempBaseFrame       ->copy        ( pcBaseFrame,     ePicType );
     pcReconstructionBypass->padRecFrame ( pcTempBaseFrame, pcMbDataCtrlBase, pcParameters, uiSliceId );
@@ -684,9 +603,9 @@ DownConvert::intraUpsampling( Frame*                pcFrame,
 }
 
 void
-DownConvert::residualUpsampling( Frame*             pcFrame, 
+DownConvert::residualUpsampling( Frame*             pcFrame,
                                  Frame*             pcBaseFrame,
-                                 ResizeParameters*  pcParameters, 
+                                 ResizeParameters*  pcParameters,
                                  MbDataCtrl*        pcMbDataCtrlBase )
 {
   if( pcParameters->getSpatialResolutionChangeFlag() )
@@ -706,7 +625,7 @@ DownConvert::residualUpsampling( Frame*             pcFrame,
 
 //======================================================
 //
-//   G E N E R A L   H E L P E R    F U N C T I O N S   
+//   G E N E R A L   H E L P E R    F U N C T I O N S
 //
 //======================================================
 
@@ -729,7 +648,7 @@ DownConvert::xDestroy()
   m_paiImageBuffer          = 0;
   m_paiTmp1dBuffer          = 0;
 #ifdef DOWN_CONVERT_STATIC
-  m_padFilter               = 0; 
+  m_padFilter               = 0;
   m_aiTmp1dBufferInHalfpel  = 0;
   m_aiTmp1dBufferInQ1pel    = 0;
   m_aiTmp1dBufferInQ3pel    = 0;
@@ -780,7 +699,7 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
   int   iTOffset    = iTopOffset >> iCurrField;
   int   iROffset    = iCurrW - iLOffset -   iOutW;
   int   iBOffset    = iCurrH - iTOffset - ( iOutH >> iCurrField );
-  int   iYBorder    = ( bVerticalInterpolation ? ( bChroma ? 1 : 2 ) : 0 ); 
+  int   iYBorder    = ( bVerticalInterpolation ? ( bChroma ? 1 : 2 ) : 0 );
 
   //===== set position calculation parameters =====
   int   iScaledW    = iOutW;
@@ -816,7 +735,7 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
   }
 
   //===== basic interpolation of a frame or a field =====
-  xBasicIntraUpsampling ( iBaseW,   iBaseH,   iCurrW,   iCurrH,  
+  xBasicIntraUpsampling ( iBaseW,   iBaseH,   iCurrW,   iCurrH,
                           iLOffset, iTOffset, iROffset, iBOffset,
                           iShiftX,  iShiftY,  iScaleX,  iScaleY,
                           iOffsetX, iOffsetY, iAddX,    iAddY,
@@ -825,7 +744,7 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
   //===== vertical interpolation for second field =====
   if( bVerticalInterpolation )
   {
-    xVertIntraUpsampling( iCurrW,   iCurrH, 
+    xVertIntraUpsampling( iCurrW,   iCurrH,
                           iLOffset, iTOffset, iROffset, iBOffset,
                           iYBorder, bBotFlag, bChroma );
   }
@@ -833,7 +752,7 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
 
 
 void
-DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH, 
+DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH,
                                    int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
                                    int  iYBorder, bool bBotFlag, bool bChromaFilter )
 {
@@ -849,7 +768,7 @@ DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH,
   int iCurrBOffset  = iBOffset << 1;
 
   //========== vertical upsampling ===========
-  for( int j = 0; j < iCurrW; j++ ) 
+  for( int j = 0; j < iCurrW; j++ )
   {
     int* piSrc = &m_paiImageBuffer[j];
 
@@ -895,10 +814,10 @@ DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH,
 
 
 void
-DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,   int  iCurrH, 
-                                    int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset, 
-                                    int  iShiftX,  int  iShiftY,  int  iScaleX,  int  iScaleY, 
-                                    int  iOffsetX, int  iOffsetY, int  iAddX,    int  iAddY, 
+DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,   int  iCurrH,
+                                    int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
+                                    int  iShiftX,  int  iShiftY,  int  iScaleX,  int  iScaleY,
+                                    int  iOffsetX, int  iOffsetY, int  iAddX,    int  iAddY,
                                     int  iDeltaX,  int  iDeltaY,  int  iYBorder, bool bChromaFilter )
 {
   int filter16_luma[16][4] =
@@ -942,7 +861,7 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
 
   //========== horizontal upsampling ===========
   {
-    for( int j = 0; j < iBaseH; j++ ) 
+    for( int j = 0; j < iBaseH; j++ )
     {
       int* piSrc = &m_paiImageBuffer[j*m_iImageStride];
       for( int i = 0; i < iCurrW; i++ )
@@ -983,7 +902,7 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
 
   //========== vertical upsampling ===========
   {
-    for( int i = 0; i < iCurrW; i++ ) 
+    for( int i = 0; i < iCurrW; i++ )
     {
       int* piSrc = &m_paiImageBuffer[i];
       for( int j = -iYBorder; j < iCurrH+iYBorder; j++ )
@@ -1036,7 +955,7 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
 
 //===============================================================================
 //
-//   H E L P E R   F U N C T I O N S   F O R   D O W N C O N V E R T   T O O L   
+//   H E L P E R   F U N C T I O N S   F O R   D O W N C O N V E R T   T O O L
 //
 //===============================================================================
 
@@ -1051,7 +970,7 @@ DownConvert::xInitLanczosFilter()
     double  pix     = pi * x;
     double  pixw    = pix / TMM_FILTER_WINDOW_SIZE;
     m_padFilter[i]  = (long)( sin( pix ) / pix * sin( pixw ) / pixw * VALFACT );
-  } 
+  }
 }
 
 void
@@ -1100,7 +1019,7 @@ DownConvert::xCompUpsamplingDyadic( int iBaseW, int iBaseH, bool bChroma )
 
   //========== vertical upsampling ===========
   {
-    for( int j = 0; j < iBaseW; j++ ) 
+    for( int j = 0; j < iBaseW; j++ )
     {
       int* piSrc = &m_paiImageBuffer[j];
       //----- upsample column -----
@@ -1135,7 +1054,7 @@ DownConvert::xCompUpsamplingDyadic( int iBaseW, int iBaseH, bool bChroma )
 
   //========== horizontal upsampling ==========
   {
-    for( int j = 0; j < 2*iBaseH; j++ ) 
+    for( int j = 0; j < 2*iBaseH; j++ )
     {
       int* piSrc = &m_paiImageBuffer[j*m_iImageStride];
       //----- upsample row -----
@@ -1253,7 +1172,7 @@ DownConvert::xGetNumDenomLanczos( int iInWidth, int iOutWidth, int& riNumerator,
   while (iC != 0)
   {
     iA = iB;
-    iB = iC;		
+    iB = iC;
     iC = iA % iB;
   }
   riNumerator   = iOutWidth / iB;
@@ -1289,7 +1208,7 @@ DownConvert::xCompUpsampling6tapBilin( ResizeParameters* pcParameters, bool bChr
     {
       m_paiTmp1dBuffer[yin] = piSrc[yin * m_iImageStride];
     }
-    xUpsamplingData6tapBilin( iInHeight, iOutHeight ); 
+    xUpsamplingData6tapBilin( iInHeight, iOutHeight );
     for( int yout = 0; yout < iOutHeight; yout++ )
     {
       piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
@@ -1378,7 +1297,7 @@ DownConvert::xUpsamplingData6tapBilin( int iInLength, int iOutLength )
       m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBuffer     [ipos1] << 5; // original pel value
       break;
     }
-  }  
+  }
 }
 
 void
@@ -1390,7 +1309,7 @@ DownConvert::xCompDownsamplingDyadic( int iCurrW, int iCurrH )
 
   //========== horizontal downsampling ===========
   {
-    for( int j = 0; j < iCurrH; j++ ) 
+    for( int j = 0; j < iCurrH; j++ )
     {
       int* piSrc = &m_paiImageBuffer[j*m_iImageStride];
       //----- down sample row -----
@@ -1501,7 +1420,7 @@ DownConvert::xCompDownsampling( ResizeParameters* pcParameters, bool bChroma, bo
   }
 
   //===== basic downsampling of a frame or field =====
-  xBasicDownsampling( iBaseW,   iBaseH,   iCurrW,   iCurrH, 
+  xBasicDownsampling( iBaseW,   iBaseH,   iCurrW,   iCurrH,
                       iLOffset, iTOffset, iROffset, iBOffset,
                       iShiftX,  iShiftY,  iScaleX,  iScaleY,
                       iAddX,    iAddY,    iDeltaX,  iDeltaY );
@@ -1545,7 +1464,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
                                  int iShiftX,  int iShiftY,  int iScaleX,  int iScaleY,
                                  int iAddX,    int iAddY,    int iDeltaX,  int iDeltaY )
 {
-  const int filter16[8][16][12] = 
+  const int filter16[8][16][12] =
   {
     { // D = 1
       {   0,   0,   0,   0,   0, 128,   0,   0,   0,   0,   0,   0 },
@@ -1692,7 +1611,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
       { -10,   2,   7,  13,  19,  22,  23,  22,  18,  13,   7,  -8 }
     }
   };
-  
+
   //===== determine filter sets =====
   int iCropW      = iCurrW - iLOffset - iROffset;
   int iCropH      = iCurrH - iTOffset - iBOffset;
@@ -1771,7 +1690,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
 
 //==============================================================================
 //
-//   H E L P E R    F U N C T I O N S   F O R   E N C O D E R / D E C O D E R   
+//   H E L P E R    F U N C T I O N S   F O R   E N C O D E R / D E C O D E R
 //
 //==============================================================================
 
@@ -1818,7 +1737,7 @@ DownConvert::xInitializeWithValue( short* psBuffer, int iWidth, int iHeight, int
 }
 
 void
-DownConvert::xCrop( Frame*            pcFrame, 
+DownConvert::xCrop( Frame*            pcFrame,
                     Frame*            pcBaseFrame,
                     ResizeParameters* pcParameters,
                     short             iValue )
@@ -1873,7 +1792,7 @@ DownConvert::xCrop( Frame*            pcFrame,
 
 
 void
-DownConvert::xIntraUpsampling( Frame*             pcFrame, 
+DownConvert::xIntraUpsampling( Frame*             pcFrame,
                                Frame*             pcBaseFrame,
                                ResizeParameters*  pcParameters )
 {
@@ -1899,7 +1818,7 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
                                             pcParameters->m_bRefLayerFieldPicFlag     == false  &&
                                             pcParameters->m_bFrameMbsOnlyFlag         == false  &&
                                             pcParameters->m_bFieldPicFlag             == false    );
-  bool          bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   && 
+  bool          bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   &&
                                             pcParameters->m_bRefLayerFrameMbsOnlyFlag == true     );
   bool          bVerticalInterpolation  = ( bFrameBasedResampling                     == false  &&
                                             pcParameters->m_bFieldPicFlag             == false    );
@@ -1996,7 +1915,7 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
     xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation    );
     xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iDesStrideC << iCurrField );
   }
-} 
+}
 
 
 void
@@ -2068,7 +1987,7 @@ DownConvert::xInitBaseModeAllowedFlags( ResizeParameters* pcParameters,
 }
 
 void
-DownConvert::xUpdateBaseModeAllowedFlags( ResizeParameters* pcParameters, 
+DownConvert::xUpdateBaseModeAllowedFlags( ResizeParameters* pcParameters,
                                           bool*             pabBaseModeAllowedFlagArrayFrm,
                                           bool*             pabBaseModeAllowedFlagArrayFld )
 {
@@ -2158,21 +2077,21 @@ DownConvert::xInitMbMaps( ResizeParameters* pcParameters, bool bFrm, bool bTop, 
   for( int iMbX = 0; iMbX < iFrmWidthInMbs;  iMbX++ )
   {
     int iIdx            = iMbY * m_iMbMapStride + iMbX;
-    m_paeMbMapFrm[iIdx] = eFrm; 
+    m_paeMbMapFrm[iIdx] = eFrm;
     m_paeMbMapFld[iIdx] = ( ( iMbY % 2 ) ? eBot : eTop );
   }
 }
 
 void
-DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters, 
-                                     bool               bChroma, 
-                                     bool               bFieldMb, 
+DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
+                                     bool               bChroma,
+                                     bool               bFieldMb,
                                      MbDataCtrl*        pcMbDataCtrlBase,
                                      MbDataCtrl*        pcMbDataCtrlPredFrm,
                                      MbDataCtrl*        pcMbDataCtrlPredFld,
                                      unsigned int       uiCurrentSliceId )
 {
-  //===== general parameters =====  
+  //===== general parameters =====
   int         iCShift             = ( bChroma ? 1 : 0 );
   int         iMbW                = ( 16 >> iCShift );
   int         iMbH                = ( 16 >> iCShift );
@@ -2188,7 +2107,7 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
   MbMapEntry* paeMbMap            = ( bFieldMb ? m_paeMbMapFld       : m_paeMbMapFrm );
   MbDataCtrl* pcMbDataCtrlPred    = ( bFieldMb ? pcMbDataCtrlPredFld : pcMbDataCtrlPredFrm );
   bool        bInterIntraAllowed  = ( ! pcParameters->m_bIsMbAffFrame && ! pcParameters->m_bRefLayerIsMbAffFrame );
-  
+
   int         iRefPicWidthInMbs   = ( pcParameters->m_iRefLayerFrmWidth    >> 4 );
   int         iRefCompWidth       = ( pcParameters->m_iRefLayerFrmWidth    >> iCShift );
   int         iRefCompHeight      = ( pcParameters->m_iRefLayerFrmHeight   >> iCShift ) >> ( pcParameters->m_bRefLayerFrameMbsOnlyFlag ? 0 : 1 );
@@ -2204,7 +2123,7 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
                                       bFieldMb                                  == true    );
   int         iFixedBotFlag       = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag ? 0            :
                                       pcParameters->m_bFieldPicFlag             ? iBotField    :
-                                      pcParameters->m_bRefLayerFieldPicFlag     ? iRefBotField : 0 ); 
+                                      pcParameters->m_bRefLayerFieldPicFlag     ? iRefBotField : 0 );
 
   //===== determine position calculation parameters =====
   int   iFactor         = ( !bChroma ? 1 : 2 );
@@ -2263,7 +2182,7 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
     }
   }
 
-  
+
   //===== loop over macroblocks =====
   for( int iMbY = 0; iMbY < iPicHeightInMbs; iMbY++ )
   for( int iMbX = 0; iMbX < iPicWidthInMbs;  iMbX++ )
@@ -2278,14 +2197,14 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
       reMapEntry = MbMapEntry( reMapEntry & ( ~INTRA_UPS_ALLOWED ) );
       continue;
     }
-    
+
     int   iXLumMbInComp = (   iMbX                  << 4 ) >> iCShift;
     int   iYLumMbInComp = ( ( iMbY >> iFldMbInFrm ) << 4 ) >> iCShift;
     int   iXCurrMin     = ( 0        + iXLumMbInComp );
     int   iXCurrMax     = ( iMbW - 1 + iXLumMbInComp );
     int   iYCurrMin     = ( 0        + iYLumMbInComp ) >> iExtraYShift;
     int   iYCurrMax     = ( iMbH - 1 + iYLumMbInComp ) >> iExtraYShift;
-    
+
     int   iB            = ( ! bAdaptiveBotFlag ? iFixedBotFlag : iMbY % 2 );
     int   iXRefMin      = ( ( ( ( iXCurrMin - iOffsetX ) * iScaleX +  iAddX     ) >> ( iShiftX - 4 ) ) -  iDeltaX          ) >> 4;
     int   iXRefMax      = ( ( ( ( iXCurrMax - iOffsetX ) * iScaleX +  iAddX     ) >> ( iShiftX - 4 ) ) -  iDeltaX     + 15 ) >> 4;
@@ -2364,7 +2283,7 @@ DownConvert::xUpdateIntraPredFrame( Frame* pcDesFrame, Frame* pcSrcFrame, Resize
     {
       continue;
     }
-    
+
     short*  pDesY   = psDesOriginY + ( iMbY << 4 ) * iDesStrideY + ( iMbX << 4 );
     short*  pDesU   = psDesOriginU + ( iMbY << 3 ) * iDesStrideC + ( iMbX << 3 );
     short*  pDesV   = psDesOriginV + ( iMbY << 3 ) * iDesStrideC + ( iMbX << 3 );
@@ -2387,7 +2306,7 @@ DownConvert::xUpdateIntraPredFrame( Frame* pcDesFrame, Frame* pcSrcFrame, Resize
 
 
 void
-DownConvert::xResidualUpsampling( Frame*            pcFrame, 
+DownConvert::xResidualUpsampling( Frame*            pcFrame,
                                   Frame*            pcBaseFrame,
                                   ResizeParameters* pcParameters,
                                   MbDataCtrl*       pcMbDataCtrlBase )
@@ -2414,7 +2333,7 @@ DownConvert::xResidualUpsampling( Frame*            pcFrame,
                                             pcParameters->m_bRefLayerFieldPicFlag     == false  &&
                                             pcParameters->m_bFrameMbsOnlyFlag         == false  &&
                                             pcParameters->m_bFieldPicFlag             == false    );
-  bool          bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   && 
+  bool          bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   &&
                                             pcParameters->m_bRefLayerFrameMbsOnlyFlag == true     );
   bool          bVerticalInterpolation  = ( bFrameBasedResampling                     == false  &&
                                             pcParameters->m_bFieldPicFlag             == false    );
@@ -2511,7 +2430,7 @@ DownConvert::xResidualUpsampling( Frame*            pcFrame,
     xCompResidualUpsampling ( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation,    pcMbDataCtrlBase );
     xCopyFromImageBuffer    ( pDes,         iCurrW, iCurrH >> iCurrField, iDesStrideC << iCurrField                   );
   }
-} 
+}
 
 
 void
@@ -2673,7 +2592,7 @@ DownConvert::xCompResidualUpsampling( ResizeParameters* pcParameters, bool bChro
   int   iTOffset    = iTopOffset >> iCurrField;
   int   iROffset    = iCurrW - iLOffset -   iOutW;
   int   iBOffset    = iCurrH - iTOffset - ( iOutH >> iCurrField );
-  int   iYBorder    = ( bVerticalInterpolation ? ( bChroma ? 1 : 2 ) : 0 ); 
+  int   iYBorder    = ( bVerticalInterpolation ? ( bChroma ? 1 : 2 ) : 0 );
 
   //===== set position calculation parameters =====
   int   iScaledW    = iOutW;
@@ -2713,7 +2632,7 @@ DownConvert::xCompResidualUpsampling( ResizeParameters* pcParameters, bool bChro
                               pcParameters,       pcMbDataCtrlBase );
 
   //===== basic interpolation of a frame or a field =====
-  xBasicResidualUpsampling  ( iBaseW,   iBaseH,   iCurrW,   iCurrH,  
+  xBasicResidualUpsampling  ( iBaseW,   iBaseH,   iCurrW,   iCurrH,
                               iLOffset, iTOffset, iROffset, iBOffset,
                               iShiftX,  iShiftY,  iScaleX,  iScaleY,
                               iOffsetX, iOffsetY, iAddX,    iAddY,
@@ -2722,7 +2641,7 @@ DownConvert::xCompResidualUpsampling( ResizeParameters* pcParameters, bool bChro
   //===== vertical interpolation for second field =====
   if( bVerticalInterpolation )
   {
-    xVertResidualUpsampling ( iCurrW,   iCurrH, 
+    xVertResidualUpsampling ( iCurrW,   iCurrH,
                               iLOffset, iTOffset, iROffset, iBOffset,
                               iYBorder, bBotFlag );
   }
@@ -2743,7 +2662,7 @@ DownConvert::xVertResidualUpsampling( int iBaseW, int iBaseH, int iLOffset, int 
   int iCurrBOffset  = iBOffset << 1;
 
   //========== vertical upsampling ===========
-  for( int j = 0; j < iCurrW; j++ ) 
+  for( int j = 0; j < iCurrW; j++ )
   {
     int* piSrc = &m_paiImageBuffer[j];
 
@@ -2779,14 +2698,14 @@ DownConvert::xVertResidualUpsampling( int iBaseW, int iBaseH, int iLOffset, int 
 
 void
 DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,   int iCurrH,
-                                       int iLOffset, int iTOffset, int iROffset, int iBOffset, 
-                                       int iShiftX,  int iShiftY,  int iScaleX,  int iScaleY, 
-                                       int iOffsetX, int iOffsetY, int iAddX,    int iAddY, 
+                                       int iLOffset, int iTOffset, int iROffset, int iBOffset,
+                                       int iShiftX,  int iShiftY,  int iScaleX,  int iScaleY,
+                                       int iOffsetX, int iOffsetY, int iAddX,    int iAddY,
                                        int iDeltaX,  int iDeltaY,  int iYBorder )
 {
   //========== horizontal upsampling ===========
   {
-    for( int j = 0; j < iBaseH; j++ ) 
+    for( int j = 0; j < iBaseH; j++ )
     {
       int   iRefPosY  = j;
       int*  piSrc     = &m_paiImageBuffer[j*m_iImageStride];
@@ -2822,7 +2741,7 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
 
   //========== vertical upsampling ===========
   {
-    for( int i = 0; i < iCurrW; i++ ) 
+    for( int i = 0; i < iCurrW; i++ )
     {
       int   iRefPosX16  = ( ( ( i - iOffsetX ) * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
       int   iRndPosX    = ( iRefPosX16 >> 4 ) + ( ( iRefPosX16 & 15 ) >> 3 );
