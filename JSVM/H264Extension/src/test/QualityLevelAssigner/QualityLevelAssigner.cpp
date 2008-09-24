@@ -544,31 +544,31 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
           //---- preceding level 1 picture -----
           if( uiBaseRepCount )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionBaseDep += xLog( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhDep  += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionBaseInd += xLog( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhInd  += xLog( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
           }
           //---- normal pictures -----
           Int iStartPicNum  = ( uiBaseRepCount   ?  uiTopLayerPicNum - uiTopLayerStepSize2 + 1 : 0 );
           Int iEndPicNum    = ( bLastBaseRep ? m_auiNumFrames[uiTopLayer] - 1 : uiTopLayerPicNum + uiTopLayerStepSize2 - 1 );
           for( Int iCheckPicNum = iStartPicNum; iCheckPicNum <= iEndPicNum; iCheckPicNum++ )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][iCheckPicNum] );
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][iCheckPicNum] );
+            dDistortionBaseDep += xLog( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][iCheckPicNum] );
+            dDistortionEnhDep  += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][iCheckPicNum] );
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][iCheckPicNum] );
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][iCheckPicNum] );
+            dDistortionBaseInd += xLog( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][iCheckPicNum] );
+            dDistortionEnhInd  += xLog( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][iCheckPicNum] );
           }
           //---- following level 1 picture -----
           if( ! bLastBaseRep )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionBaseDep += xLog( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhDep  += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionBaseInd += xLog( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhInd  += xLog( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
           }
 
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]] = 0;
@@ -597,11 +597,11 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
           UInt    uiEndPicNum     = min( uiTopLayerPicNum + uiTopLayerStepSize2, m_auiNumFrames[uiTopLayer] ) - 1;
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
+            dDistortionBaseDep += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
+            dDistortionEnhDep  += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][uiTLevel  ][uiCheckPicNum] );
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
+            dDistortionBaseInd += xLog( aaaauiDistortionInd[uiLayer][uiFGS-1][uiTLevel  ][uiCheckPicNum] );
+            dDistortionEnhInd  += xLog( aaaauiDistortionInd[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
           }
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]] = 0;
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );

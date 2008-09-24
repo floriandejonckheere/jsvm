@@ -84,9 +84,13 @@ public:
     return *this;
   }
 
-  Bool operator== ( const Mv& rcMv )
+  Bool operator == ( const Mv& rcMv ) const
   {
-    return (m_sHor==rcMv.m_sHor && m_sVer==rcMv.m_sVer);
+    return ( m_sHor == rcMv.m_sHor && m_sVer == rcMv.m_sVer );
+  }
+  Bool operator != ( const Mv& rcMv ) const
+  {
+    return ( m_sHor != rcMv.m_sHor || m_sVer != rcMv.m_sVer );
   }
 
   const Mv& setFrameToFieldPredictor()

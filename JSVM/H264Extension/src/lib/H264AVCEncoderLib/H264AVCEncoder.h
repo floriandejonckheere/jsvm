@@ -76,6 +76,8 @@ public:
   UInt    getPicCodingType    ( UInt          uiBaseLayerId,
                                 UInt          uiTemporalId,
                                 UInt          uiFrameIdInTLayer );
+  UInt    getMaxSliceSize     ( UInt          uiLayerId,
+                                UInt          uiAUIndex );
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
 																UInt&         ruiBaseLayerIdMotionOnly,
 																UInt          uiLayerId,

@@ -1020,17 +1020,24 @@ ErrVal MotionCompensation::copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
     pSrc += iSrcStride;
   }
 
-  pSrc = pcMbBufSrc->getMbCbAddr();
-  pDes = pcMbBufDes->getMbCbAddr();
-  iDesStride = pcMbBufDes->getCStride();
-  iSrcStride = pcMbBufSrc->getCStride();
+  sX = ( sX + 1 ) >> 1;
+  sY = ( sY + 1 ) >> 1;
+  eX = ( eX + 1 ) >> 1;
+  eY = ( eY + 1 ) >> 1;
 
-  pSrc += sY/2*iSrcStride;
-  pDes += sY/2*iDesStride;
-  for( y = sY/2; y < eY/2; y++ )
+  iDesStride = pcMbBufDes->getCStride ();
+  iSrcStride = pcMbBufSrc->getCStride ();
+  pSrc       = pcMbBufSrc->getMbCbAddr();
+  pDes       = pcMbBufDes->getMbCbAddr();
+
+  pSrc += sY * iSrcStride;
+  pDes += sY * iDesStride;
+  for( y = sY; y < eY; y++ )
   {
-    for( x = sX/2; x< eX/2; x++)
+    for( x = sX; x < eX; x++ )
+    {
       pDes[x] = pSrc[x];
+    }
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -1038,12 +1045,14 @@ ErrVal MotionCompensation::copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
   pSrc = pcMbBufSrc->getMbCrAddr();
   pDes = pcMbBufDes->getMbCrAddr();
 
-  pSrc += sY/2*iSrcStride;
-  pDes += sY/2*iDesStride;
-  for( y = sY/2; y < eY/2; y++ )
+  pSrc += sY * iSrcStride;
+  pDes += sY * iDesStride;
+  for( y = sY; y < eY; y++ )
   {
-    for( x = sX/2; x< eX/2; x++)
+    for( x = sX; x < eX; x++ )
+    {
       pDes[x] = pSrc[x];
+    }
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -1366,29 +1375,6 @@ TCoeff aiNormMatrix8x8[64] =
 	819, 726, 1311, 726, 819, 726, 1311, 726,
 	454, 402, 726, 402, 454, 402, 726, 402,
 };
-
-
-
-
-ErrVal
-MotionCompensation::xCompensateMbAllModes(MbDataAccess&       rcMbDataAccess,
-                                          RefFrameList&       rcRefFrameList0,
-                                          RefFrameList&       rcRefFrameList1,
-                                          YuvMbBuffer*     pcYuvMbBuffer )
-{
-  if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
-  {
-    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-    {
-      RNOK( compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false, false ) );
-    }
-  }
-  else
-  {
-    RNOK( compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false ) );
-  }
-  return Err::m_nOK;
-}
 
 
 H264AVC_NAMESPACE_END

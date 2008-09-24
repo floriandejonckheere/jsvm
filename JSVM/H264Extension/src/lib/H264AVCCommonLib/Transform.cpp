@@ -18,27 +18,18 @@ CoeffLevelPred::~CoeffLevelPred()
 ErrVal
 CoeffLevelPred::ScaleCoeffLevels( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt uiNumCoeffs )
 {
-	// DECLARATIONS
-	UInt uiScaleFactor[6] = {8, 9, 10, 11, 13, 14};
-	UInt uiDeltaQp;
-
-	// DETERMINE THE SCALING FACTOR
-	uiDeltaQp = uiRefQp - uiQp;
-	if( uiDeltaQp < 0 )
-		uiDeltaQp = 0;
-
-	// PREDICT THE COEFFICIENTS
-	for( UInt n=0; n<uiNumCoeffs; n++ )
-	{
-		piCoeff[n] = piRefCoeff[n]<<(uiDeltaQp/6);
-		piCoeff[n] *= uiScaleFactor[ uiDeltaQp%6 ];
-		piCoeff[n] += ( piCoeff[n]>0 ) ? 4 : -4;
-		piCoeff[n] /= 8;
-	}
-
-	return Err::m_nOK;
+  // DETERMINE THE SCALING FACTOR
+  const Int aiScaleFactor[6]  = { 8, 9, 10, 11, 13, 14 };
+  Int       iDeltaQp          = uiRefQp - uiQp + 54;
+  Int       iScale            = aiScaleFactor[ iDeltaQp % 6 ];
+  Int       iShift            = iDeltaQp / 6;
+  // PREDICT THE COEFFICIENTS
+  for( UInt n = 0; n < uiNumCoeffs; n++ )
+  {
+    piCoeff[n] = ( ( iScale * piRefCoeff[n] ) << iShift ) >> 12;
+  }
+  return Err::m_nOK;
 }
-
 
 Transform::Transform()
 : m_bClip( true )

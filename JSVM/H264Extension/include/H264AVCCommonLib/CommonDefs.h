@@ -8,7 +8,7 @@
 
 
 
-#define _JSVM_VERSION_ "9.14"
+#define _JSVM_VERSION_ "9.15"
 
 
 

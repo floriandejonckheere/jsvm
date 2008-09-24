@@ -88,10 +88,6 @@ public:
                             YuvMbBuffer* pcRecBuffer,
                             Bool            bCalcMv,
                             Bool            bFaultTolerant );
-  ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess,
-                                        RefFrameList&   rcRefFrameList0,
-                                        RefFrameList&   rcRefFrameList1,
-                                        YuvMbBuffer* pcYuvMbBuffer );
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   Frame*       pcMCFrame,

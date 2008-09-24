@@ -372,6 +372,7 @@ ErrVal Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePicTyp
   return Err::m_nOK;
 }
 
+
 ErrVal
 Frame::intraUpsampling( Frame*                pcBaseFrame,
                         Frame*                pcTempBaseFrame,

@@ -394,13 +394,12 @@ Void YuvMbBuffer::setAllSamplesToZero()
   }
 }
 
-
-Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
+Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer, Int iMbXOffset, Int iMbYOffset )
 {
   Int x, y;
   Int iDesStride = getLStride();
   Int iSrcStride = pcSrcBuffer->getLStride();
-  XPel*     pSrc = pcSrcBuffer->getMbLumAddr();
+  XPel*     pSrc = pcSrcBuffer->getMbLumAddr() + iMbXOffset * 16 + iMbYOffset * 16 * iSrcStride;
   XPel*     pDes = getMbLumAddr();
 
   for( x = 0; x < 18; x++ )
@@ -421,7 +420,7 @@ Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
 
   iDesStride  = getCStride();
   iSrcStride  = pcSrcBuffer->getCStride();
-  pSrc        = pcSrcBuffer->getMbCbAddr();
+  pSrc        = pcSrcBuffer->getMbCbAddr() + iMbXOffset * 8 + iMbYOffset * 8 * iSrcStride;
   pDes        = getMbCbAddr();
 
   for( x = 0; x < 10; x++ )
@@ -440,7 +439,7 @@ Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
     pDes[x-1] = pSrc[x-1];
   }
 
-  pSrc        = pcSrcBuffer->getMbCrAddr();
+  pSrc        = pcSrcBuffer->getMbCrAddr() + iMbXOffset * 8 + iMbYOffset * 8 * iSrcStride;
   pDes        = getMbCrAddr();
 
   for( x = 0; x < 10; x++ )
@@ -461,7 +460,7 @@ Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
 }
 
 //TMM_INTERLACE {
-Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask )
+Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset, Int iMbYOffset )
 {
   Int   x, y;
   Bool  bTopIntra     = ( ( uiMask & 0x020 ) != 0 );
@@ -471,7 +470,7 @@ Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UIn
 
   Int   iSrcStride    = pcSrcBuffer->getLStride();
   Int   iDesStride    = getLStride();
-  XPel* pSrc          = pcSrcBuffer->getMbLumAddr() + ( bTopIntra ? iYSizeLuma * iSrcStride : 0 );
+  XPel* pSrc          = pcSrcBuffer->getMbLumAddr() + ( bTopIntra ? iYSizeLuma * iSrcStride : 0 ) + iMbXOffset * 16 + iMbYOffset * 16 * iSrcStride;
   XPel* pDes          = getMbLumAddr()              + ( bTopIntra ? iYSizeLuma * iDesStride : 0 );
 
   for( x = 0; x < 18; x++ )
@@ -492,7 +491,7 @@ Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UIn
 
   iSrcStride  = pcSrcBuffer->getCStride();
   iDesStride  = getCStride();
-  pSrc        = pcSrcBuffer->getMbCbAddr() + ( bTopIntra ? iYSizeChroma * iSrcStride : 0 );
+  pSrc        = pcSrcBuffer->getMbCbAddr() + ( bTopIntra ? iYSizeChroma * iSrcStride : 0 ) + iMbXOffset * 8 + iMbYOffset * 8 * iSrcStride;
   pDes        = getMbCbAddr()              + ( bTopIntra ? iYSizeChroma * iDesStride : 0 );
 
   for( x = 0; x < 10; x++ )
@@ -511,7 +510,7 @@ Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UIn
     pDes[x-1] = pSrc[x-1];
   }
 
-  pSrc  = pcSrcBuffer->getMbCrAddr() + ( bTopIntra ? iYSizeChroma * iSrcStride : 0 );
+  pSrc  = pcSrcBuffer->getMbCrAddr() + ( bTopIntra ? iYSizeChroma * iSrcStride : 0 ) + iMbXOffset * 8 + iMbYOffset * 8 * iSrcStride;
   pDes  = getMbCrAddr()              + ( bTopIntra ? iYSizeChroma * iDesStride : 0 );
 
   for( x = 0; x < 10; x++ )

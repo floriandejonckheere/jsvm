@@ -417,7 +417,6 @@ Extractor::xAnalyse()
   // HS: packet trace
   Int64                   i64StartPos   = 0;
   Int64                   i64EndPos     = 0;
-  Int                     iLastTempLevel= 0;
   m_uiMaxSize                           = 0;
 
   //========== initialize (scalable SEI message shall be the first packet of the stream) ===========
@@ -587,36 +586,6 @@ Extractor::xAnalyse()
     delete pcScalableSei;
     pcScalableSei = NULL;
     // JVT-S080 LMI }
-    // HS: packet trace
-    if( ! cPacketDescription.ApplyToNext )
-    {
-      if( iLastTempLevel )
-      {
-        cPacketDescription.Level  = iLastTempLevel;
-        iLastTempLevel            = 0;
-      }
-      i64EndPos     = static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->getFilePos();
-      UInt  uiStart = (UInt)( i64StartPos & 0xFFFFFFFF  );
-      UInt  uiSize  = (UInt)( i64EndPos   - i64StartPos );
-      i64StartPos   = i64EndPos;
-      if( m_pcTraceFile )
-      {
-        ::fprintf( m_pcTraceFile, "0x%08x"   "%8d"   "%5d""%5d""%5d""  %s"        "         %s""         %s" "\n",
-          uiStart,
-          uiSize,
-          cPacketDescription.Layer,
-          cPacketDescription.Level,
-          cPacketDescription.FGSLayer,
-          cPacketDescription.ParameterSet ? "ParameterSet" : "   SliceData",
-          cPacketDescription.ParameterSet || ( cPacketDescription.Level == 0 && cPacketDescription.FGSLayer == 0 )  ? " No" : "Yes",
-          cPacketDescription.FGSLayer ? " No" : " No" );
-      }
-      m_uiMaxSize = max( m_uiMaxSize, uiSize );
-    }
-    else
-    {
-      iLastTempLevel = cPacketDescription.Level;
-    }
 
     //===== set packet length =====
     while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
@@ -652,6 +621,28 @@ Extractor::xAnalyse()
     bNewPicture = false;
 //prefix unit}}
     uiPId = cPacketDescription.uiPId;
+
+    // HS: packet trace
+    if( ! cPacketDescription.ApplyToNext )
+    {
+      i64EndPos     = static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->getFilePos();
+      UInt  uiStart = (UInt)( i64StartPos & 0xFFFFFFFF  );
+      UInt  uiSize  = (UInt)( i64EndPos   - i64StartPos );
+      i64StartPos   = i64EndPos;
+      if( m_pcTraceFile )
+      {
+        ::fprintf( m_pcTraceFile, "0x%08x"   "%8d"   "%5d""%5d""%5d""  %s"        "         %s""         %s" "\n",
+          uiStart,
+          uiSize,
+          cPacketDescription.Layer,
+          cPacketDescription.Level,
+          cPacketDescription.FGSLayer,
+          cPacketDescription.ParameterSet ? "ParameterSet" : "   SliceData",
+          cPacketDescription.ParameterSet || ( cPacketDescription.Level == 0 && cPacketDescription.FGSLayer == 0 )  ? " No" : "Yes",
+          cPacketDescription.FGSLayer ? " No" : " No" );
+      }
+      m_uiMaxSize = max( m_uiMaxSize, uiSize );
+    }
 
     //==== update stream description =====
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
@@ -3371,7 +3362,6 @@ Extractor::xExtractTrace()
   Bool    bEOS            = false;
   Int64   i64StartPos     = 0;
   Int64   i64EndPos       = 0;
-  Int     iLastTempLevel  = 0;
   UInt    uiNextStart     = 0;
   UInt    uiNextLength    = 0;
 
@@ -3478,10 +3468,6 @@ Extractor::xExtractTrace()
         printf("discarded\n");
         uiNumDiscarded++;
       }
-    }
-    else
-    {
-      iLastTempLevel  = cPacketDescription.Level;
     }
 
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );

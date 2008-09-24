@@ -10,6 +10,12 @@
 
 H264AVC_NAMESPACE_BEGIN
 
+
+//                       0   1   2   3  [4]  5   6   7   8
+const Int g_D2XD[9] = { -1,  0,  1, -1,  0,  1, -1,  0,  1 };
+const Int g_D2YD[9] = { -1, -1, -1,  0,  0,  0,  1,  1,  1 };
+
+
 ReconstructionBypass::ReconstructionBypass()
 {
 }
@@ -53,6 +59,7 @@ ReconstructionBypass::padRecFrame( Frame*             pcFrame,
   UInt    uiFrmHeight =   pcResizeParameters->m_iRefLayerFrmHeight >> 4;
   Bool    bMbAffFrame =   pcResizeParameters->m_bRefLayerIsMbAffFrame;
   PicType ePicType    = ( pcResizeParameters->m_bRefLayerFieldPicFlag ? ( pcResizeParameters->m_bRefLayerBotFieldFlag ? BOT_FIELD : TOP_FIELD ) : FRAME );
+  UInt    auiOutMask[9];
 
   for( UInt uiMbY = 0; uiMbY < uiFrmHeight; uiMbY++ )
   for( UInt uiMbX = 0; uiMbX < uiFrmWidth;  uiMbX++ )
@@ -92,6 +99,39 @@ ReconstructionBypass::padRecFrame( Frame*             pcFrame,
           RNOK( xPadRecMb_MbAff         ( &cBuffer,     uiMask ) );
         }
         pcPicBuffer->loadBuffer_MbAff   ( &cBuffer,     uiMask );
+      }
+    }
+
+    if( xRequiresOutsidePadding( uiMbX, uiMbY, uiFrmWidth, uiFrmHeight, bMbAffFrame, uiMask, auiOutMask ) )
+    {
+      for( UInt uiDir = 0; uiDir < 9; uiDir++ )
+      {
+        if( auiOutMask[uiDir] != MSYS_UINT_MAX )
+        {
+          ROT( uiDir == 4 );
+          PicType               eMbPicType  = ( bMbAffFrame ? ( uiMbY % 2 ? BOT_FIELD : TOP_FIELD ) : ePicType );
+          YuvPicBuffer*         pcPicBuffer = pcFrame->getPic( eMbPicType )->getFullPelYuvBuffer();
+          YuvMbBufferExtension  cBuffer;
+          cBuffer.setAllSamplesToZero();
+          if( !bMbAffFrame )
+          {
+            if( auiOutMask[uiDir] )
+            {
+              cBuffer.loadSurrounding( pcPicBuffer,  g_D2XD[uiDir], g_D2YD[uiDir] );
+              RNOK( xPadRecMb        ( &cBuffer, auiOutMask[uiDir]                ) );
+            }
+            pcPicBuffer->loadBuffer  ( &cBuffer,     g_D2XD[uiDir], g_D2YD[uiDir] );
+          }
+          else
+          {
+            if( auiOutMask[uiDir] )
+            {
+              cBuffer.loadSurrounding_MbAff( pcPicBuffer, auiOutMask[uiDir], g_D2XD[uiDir], g_D2YD[uiDir] );
+              RNOK( xPadRecMb_MbAff        ( &cBuffer,    auiOutMask[uiDir]                               ) );
+            }
+            pcPicBuffer->loadBuffer        ( &cBuffer,                       g_D2XD[uiDir], g_D2YD[uiDir] );
+          }
+        }
       }
     }
   }
@@ -387,6 +427,161 @@ ReconstructionBypass::xPadBlock_MbAff( YuvMbBufferExtension* pcBuffer, LumaIdx c
   {
     ROT( bHalfYSize );
   }
+  return Err::m_nOK;
+}
+
+
+Bool ReconstructionBypass::xRequiresOutsidePadding( UInt uiMbX, UInt uiMbY, UInt uiFrameWidth, UInt uiFrameHeight, Bool bMbAff, UInt uiOrgMask, UInt* pauiMask )
+{
+  AOT( uiMbX >= uiFrameWidth  );
+  AOT( uiMbY >= uiFrameHeight );
+
+  //===== reset mask =====
+  for( UInt uiIndex = 0; uiIndex < 9; uiIndex++ )
+  {
+    pauiMask[uiIndex] = MSYS_UINT_MAX;
+  }
+
+  //===== quick check =====
+  uiMbY             >>= ( bMbAff ? 1 : 0 );
+  uiFrameHeight     >>= ( bMbAff ? 1 : 0 );
+  Bool  bLeftBorder   = ( uiMbX == 0 );
+  Bool  bRightBorder  = ( uiMbX == uiFrameWidth  - 1 );
+  Bool  bTopBorder    = ( uiMbY == 0 );
+  Bool  bBottomBorder = ( uiMbY == uiFrameHeight - 1 );
+  ROFRS ( bLeftBorder || bRightBorder || bTopBorder || bBottomBorder, false );
+
+  //===== update masks and return =====
+#define UPDATE_MASK(b,d) if((b)) { if( xOutshiftMask( bMbAff, (d), uiOrgMask, pauiMask[(d)] ) != Err::m_nOK ) assert( 0 ); }
+  UPDATE_MASK( bLeftBorder  && bTopBorder,    0 );
+  UPDATE_MASK(                 bTopBorder,    1 );
+  UPDATE_MASK( bRightBorder && bTopBorder,    2 );
+  UPDATE_MASK( bLeftBorder,                   3 );
+  UPDATE_MASK( bRightBorder,                  5 );
+  UPDATE_MASK( bLeftBorder  && bBottomBorder, 6 );
+  UPDATE_MASK(                 bBottomBorder, 7 );
+  UPDATE_MASK( bRightBorder && bBottomBorder, 8 );
+#undef UPDATE_MASK
+  return true;
+}
+
+
+ErrVal
+ReconstructionBypass::xOutshiftMask( Bool bMbAff, UInt uiDir, UInt uiOrgMask, UInt& ruiShiftedMask )
+{
+  ROT( uiDir == 4 );
+  ROT( uiDir >  8 );
+  Int  iXDir = g_D2XD[ uiDir ];
+  Int  iYDir = g_D2YD[ uiDir ];
+
+#define SET_IN_MASK(m,b) (((m)&(b))==(b))
+  if( ! bMbAff ) // NON-MBAFF
+  {
+    //===== get vertically shifted mask =====
+    UInt uiVertMask = 0;
+    if( iYDir == -1 ) // shift up (top border)
+    {
+      ROT( SET_IN_MASK( uiOrgMask, 0x080 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x001 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x002 ) );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x040 ) ? 0x020 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x100 ) ? 0x010 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x004 ) ? 0x008 : 0 );
+    }
+    else if( iYDir == 1 ) // shift down (bottom border)
+    {
+      ROT( SET_IN_MASK( uiOrgMask, 0x020 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x010 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x008 ) );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x040 ) ? 0x080 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x100 ) ? 0x001 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x004 ) ? 0x002 : 0 );
+    }
+    else // ( iYDir == 0 ) : no vertical shift
+    {
+      uiVertMask = uiOrgMask;
+    }
+    //===== get final shifted mask =====
+    ruiShiftedMask = 0;
+    if( iXDir == -1 ) // shift left (left border)
+    {
+      ROT( SET_IN_MASK( uiVertMask, 0x080 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x040 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x020 ) );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x001 ) ? 0x002 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x100 ) ? 0x004 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x010 ) ? 0x008 : 0 );
+    }
+    else if( iXDir == 1 ) // shift right (right border)
+    {
+      ROT( SET_IN_MASK( uiVertMask, 0x002 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x004 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x008 ) );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x001 ) ? 0x080 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x100 ) ? 0x040 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x010 ) ? 0x020 : 0 );
+    }
+    else // ( iXDir == 0 ) : no horizontal shift
+    {
+      ruiShiftedMask = uiVertMask;
+    }
+  }
+  else // MBAFF
+  {
+    //===== get vertically shifted mask =====
+    UInt uiVertMask = 0;
+    if( iYDir == -1 ) // shift up (top border)
+    {
+      ROT( SET_IN_MASK( uiOrgMask, 0x001 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x002 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x004 ) );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x008 ) ? 0x200 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x020 ) ? 0x400 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x080 ) ? 0x800 : 0 );
+    }
+    else if( iYDir == 1 ) // shift down (bottom border)
+    {
+      ROT( SET_IN_MASK( uiOrgMask, 0x200 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x400 ) );
+      ROT( SET_IN_MASK( uiOrgMask, 0x800 ) );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x010 ) ? 0x001 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x040 ) ? 0x002 : 0 );
+      uiVertMask |= ( SET_IN_MASK( uiOrgMask, 0x100 ) ? 0x004 : 0 );
+    }
+    else // ( iYDir == 0 ) : no vertical shift
+    {
+      uiVertMask = uiOrgMask;
+    }
+    //===== get final shifted mask =====
+    ruiShiftedMask = 0;
+    if( iXDir == -1 ) // shift left (left border)
+    {
+      ROT( SET_IN_MASK( uiVertMask, 0x001 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x008 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x010 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x200 ) );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x002 ) ? 0x004 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x020 ) ? 0x080 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x040 ) ? 0x100 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x400 ) ? 0x800 : 0 );
+    }
+    else if( iXDir == 1 ) // shift right (right border)
+    {
+      ROT( SET_IN_MASK( uiVertMask, 0x004 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x080 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x100 ) );
+      ROT( SET_IN_MASK( uiVertMask, 0x800 ) );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x002 ) ? 0x001 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x020 ) ? 0x008 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x040 ) ? 0x010 : 0 );
+      ruiShiftedMask |= ( SET_IN_MASK( uiVertMask, 0x400 ) ? 0x200 : 0 );
+    }
+    else // ( iXDir == 0 ) : no horizontal shift
+    {
+      ruiShiftedMask = uiVertMask;
+    }
+  }
+#undef SET_IN_MASK
   return Err::m_nOK;
 }
 

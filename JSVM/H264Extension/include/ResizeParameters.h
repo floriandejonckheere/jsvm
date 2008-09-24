@@ -129,15 +129,15 @@ public:
     }
     Bool  getSpatialResolutionChangeFlag() const
     {
-      ROTRS( m_iExtendedSpatialScalability == ESS_PICT,                 true );
-      ROFRS( m_bFieldPicFlag         == m_bRefLayerFieldPicFlag,        true );
-      ROFRS( m_bIsMbAffFrame         == m_bRefLayerIsMbAffFrame,        true );
-      ROFRS( ( m_iLeftFrmOffset %                          16   ) == 0, true );
-      ROFRS( ( m_iTopFrmOffset  % ( m_bIsMbAffFrame ? 32 : 16 ) ) == 0, true );
-      ROFRS( m_iRefLayerFrmWidth     == m_iScaledRefFrmWidth,           true );
-      ROFRS( m_iRefLayerFrmHeight    == m_iScaledRefFrmHeight,          true );
-      ROFRS( m_iRefLayerChromaPhaseX == m_iChromaPhaseX,                true );
-      ROFRS( m_iRefLayerChromaPhaseY == m_iChromaPhaseY,                true );
+      ROTRS( m_iExtendedSpatialScalability == ESS_PICT,                                     true );
+      ROFRS( m_bFieldPicFlag         == m_bRefLayerFieldPicFlag,                            true );
+      ROFRS( m_bIsMbAffFrame         == m_bRefLayerIsMbAffFrame,                            true );
+      ROFRS( ( m_iLeftFrmOffset %                                             16   ) == 0,  true );
+      ROFRS( ( m_iTopFrmOffset  % ( m_bFieldPicFlag || m_bIsMbAffFrame ? 32 : 16 ) ) == 0,  true );
+      ROFRS( m_iRefLayerFrmWidth     == m_iScaledRefFrmWidth,                               true );
+      ROFRS( m_iRefLayerFrmHeight    == m_iScaledRefFrmHeight,                              true );
+      ROFRS( m_iRefLayerChromaPhaseX == m_iChromaPhaseX,                                    true );
+      ROFRS( m_iRefLayerChromaPhaseY == m_iChromaPhaseY,                                    true );
       return false;
     }
     Bool  getRestrictedSpatialResolutionChangeFlag() const
@@ -146,7 +146,7 @@ public:
       ROFRS( m_bIsMbAffFrame          == false,                                                                   false );
       ROFRS( m_bRefLayerIsMbAffFrame  == false,                                                                   false );
       ROFRS( ( m_iLeftFrmOffset %                          16   ) == 0,                                           false );
-      ROFRS( ( m_iTopFrmOffset  % ( m_bIsMbAffFrame ? 32 : 16 ) ) == 0,                                           false );
+      ROFRS( ( m_iTopFrmOffset  % ( m_bFieldPicFlag ? 32 : 16 ) ) == 0,                                           false );
       ROFRS( m_iRefLayerFrmHeight == m_iScaledRefFrmHeight || 2 * m_iRefLayerFrmHeight == m_iScaledRefFrmHeight,  false );
       ROFRS( m_iRefLayerFrmWidth  == m_iScaledRefFrmWidth  || 2 * m_iRefLayerFrmWidth  == m_iScaledRefFrmWidth,   false );
       return true;

@@ -150,6 +150,17 @@ H264AVCEncoder::getELRefPic( UInt uiLayerId, UInt uiTemporalId, UInt uiFrameIdIn
 }
 
 UInt
+H264AVCEncoder::getMaxSliceSize( UInt uiLayerId, UInt uiAUIndex )
+{
+  UInt uiMaxSliceSize = MSYS_UINT_MAX;
+  for( UInt uiLId = uiLayerId; uiLId < m_pcCodingParameter->getNumberOfLayers(); uiLId++ )
+  {
+    ANOK( m_apcLayerEncoder[uiLId]->updateMaxSliceSize( uiAUIndex, uiMaxSliceSize ) );
+  }
+  return uiMaxSliceSize;
+}
+
+UInt
 H264AVCEncoder::getPicCodingType( UInt uiBaseLayerId, UInt uiTemporalId, UInt uiFrmIdInTLayer )
 {
   AOF( uiBaseLayerId < m_pcCodingParameter->getNumberOfLayers() );
@@ -844,7 +855,12 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   //  }
   //}
   //JVT-W051 }
+
+#if 1 // temporally disable this info due to bug in calculation of m_aadMaxBitrate[][]
+  pcScalableSEI->setPriorityLayerInfoPresentFlag(false);
+#else
   pcScalableSEI->setPriorityLayerInfoPresentFlag(true);
+#endif
   if ( pcScalableSEI->getPriorityLayerInfoPresentFlag() )
   {
     UInt uiPrNumdIdMinus1 = m_pcCodingParameter->getNumberOfLayers ()-1;
@@ -1739,7 +1755,7 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSLP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
     pcPPSLP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
     //--ICU/ETRI FMO Implementation : FMO stuff end
-
+    
     //===== initialization using parameter sets =====
     RNOK( m_pcControlMng->initParameterSets( *pcSPS, *pcPPSLP, *pcPPSHP ) );
   }
@@ -2406,6 +2422,7 @@ RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer 
     }
     else
     {
+      Bool bAll8x8 = true;
       rcMbDataAccessRewrite.getMbData().setMbMode( MODE_8x8 );
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -2416,11 +2433,58 @@ RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer 
         else
         {
           rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
+          //--- check whether 4x4 blocks can be combined to an 8x8 block (further improvements of this summarization process are possible) ---
+          Bool b8x8Ok = true;
+          for( UInt uiList = 0; uiList < 2; uiList++ )
+          {
+            ParIdx8x8     eParIdx8x8  = c8x8Idx.b8x8();
+            MbMotionData& rcMotData   = rcMbDataAccessRewrite.getMbData().getMbMotionData( ListIdx( uiList ) );
+            if( rcMotData.getRefIdx( eParIdx8x8 ) > 0 )
+            {
+              if( rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_1 ) ||
+                  rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_2 ) ||
+                  rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_3 )    )
+              {
+                b8x8Ok = false;
+              }
+            }
+          }
+          if( b8x8Ok )
+          {
+            rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+          }
+          else
+          {
+            bAll8x8 = false;
+          }
+        }
+      }
+      //--- check whether 8x8 blocks can be combined into 16x16 macroblock (further improvements of this summarization process are possible) ---
+      if( bAll8x8 )
+      {
+        Bool b16x16Ok = true;
+        for( UInt uiList = 0; uiList < 2 && b16x16Ok; uiList++ )
+        {
+          MbMotionData& rcMotData = rcMbDataAccessRewrite.getMbData().getMbMotionData( ListIdx( uiList ) );
+          b16x16Ok  = b16x16Ok && ( rcMotData.getRefIdx( PART_8x8_0 ) == rcMotData.getRefIdx( PART_8x8_1 ) );
+          b16x16Ok  = b16x16Ok && ( rcMotData.getRefIdx( PART_8x8_0 ) == rcMotData.getRefIdx( PART_8x8_2 ) );
+          b16x16Ok  = b16x16Ok && ( rcMotData.getRefIdx( PART_8x8_0 ) == rcMotData.getRefIdx( PART_8x8_3 ) );
+          if( b16x16Ok && rcMotData.getRefIdx( PART_8x8_0 ) > 0 )
+          {
+            b16x16Ok = b16x16Ok && ( rcMotData.getMv( PART_8x8_0 ) == rcMotData.getMv( PART_8x8_1 ) );
+            b16x16Ok = b16x16Ok && ( rcMotData.getMv( PART_8x8_0 ) == rcMotData.getMv( PART_8x8_2 ) );
+            b16x16Ok = b16x16Ok && ( rcMotData.getMv( PART_8x8_0 ) == rcMotData.getMv( PART_8x8_3 ) );
+          }
+        }
+        if( b16x16Ok )
+        {
+          rcMbDataAccessRewrite.getMbData().setMbMode( MODE_16x16 );
         }
       }
     }
   }
-  else if( rcMbDataAccessRewrite.getMbData().getMbMode() == MODE_8x8 )
+  else if( rcMbDataAccessRewrite.getMbData().getMbMode() == MODE_8x8 ||
+           rcMbDataAccessRewrite.getMbData().getMbMode() == MODE_8x8ref0 )
   {
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
@@ -2433,6 +2497,26 @@ RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer 
         else
         {
           rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
+          //--- check whether 4x4 blocks can be combined to an 8x8 block (further improvements of this summarization process are possible) ---
+          Bool b8x8Ok = true;
+          for( UInt uiList = 0; uiList < 2; uiList++ )
+          {
+            ParIdx8x8     eParIdx8x8  = c8x8Idx.b8x8();
+            MbMotionData& rcMotData   = rcMbDataAccessRewrite.getMbData().getMbMotionData( ListIdx( uiList ) );
+            if( rcMotData.getRefIdx( eParIdx8x8 ) > 0 )
+            {
+              if( rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_1 ) ||
+                  rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_2 ) ||
+                  rcMotData.getMv( eParIdx8x8, SPART_4x4_0 ) != rcMotData.getMv( eParIdx8x8, SPART_4x4_3 )    )
+              {
+                b8x8Ok = false;
+              }
+            }
+          }
+          if( b8x8Ok )
+          {
+            rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+          }
         }
       }
     }
@@ -2488,6 +2572,7 @@ RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer 
         rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
         break;
       case MODE_8x8:
+      case MODE_8x8ref0:
         {
           for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
           {

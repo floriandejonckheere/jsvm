@@ -1,6 +1,48 @@
 ﻿[Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_14 -> JSVM_9_15
+======================
+- correction of temporal Id in packet trace files
+- correction of padding before intra upsampling for Mbaff frames (near top & bottom border)
+- correction of residual prediction (residual of intra MBs is not used for residual prediction)
+- correction of derivation of SpatialResolutionChangeFlag and RestrictedSpatialResolutionChangeFlag
+- correction of typo in motion vector scaling (when cropping parameters change)
+- correction of derivation of sub-macroblock modes in inter-layer motion prediction
+- correction of chroma location calculation for the inter-intra combination process
+- correction of transform coefficient scaling in AVC rewriting mode
+- correction of derivation of maximum slice size (encoder only)
+- additional encoder checks for not supported combinations of parameters
+- correction of encoder control for InterLayerPred equal to 1
+- temporally disabling the writing of parameters in scalable info SEI that causes encoder crashes
+  (this will be re-enabled in the future when a bug fix has been implemented, see below)
+
+Known bugs:
+- bug in calculation of m_aadMaxBitrate[][] - fix will be provided by Nokia
+  (argument of setPriorityLayerInfoPresentFlag() should be changed from false to true after the bug fix)
+- incorrect setting of dpb_output_delay
+- correction of SNR scalability with Mbaff frames (currently this is considered as spatial scalability in the software)
+
+Missing features:
+- support of field pictures in scalable configurations in encoder (currently only correctly supported in single-layer coding)
+- adding of remaining profile/level constraints in encoder (add checks in decoder?)
+- decoder support for AVC rewrite mode in connection with incomplete layer representations (as adopted at the Geneva meeting in April 2008) 
+- error detection & concealment (without the restriction to two layers and fixed prediction structures that was found in the previously implemented version)
+
+Further desireable improvements: 
+- general improvement of encoder structure, including
+    - using same functions for P and B pictures ("key" and "non-key" pictures)
+    - using same functions for "slice mode"
+    - using same functions for "IROI"
+    - combine "motion estimation", "motion compensation", and "residual encoding"
+- support of more flexible encoder configurations, including
+    - GOP structures with non-dyadic prediction structures
+    - combination of MGS and CGS coding
+    - higher flexibility of "MGS vector mode"
+    - if feasible, support of slice data partitioning
+
+
+
 JSVM_9_13_1 -> JSVM_9_14
 ========================
 - direct 8x8 inference for inter-layer motion prediction in B slices (see JVT-AB010)

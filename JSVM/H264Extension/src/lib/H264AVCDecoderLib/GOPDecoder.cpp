@@ -2843,7 +2843,7 @@ LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   RNOK(   m_pcBaseLayerCtrlField ->init( rcSPS ) );
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
-  ROT ( m_cDownConvert.init( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
+  ROT ( m_cDownConvert.init( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4, 16 ) );
 
   //========= CREATE STATUS MAP ======
   ROFS( ( m_pacMbStatus = new MbStatus[ m_uiMbNumber ] ) );

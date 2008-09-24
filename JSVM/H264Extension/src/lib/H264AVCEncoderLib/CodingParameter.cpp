@@ -421,6 +421,7 @@ ErrVal CodingParameter::check()
     {
       ROTREPORT( !getCGSSNRRefinement(), "MGS vectors are only supported in MGS." );
       ROTREPORT( !pcBaseLayer,           "MGS vectors are not allowed in the base layer." );
+      ROTREPORT( !pcLayer->getInterLayerPredictionMode(), "MGS vectors cannot be used with InterLayerPred = 0" );
     }
 
     ROTREPORT( ! pcBaseLayer && pcLayer->getSliceSkip(), "Slice skip only supported in enhancement layers" );
@@ -440,6 +441,8 @@ ErrVal CodingParameter::check()
 
       ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getUseLongTerm() != pcBaseLayer->getUseLongTerm(),
         "UseLongTerm shall be the same in successive MGS layers" );
+
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && !pcLayer->getInterLayerPredictionMode(), "InterLayerPred must not be 0 in MGS enhancement layers" )
 
       ROTREPORT( pcLayer->getFrameWidthInSamples ()  < pcBaseLayer->getFrameWidthInSamples (), "Frame width  less than base layer frame width" );
       ROTREPORT( pcLayer->getFrameHeightInSamples()  < pcBaseLayer->getFrameHeightInSamples(), "Frame height less than base layer frame height" );

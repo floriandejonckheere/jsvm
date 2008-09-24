@@ -78,8 +78,8 @@ public:
   ErrVal        storeToPicBuffer        ( PicBuffer*        pcPicBuffer );
   ErrVal        interpolatedPicBuffer   ( PicBuffer*        pcPicBuffer, Bool bBotField );
 
-  ErrVal        loadBuffer              ( YuvMbBuffer*   pcYuvMbBuffer );
-  ErrVal        loadBuffer_MbAff        ( YuvMbBuffer *pcYuvMbBuffer   ,  UInt uiMask) ;//TMM_INTERLACE
+  ErrVal        loadBuffer              ( YuvMbBuffer*   pcYuvMbBuffer, Int iMbXOffset = 0, Int iMbYOffset = 0 );
+  ErrVal        loadBuffer_MbAff        ( YuvMbBuffer*   pcYuvMbBuffer, UInt uiMask ); //TMM_INTERLACE
 
   ErrVal        fillMargin              ();
 

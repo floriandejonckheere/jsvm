@@ -67,6 +67,7 @@ protected:
                                                 UInt                  uiHeight,
                                                 UInt                  uiWidth,
                                                 UInt                  uiStride );
+  Double          xLog                        ( UInt                  uiDistortion )  { if( uiDistortion ) return log10( (Double)uiDistortion ); else return 0; }
 
   //====== read from and write to data file =====
   ErrVal          xWriteDataFile              ( const std::string&    cFileName );

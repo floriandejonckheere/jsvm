@@ -368,12 +368,12 @@ ErrVal YuvPicBuffer::uninit()
 }
 
 
-ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer )
+ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer, Int iMbXOffset, Int iMbYOffset )
 {
-  XPel* pDes        = getMbLumAddr();
-  XPel* pScr        = pcYuvMbBuffer->getMbLumAddr();
   Int   iSrcStride  = pcYuvMbBuffer->getLStride();
   Int   iDesStride  = getLStride();
+  XPel* pDes        = getMbLumAddr() + iMbXOffset * 16 + iMbYOffset * 16 * iDesStride;
+  XPel* pScr        = pcYuvMbBuffer->getMbLumAddr();
   UInt  y;
 
   for( y = 0; y < 16; y++ )
@@ -386,7 +386,7 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer )
   iDesStride  >>= 1;
   iSrcStride  = pcYuvMbBuffer->getCStride();
   pScr = pcYuvMbBuffer->getMbCbAddr();
-  pDes = getMbCbAddr();
+  pDes = getMbCbAddr() + iMbXOffset * 8 + iMbYOffset * 8 * iDesStride;
 
   for( y = 0; y < 8; y++ )
   {
@@ -396,7 +396,7 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer )
   }
 
   pScr = pcYuvMbBuffer->getMbCrAddr();
-  pDes = getMbCrAddr();
+  pDes = getMbCrAddr() + iMbXOffset * 8 + iMbYOffset * 8 * iDesStride;
 
   for( y = 0; y < 8; y++ )
   {
@@ -1322,8 +1322,6 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
 
 
 
-
-
 ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
 {
   Int     iNumMbY   = getLHeight() >> 4;
@@ -1624,7 +1622,6 @@ ErrVal YuvPicBuffer::fillMargin()
 }
 
 
-
 Void YuvPicBuffer::xFillPlaneMargin( XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin )
 {
   XPel* puc;
@@ -1660,7 +1657,6 @@ Void YuvPicBuffer::xFillPlaneMargin( XPel *pucDest, Int iHeight, Int iWidth, Int
     puc -= iStride;
   }
 }
-
 
 Void YuvPicBuffer::setZero()
 {

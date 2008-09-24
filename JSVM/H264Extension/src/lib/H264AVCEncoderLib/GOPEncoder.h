@@ -221,6 +221,8 @@ public:
   Int           getFrameHeight      ()                                { return 16*m_uiFrameHeightInMb; }
   UInt          getPicCodingType    ( UInt                            uiTemporalId,
                                       UInt                            uiFrmIdInTLayer );
+  ErrVal        updateMaxSliceSize  ( UInt                            uiAUIndex,
+                                      UInt&                           ruiMaxSliceSize );
   ErrVal        getBaseLayerStatus  ( Bool&                           bExists,
 																			Bool&                           bMotion,
 																			PicType                         ePicType,
@@ -470,10 +472,6 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           Bool                        bClipAll,
 																					PicType                     ePicType );
 
-  ErrVal  xAddBaseLayerResidual         ( ControlData&                rcControlData,
-                                          Frame*                   pcFrame,
-                                          Bool                        bSubtract,
-																					PicType                     ePicType );
   ErrVal  xUpdateLowPassRec             ( UInt                        uiLowPassIndex );
   Frame*  xGetRefFrame                  ( UInt                        uiRefIndex,
                                           RefListUsage                eRefListUsage );

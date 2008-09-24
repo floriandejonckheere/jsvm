@@ -211,19 +211,19 @@ public:
 
   Bool  isSCoeffPred()
   {
-    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),                               false );
-    ROFRS( m_pcMbDataAccessBase,                                                      false );
-    ROTRS(!m_rcMbCurr.isIntra   () && m_rcMbCurr.getResidualPredFlag(),               true  );
-    ROTRS( m_rcMbCurr.isIntraBL () && m_pcMbDataAccessBase->getMbData().isIntraBL(),  true  );
+    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),                                                                 false );
+    ROFRS( m_pcMbDataAccessBase,                                                                                        false );
+    ROTRS(!m_rcMbCurr.isIntra   () && m_rcMbCurr.getResidualPredFlag() && !m_pcMbDataAccessBase->getMbData().isIntra(), true  );
+    ROTRS( m_rcMbCurr.isIntraBL () && m_pcMbDataAccessBase->getMbData().isIntraBL(),                                    true  );
     return false;
   }
 
   Bool  isTCoeffPred()
   {
-    ROFRS( m_rcSliceHeader.getTCoeffLevelPredictionFlag(),            false );
-    ROFRS( m_pcMbDataAccessBase,                                      false );
-    ROTRS(!m_rcMbCurr.isIntra() && m_rcMbCurr.getResidualPredFlag(),  true  );
-    ROTRS( m_rcMbCurr.isIntra() && m_rcMbCurr.getBLSkipFlag(),        true  );
+    ROFRS( m_rcSliceHeader.getTCoeffLevelPredictionFlag(),                                                            false );
+    ROFRS( m_pcMbDataAccessBase,                                                                                      false );
+    ROTRS(!m_rcMbCurr.isIntra() && m_rcMbCurr.getResidualPredFlag() && !m_pcMbDataAccessBase->getMbData().isIntra(),  true  );
+    ROTRS( m_rcMbCurr.isIntra() && m_rcMbCurr.getBLSkipFlag(),                                                        true  );
     return false;
   }
 

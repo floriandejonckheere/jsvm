@@ -35,7 +35,7 @@ public:
   //========================
   DownConvert   ();
   ~DownConvert  ();
-  bool  init    ( int iMaxWidth, int iMaxHeight );
+  bool  init    ( int iMaxWidth, int iMaxHeight, int iMaxMargin = 0 );
   void  destroy ();
 
 #ifdef  DOWN_CONVERT_STATIC
@@ -106,7 +106,8 @@ public:
   void  xCompIntraUpsampling        ( ResizeParameters*       pcParameters,
                                       bool                    bChroma,
                                       bool                    bBotFlag,
-                                      bool                    bVerticalInterpolation );
+                                      bool                    bVerticalInterpolation,
+                                      int                     iMargin = 0 );
   void  xVertIntraUpsampling        ( int  iBaseW,   int  iBaseH,
                                       int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
                                       int  iYBorder, bool bBotFlag, bool bChromaFilter );
@@ -114,7 +115,7 @@ public:
                                       int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
                                       int  iShiftX,  int  iShiftY,  int  iScaleX,  int  iScaleY,
                                       int  iOffsetX, int  iOffsetY, int  iAddX,    int  iAddY,
-                                      int  iDeltaX,  int  iDeltaY,  int  iYBorder, bool bChromaFilter );
+                                      int  iDeltaX,  int  iDeltaY,  int  iYBorder, bool bChromaFilter, int iMargin );
 
 #ifdef  DOWN_CONVERT_STATIC
   //=======================================
@@ -179,7 +180,8 @@ public:
   void  xCopyToImageBuffer          ( const short*          psSrc,
                                       int                   iWidth,
                                       int                   iHeight,
-                                      int                   iStride );
+                                      int                   iStride,
+                                      int                   iMargin = 0 );
   void  xCopyFromImageBuffer        ( short*                psDes,
                                       int                   iWidth,
                                       int                   iHeight,

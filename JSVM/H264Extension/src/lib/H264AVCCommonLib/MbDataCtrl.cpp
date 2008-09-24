@@ -514,7 +514,7 @@ MotionUpsampling::xGetInitialBaseRefIdxAndMv( Int     i4x4BlkX,
     Int iMbPosX     = (   m_iMbXCurr << 4 );
     Int iMbPosY     = ( ( m_iMbYCurr >> iFldInFrame ) << ( 4 + iFldInFrame ) ) + ( m_iMbYCurr & iFldInFrame );
     Int iXFrm       =   iMbPosX +   ( ( i4x4BlkX << 2 ) + 1 );
-    Int iYFrm       = ( iMbPosY + ( ( ( i4x4BlkX << 2 ) + 1 ) << ( iCurrFieldMb - m_cMvScale.m_iCurrField ) ) ) << m_cMvScale.m_iCurrField;
+    Int iYFrm       = ( iMbPosY + ( ( ( i4x4BlkY << 2 ) + 1 ) << ( iCurrFieldMb - m_cMvScale.m_iCurrField ) ) ) << m_cMvScale.m_iCurrField;
     Int iX          = iXFrm - m_cMvScale.m_iOffsetX;
     Int iY          = iYFrm - m_cMvScale.m_iOffsetY;
     iScaleX         = ( ( ( 4 * idSW ) << 16 ) + ( m_cMvScale.m_iScaledW >> 1 ) ) / m_cMvScale.m_iScaledW;
@@ -624,6 +624,7 @@ MotionUpsampling::xDeriveBlockModeAndUpdateMv( Int i8x8BlkIdx )
   Int   iYO                 = ( i8x8BlkIdx >> 1 ) << 1;
   Bool  bHorMatch           = true;
   Bool  bVerMatch           = true;
+  Bool  b8x8Match           = true;
 
   //===== unify 8x8 blocks when direct_8x8_inference_flag is equal to 1 =====
   if( m_bDirect8x8Inference && ! m_cMvScale.m_bRSChangeFlag && m_eSliceType == B_SLICE )
@@ -644,13 +645,17 @@ MotionUpsampling::xDeriveBlockModeAndUpdateMv( Int i8x8BlkIdx )
   {
     for( Int iListIdx = 0; iListIdx < m_iMaxListIdx; iListIdx++ )
     {
-      bHorMatch = bHorMatch && ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO  ], m_aaacMv[iListIdx][iXO+1][iYO  ] ) <= iAbsMvDiffThreshold );
-      bHorMatch = bHorMatch && ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO+1], m_aaacMv[iListIdx][iXO+1][iYO+1] ) <= iAbsMvDiffThreshold );
-      bVerMatch = bVerMatch && ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO  ], m_aaacMv[iListIdx][iXO  ][iYO+1] ) <= iAbsMvDiffThreshold );
-      bVerMatch = bVerMatch && ( xMvDiff( m_aaacMv[iListIdx][iXO+1][iYO  ], m_aaacMv[iListIdx][iXO+1][iYO+1] ) <= iAbsMvDiffThreshold );
+      Bool  bHor1Match  = ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO  ], m_aaacMv[iListIdx][iXO+1][iYO  ] ) <= iAbsMvDiffThreshold );
+      Bool  bHor2Match  = ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO+1], m_aaacMv[iListIdx][iXO+1][iYO+1] ) <= iAbsMvDiffThreshold );
+      Bool  bVer1Match  = ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO  ], m_aaacMv[iListIdx][iXO  ][iYO+1] ) <= iAbsMvDiffThreshold );
+      Bool  bVer2Match  = ( xMvDiff( m_aaacMv[iListIdx][iXO+1][iYO  ], m_aaacMv[iListIdx][iXO+1][iYO+1] ) <= iAbsMvDiffThreshold );
+      Bool  bDiagMatch  = ( xMvDiff( m_aaacMv[iListIdx][iXO  ][iYO  ], m_aaacMv[iListIdx][iXO+1][iYO+1] ) <= iAbsMvDiffThreshold );
+      b8x8Match         = b8x8Match && bHor1Match && bVer1Match && bDiagMatch;
+      bHorMatch         = bHorMatch && bHor1Match && bHor2Match;
+      bVerMatch         = bVerMatch && bVer1Match && bVer2Match;
     }
     const BlkMode aiBlkMode[4]  = { BLK_4x4, BLK_8x4, BLK_4x8, BLK_8x8 };
-    m_aeBlkMode[i8x8BlkIdx]     = aiBlkMode[ ( bVerMatch ? 2 : 0 ) + ( bHorMatch ? 1 : 0 ) ];
+    m_aeBlkMode[i8x8BlkIdx]     = aiBlkMode[ b8x8Match ? 3 : bHorMatch ? 1 : bVerMatch ? 2 : 0 ];
   }
   ROTRS( m_cMvScale.m_bRSChangeFlag,          Err::m_nOK );
   ROTRS( m_aeBlkMode[i8x8BlkIdx] == BLK_4x4,  Err::m_nOK );
@@ -1497,8 +1502,8 @@ MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiMask, U
   UInt uiCurrIdx  = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
   AOT( uiCurrIdx >= m_uiSize );
 
-  rbIntra = m_pcMbData[uiCurrIdx].isIntraInSlice( uiCurrentSliceID );
-  ROTRS( rbIntra, Err::m_nOK );
+  rbIntra  = m_pcMbData[uiCurrIdx].isIntraInSlice( uiCurrentSliceID );
+  ruiMask |= ( rbIntra ? 0x100 : 0 );
 
   Bool bLeftAvailable   = ( iMbX > 0 );
   Bool bTopAvailable    = ( iMbY > 0 );
@@ -1594,7 +1599,6 @@ MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, Bool& rbIntra, UInt& ruiM
   //===== reset =====
   ruiMask = 0;
   rbIntra = ( bAvailableCurrTop && bAvailableCurrBot );
-  ROTRS( rbIntra, Err::m_nOK ); // current field of current macroblock pair is completely intra coded
 
   //===== left macroblock pair =====
   if( bMbPairAvailableLeft )
