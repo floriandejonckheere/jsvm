@@ -48,24 +48,6 @@ H264AVCEncoder::H264AVCEncoder():
   ::memset( m_bConstraint1Flag, 0, MAX_LAYERS*sizeof(Bool) );
   ::memset( m_bConstraint2Flag, 0, MAX_LAYERS*sizeof(Bool) );
   ::memset( m_bConstraint3Flag, 0, MAX_LAYERS*sizeof(Bool) );
-  ::memset( m_uiFrameNumInGOP, 0x00, MAX_LAYERS*sizeof(UInt) );
-  ::memset( m_uiCodeFrameNum, 0x00, MAX_LAYERS*sizeof(UInt) );
-  m_aaadFrameInTimeWindowBits = new Double**[300];
-  for ( UInt i = 0; i < 300; i++ )
-  {
-    m_aaadFrameInTimeWindowBits[i] = new Double*[MAX_LAYERS];
-    for ( UInt j = 0; j < MAX_LAYERS; j++ )
-    {
-      m_aaadFrameInTimeWindowBits[i][j] = new Double[MAX_QUALITY_LEVELS];
-      for ( UInt k = 0; k < MAX_QUALITY_LEVELS; k++ )
-      {
-        m_aaadFrameInTimeWindowBits[i][j][k] = 0;
-      }
-    }
-  }
-  ::memset( m_aaadFrameInGOPBits, 0x00, 65*MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Double) );
-  ::memset( m_adAvgBitrate, 0x00, MAX_LAYERS*sizeof(Double) );
-  ::memset( m_aadMaxBitrate, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Double) );
   //JVT-W051 }
   for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
   {
@@ -856,54 +838,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   //}
   //JVT-W051 }
 
-#if 1 // temporally disable this info due to bug in calculation of m_aadMaxBitrate[][]
+  //note: this flag will be true after inserting Priority layer information SEI by QualityLevelAssigner
   pcScalableSEI->setPriorityLayerInfoPresentFlag(false);
-#else
-  pcScalableSEI->setPriorityLayerInfoPresentFlag(true);
-#endif
-  if ( pcScalableSEI->getPriorityLayerInfoPresentFlag() )
-  {
-    UInt uiPrNumdIdMinus1 = m_pcCodingParameter->getNumberOfLayers ()-1;
-    pcScalableSEI->setPrNumdIdMinus1( uiPrNumdIdMinus1 );
-    for ( i=0; i <= pcScalableSEI->getPrNumdIdMinus1(); i++ )
-    {
-      UInt uiPrDependencyId = i;//could be changed
-      pcScalableSEI->setPrDependencyId(i, uiPrDependencyId);
-      pcScalableSEI->setPrNumMinus1(i, 0);
-
-      for (j=0; j <= pcScalableSEI->getPrNumMinus1(i); j++)
-      {
-        UInt uiPrId = j;//could be changed
-        pcScalableSEI->setPrId(i,j,uiPrId);
-        Int32 uilayerProfileLevelIdc = 0;
-        {
-          UInt uilayerProfileIdc = m_uiProfileIdc[uiPrDependencyId];
-          UInt uiLayerLevelIdc = m_uiLevelIdc[uiPrDependencyId];
-          Bool bLayerConstraintSet0Flag = m_bConstraint0Flag[uiPrDependencyId];
-          Bool bLayerConstraintSet1Flag = m_bConstraint1Flag[uiPrDependencyId];
-          Bool bLayerConstraintSet2Flag = m_bConstraint2Flag[uiPrDependencyId];
-          Bool bLayerConstraintSet3Flag = m_bConstraint3Flag[uiPrDependencyId];
-          uilayerProfileLevelIdc += uilayerProfileIdc;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 1;
-          uilayerProfileLevelIdc += bLayerConstraintSet0Flag;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 1;
-          uilayerProfileLevelIdc += bLayerConstraintSet1Flag;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 1;
-          uilayerProfileLevelIdc += bLayerConstraintSet2Flag;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 1;
-          uilayerProfileLevelIdc += bLayerConstraintSet3Flag;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 4;
-          uilayerProfileLevelIdc = uilayerProfileLevelIdc << 8;
-          uilayerProfileLevelIdc += uiLayerLevelIdc;
-        }
-        pcScalableSEI->setPrProfileLevelIdx(i,j,uilayerProfileLevelIdc);
-
-
-        pcScalableSEI->setPrAvgBitrateBPS(i,j,m_adAvgBitrate[uiPrDependencyId]);
-        pcScalableSEI->setPrMaxBitrateBPS(i,j,m_aadMaxBitrate[uiPrDependencyId][uiPrId]);
-      }
-    }
-  }
   //SEI changes update }
   //JVT-W053
   const char *ucTemp = "http://svc.com";
@@ -1220,8 +1156,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
       if( uiLayer == m_pcCodingParameter->getNumberOfLayers() || m_apcLayerEncoder[uiLayer]->getQualityLevelCGSSNR() == 0 ) //last layer is highest quality layer
       {
         RNOK( m_apcLayerEncoder[uiLayer-1]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate, m_aaadFinalFramerate, m_aaadSeqBits ) );
-        UInt uiLayerCGSSNR = m_apcLayerEncoder[uiLayer-1]->getLayerCGSSNR();
-        m_adAvgBitrate[uiLayerCGSSNR] = m_apcLayerEncoder[uiLayer-1]->m_dAvgBitrate;
       }
     }
   }
@@ -1230,9 +1164,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
     for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
     {
       RNOK( m_apcLayerEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate, m_aaadFinalFramerate, m_aaadSeqBits ) );
-      //JVT-W051 {
-      m_adAvgBitrate[uiLayer] = m_apcLayerEncoder[uiLayer]->m_dAvgBitrate;
-      //JVT-W051 }
     }
   }
   printf("\n");
@@ -1240,118 +1171,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   return Err::m_nOK;
 }
 
-//JVT-W051 {
-ErrVal
-H264AVCEncoder::xCalMaxBitrate(UInt uiLayer)
-{
-  //UInt uiDecompositionStages = m_pcCodingParameter->getLayerParameters(uiLayer).getDecompositionStages();
-  UInt uiCurrIdx = 0;
-  UInt uiTimeWindowSize =  (UInt)(m_pcCodingParameter->getLayerParameters(uiLayer).m_dOutputFrameRate+0.5);
-  UInt uiFrameNumInGOP = m_uiFrameNumInGOP[uiLayer];
-  UInt uiBaseLayerId = m_pcCodingParameter->getLayerParameters(uiLayer).getBaseLayerId();
-  UInt uiBaseQualityLevel = m_pcCodingParameter->getLayerParameters(uiLayer).getBaseQualityLevel();
-  if ( uiBaseQualityLevel > 3 )
-  {
-    uiBaseQualityLevel = 3;
-  }
-  for ( uiCurrIdx = 0; uiCurrIdx < uiFrameNumInGOP; uiCurrIdx++ )
-  {
-    if ( uiLayer )
-    {
-      m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][0] += m_aaadFrameInGOPBits[uiCurrIdx][uiBaseLayerId][uiBaseQualityLevel];
-    }
-
-    for ( UInt uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-    {
-      m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][uiFGSLayer] += m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][uiFGSLayer-1];
-    }
-  }
-  if ( ( m_uiCodeFrameNum[uiLayer] - uiFrameNumInGOP ) < uiTimeWindowSize )
-  {
-    for ( uiCurrIdx = 0; (uiCurrIdx < uiFrameNumInGOP) && (m_uiCodeFrameNum[uiLayer]-uiFrameNumInGOP+uiCurrIdx < uiTimeWindowSize); uiCurrIdx ++ )
-    {
-      for ( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-      {
-        m_aaadFrameInTimeWindowBits[m_uiCodeFrameNum[uiLayer]-uiFrameNumInGOP+uiCurrIdx][uiLayer][uiFGSLayer] =
-          m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][uiFGSLayer];
-      }
-    }
-    //add
-    for ( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-    {
-      m_aadMaxBitrate[uiLayer][uiFGSLayer] = 0;
-      for ( UInt i = 0; i < uiTimeWindowSize; i++ )
-      {
-        m_aadMaxBitrate[uiLayer][uiFGSLayer] += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
-      }
-      m_aadMaxBitrate[uiLayer][uiFGSLayer] = m_aadMaxBitrate[uiLayer][uiFGSLayer]*uiTimeWindowSize/(m_uiCodeFrameNum[uiLayer]-uiFrameNumInGOP+uiCurrIdx);
-    }
-    //add
-
-    if ((uiCurrIdx < uiFrameNumInGOP) || (m_uiCodeFrameNum[uiLayer]-uiFrameNumInGOP+uiCurrIdx == uiTimeWindowSize))
-    {
-      for ( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-      {
-        m_aadMaxBitrate[uiLayer][uiFGSLayer] = 0;
-        for ( UInt i = 0; i < uiTimeWindowSize; i++ )
-        {
-          m_aadMaxBitrate[uiLayer][uiFGSLayer] += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
-        }
-        //m_aadMaxBitrate[uiLayer][uiFGSLayer] = m_aadMaxBitrate[uiLayer][uiFGSLayer];
-      }
-      for ( UInt uiCurrAUIdx = uiCurrIdx; uiCurrAUIdx < uiFrameNumInGOP; uiCurrAUIdx++ )
-      {
-        for ( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-        {
-          UInt i = 0;
-          for (i = 0; i < uiTimeWindowSize-1; i++)
-          {
-            m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer] = m_aaadFrameInTimeWindowBits[i+1][uiLayer][uiFGSLayer];
-          }
-          m_aaadFrameInTimeWindowBits[uiTimeWindowSize-1][uiLayer][uiFGSLayer] = m_aaadFrameInGOPBits[uiCurrAUIdx][uiLayer][uiFGSLayer];
-          Double dTmpMaxBitrate = 0;
-          for (i = 0; i < uiTimeWindowSize; i++)
-          {
-            dTmpMaxBitrate += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
-          }
-          dTmpMaxBitrate = dTmpMaxBitrate;
-          if (dTmpMaxBitrate > m_aadMaxBitrate[uiLayer][uiFGSLayer])
-          {
-            m_aadMaxBitrate[uiLayer][uiFGSLayer] = dTmpMaxBitrate;
-          }
-        }
-      }
-    }
-  }
-  else
-  {
-    for ( uiCurrIdx = 0; uiCurrIdx < uiFrameNumInGOP; uiCurrIdx ++ )
-    {
-      for ( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-      {
-        UInt i = 0;
-        for (i = 0; i < uiTimeWindowSize-1; i++)
-        {
-          m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer] = m_aaadFrameInTimeWindowBits[i+1][uiLayer][uiFGSLayer];
-        }
-        m_aaadFrameInTimeWindowBits[uiTimeWindowSize-1][uiLayer][uiFGSLayer] = m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][uiFGSLayer];
-        Double dTmpMaxBitrate = 0;
-        for (i = 0; i < uiTimeWindowSize; i++)
-        {
-          dTmpMaxBitrate += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
-        }
-        dTmpMaxBitrate = dTmpMaxBitrate;
-        if (dTmpMaxBitrate > m_aadMaxBitrate[uiLayer][uiFGSLayer])
-        {
-          m_aadMaxBitrate[uiLayer][uiFGSLayer] = dTmpMaxBitrate;
-        }
-      }
-    }
-
-  }
-  return Err::m_nOK;
-}
-//JVT-W051 }
 
 ErrVal
 H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
@@ -1393,13 +1212,7 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
         if( uiLayer == m_pcCodingParameter->getNumberOfLayers() - 1 )   m_apcLayerEncoder[ uiLayer ]->setNonRequiredWrite( 2 );
         else                                                            m_apcLayerEncoder[ uiLayer ]->setNonRequiredWrite( 1 );
       }
-      //JVT-W051 {
-      m_bIsFirstGOP = false;
-      if ( m_apcLayerEncoder[uiLayer]->firstGOPCoded() == false )
-      {
-        m_bIsFirstGOP = true;
-      }
-      //JVT-W051 }
+      m_bIsFirstGOP = !m_apcLayerEncoder[uiLayer]->firstGOPCoded();
       RNOK( m_apcLayerEncoder[uiLayer]->process( uiAUIndex,
                                                 m_cAccessUnitDataList.getAccessUnitData( uiAUIndex ),
                                                 m_acOrgPicBufferList  [uiLayer],
@@ -1407,11 +1220,6 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
                                                 apcPicBufferUnusedList[uiLayer],
                                                 m_pcParameterSetMng ) );
       //JVT-W051 {
-      m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] = m_apcLayerEncoder[uiLayer]->m_dFrameBits;
-      if ( uiLayer == 0 && uiAUIndex == 0 )
-      {
-        m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] += (Double)m_apcLayerEncoder[uiLayer]->xGetParameterSetBits();
-      }
       if ( m_bIsFirstGOP )
       {
         m_uiProfileIdc[uiLayer] = m_apcLayerEncoder[uiLayer]->m_uiProfileIdc;
@@ -1424,22 +1232,6 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
       //JVT-W051 }
     }
   }//JVT-W052
-
-  //JVT-W051 {
-  for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer ++ )
-  {
-    m_uiFrameNumInGOP[uiLayer] = 0;
-    for ( UInt i = 0; i < 65; i++ )
-    {
-      if ( m_aaadFrameInGOPBits[i][uiLayer][0] != 0 )
-      {
-        m_uiFrameNumInGOP[uiLayer]++;
-      }
-    }
-    m_uiCodeFrameNum[uiLayer] += m_uiFrameNumInGOP[uiLayer];
-    xCalMaxBitrate(uiLayer);
-  }
-  //JVT-W051
 
   //===== update pic buffer lists =====
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )

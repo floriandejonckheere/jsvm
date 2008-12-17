@@ -472,36 +472,7 @@ Extractor::xAnalyse()
     uiMaxLayer          = pcTmpScalableSei->getDependencyId( m_uiScalableNumLayersMinus1);
     uiMaxTempLevel      = pcTmpScalableSei->getTemporalId(m_uiScalableNumLayersMinus1);
     //SEI changes update {
-    //JVT-W051 {
-    //m_uiQl_num_dId_minus1 = pcTmpScalableSei->getQlNumdIdMinus1();
-    //for (UInt i = 0; i < MAX_LAYERS; i++)
-    //{
-    //  m_uiQl_Dependency_Id[i] = pcTmpScalableSei->getQlDependencyId(i);
-    //  m_uiQl_num_minus1[i] = pcTmpScalableSei->getQlNumMinus1(i);
-    //  for (UInt j = 0; j< MAX_QUALITY_LEVELS; j++)
-    //  {
-    //    m_uiQl_Id[i][j] = pcTmpScalableSei->getQlId(i,j);
-    //    m_uiQl_Profile_Level_Idc[i][j] = pcTmpScalableSei->getQlProfileLevelIdc(i,j);
-    //    m_dQl_Avg_Bitrate[i][j] = pcTmpScalableSei->getQlAvgBitrate(i,j);
-    //    m_dQl_Max_Bitrate[i][j] = pcTmpScalableSei->getQlMaxBitrate(i,j);
-    //  }
-    //}
-    m_uiPr_num_dId_minus1 = pcTmpScalableSei->getPrNumdIdMinus1();
-    for (UInt i = 0; i < MAX_LAYERS; i++)
-    {
-      m_uiPr_Dependency_Id[i] = pcTmpScalableSei->getPrDependencyId(i);
-      m_uiPr_num_minus1[i] = pcTmpScalableSei->getPrNumMinus1(i);
-      for (UInt j = 0; j< MAX_QUALITY_LEVELS; j++)
-      {
-        m_uiPr_Id[i][j] = pcTmpScalableSei->getPrId(i,j);
-        m_uiPr_Profile_Level_Idc[i][j] = pcTmpScalableSei->getPrProfileLevelIdc(i,j);
-        m_dPr_Avg_Bitrate[i][j] = pcTmpScalableSei->getPrAvgBitrateBPS(i,j);
-        m_dPr_Max_Bitrate[i][j] = pcTmpScalableSei->getPrMaxBitrateBPS(i,j);
-      }
-    }
-    //JVT-W051 }
     //JVT-W046 {
-
     //for(UInt ui=0; ui <= m_uiScalableNumLayersMinus1; ui++)
     //{
     //  m_bAvc_Layer_Conversion_Flag[ui] = pcTmpScalableSei->getAvcLayerConversionFlag(ui);
@@ -2682,12 +2653,10 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   for ( i = 0; i < pcNewScalableSeiLayersNotPresent->getNumLayers(); i++)
     h264::SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[i] = pcNewScalableSeiLayersNotPresent->getLayerId(i);
   //JVT-W051 {
-  //pcNewScalableSei->setQualityLayerInfoPresentFlag(pcOldScalableSei->getQualityLayerInfoPresentFlag());//SEI changes update
   pcNewScalableSei->setPriorityLayerInfoPresentFlag(pcOldScalableSei->getPriorityLayerInfoPresentFlag());//SEI changes update
 
   for( uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
   {
-    //pcNewScalableSei->setBitstreamRestrictionFlag(uiScalableLayer,pcOldScalableSei->getBitstreamRestrictionFlag(uiScalableLayer));//SEI changes update
 		pcNewScalableSei->setBitstreamRestrictionInfoPresentFlag(uiScalableLayer,pcOldScalableSei->getBitstreamRestrictionInfoPresentFlag(uiScalableLayer));//SEI changes update
     pcNewScalableSei->setMotionVectorsOverPicBoundariesFlag(uiScalableLayer,pcOldScalableSei->getMotionVectorsOverPicBoundariesFlag(uiScalableLayer));
     pcNewScalableSei->setMaxBytesPerPicDenom(uiScalableLayer,pcOldScalableSei->getMaxBytesPerPicDenom(uiScalableLayer));
@@ -2698,28 +2667,12 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     pcNewScalableSei->setMaxDecFrameBuffering(uiScalableLayer,pcOldScalableSei->getMaxDecFrameBuffering(uiScalableLayer));
   }
   //SEI changes update {
-  //if (pcOldScalableSei->getQualityLayerInfoPresentFlag())
-  //{
-  //  pcNewScalableSei->setQlNumdIdMinus1(pcOldScalableSei->getQlNumdIdMinus1());
-  //  for ( i = 0; i <= pcOldScalableSei->getQlNumdIdMinus1(); i++ )
-  //  {
-  //    pcNewScalableSei->setDependencyId(i,pcOldScalableSei->getDependencyId(i));
-  //    pcNewScalableSei->setQlNumMinus1(i,pcOldScalableSei->getQlNumMinus1(i));
-  //    for ( UInt j = 0; j <= pcOldScalableSei->getQlNumMinus1(i); j++ )
-  //    {
-  //      pcNewScalableSei->setQlId(i,j,pcOldScalableSei->getQlId(i,j));
-  //      pcNewScalableSei->setQlProfileLevelIdx(i,j,pcOldScalableSei->getQlProfileLevelIdc(i,j));
-  //      pcNewScalableSei->setQlAvgBitrate(i,j,pcOldScalableSei->getQlAvgBitrate(i,j));
-  //      pcNewScalableSei->setQlMaxBitrate(i,j,pcOldScalableSei->getQlMaxBitrate(i,j));
-  //    }
-  //  }
-  //}
   if (pcOldScalableSei->getPriorityLayerInfoPresentFlag())
   {
     pcNewScalableSei->setPrNumdIdMinus1(pcOldScalableSei->getPrNumdIdMinus1());
     for ( i = 0; i <= pcOldScalableSei->getPrNumdIdMinus1(); i++ )
     {
-      pcNewScalableSei->setPrDependencyId(i,pcOldScalableSei->getDependencyId(i));
+      pcNewScalableSei->setPrDependencyId(i,pcOldScalableSei->getPrDependencyId(i));
       pcNewScalableSei->setPrNumMinus1(i,pcOldScalableSei->getPrNumMinus1(i));
       for ( UInt j = 0; j <= pcOldScalableSei->getPrNumMinus1(i); j++ )
       {
@@ -3222,7 +3175,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
         {
           RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
           RNOK( m_pcWriteBitstream->writePacket( pcBinData_prefix ) );
-          uiPacketSize  += 4 + pcBinData->size();
+          uiPacketSize  += 4 + pcBinData_prefix->size();
           RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
           pcBinData_prefix = NULL;
           uiNumKept++;

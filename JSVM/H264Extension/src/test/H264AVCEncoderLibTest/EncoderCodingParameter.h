@@ -1088,6 +1088,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 // JVT-Q065 EIDR{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	            &(rcLayer.m_iIDRPeriod),								0		);
 // JVT-Q065 EIDR}
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IntraPeriod",	          &(rcLayer.m_iLayerIntraPeriod),							0		);
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	                  &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",        &(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantKeySlc",     &(rcLayer.m_uiUseRedundantKeySlice), 0   );  //JVT-W049

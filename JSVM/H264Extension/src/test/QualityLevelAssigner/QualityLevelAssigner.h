@@ -77,11 +77,8 @@ protected:
   ErrVal          xDetermineQualityIDs        ();
   ErrVal          xWriteQualityLayerStreamPID ();
   ErrVal          xWriteQualityLayerStreamSEI ();
-	//SEI changes update {
-  //ErrVal          xInsertQualityLayerSEI      ( WriteBitstreamToFile* pcWriteBitStream,
-  //                                              UInt                  uiLayer,
-  //                                              UInt                  uiFrameNum );
-	  ErrVal          xInsertPriorityLevelSEI      ( WriteBitstreamToFile* pcWriteBitStream,
+  ErrVal          xUpdateScalableSEI          ();
+ ErrVal          xInsertPriorityLevelSEI      ( WriteBitstreamToFile* pcWriteBitStream,
                                                 UInt                  uiLayer,
                                                 UInt                  uiFrameNum );
 	//SEI changes update }
@@ -130,6 +127,10 @@ private:
 
   UChar                         m_aucStartCodeBuffer[5];
   BinData                       m_cBinDataStartCode;
+  UInt                          m_uiPriorityLevelSEISize;
+  UInt*                         m_aaauiNewPacketSize   [MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt                          m_aauiPrFrameRate      [MAX_LAYERS][MAX_SIZE_PID];
+  UInt*                         m_aauiBaseIndex        [MAX_LAYERS];
 };
 
 

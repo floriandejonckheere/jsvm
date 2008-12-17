@@ -93,6 +93,7 @@ public:
                                         Bool                        bRemoveOutputFlag = false );
   ErrVal            markLongTerm      ( PicType                     ePicType,
                                         Int                         iLongTermFrameIdx );
+  ErrVal            decreasePoc       ( Int                         iMMCO5Poc );
   ErrVal            checkStatus       ( Int                         iMaxLongTermFrameIdx );
 
 protected:

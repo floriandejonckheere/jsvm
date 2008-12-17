@@ -321,6 +321,10 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       SEI::MessageList cSEIMessageList;
       RNOK( SEI::read( m_pcHeaderSymbolReadIf, cSEIMessageList, m_pcParameterSetMngDecode ) );
       printf("  NON-VCL: SEI NAL UNIT\n" );
+      for( SEI::MessageList::iterator iter = cSEIMessageList.begin(); iter != cSEIMessageList.end(); iter++ )
+      {
+        delete (*iter);
+      }
       break;
     }
   case NAL_UNIT_ACCESS_UNIT_DELIMITER: // just read, but ignore

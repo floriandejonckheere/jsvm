@@ -116,6 +116,9 @@ public:
   Void          setLongTermFrameIdx       ( Int                 iLongTermFrameIdx       )   { m_iLongTermFrameIdx = iLongTermFrameIdx; }
   Void          setPicType                ( PicType             ePicType                );
 
+  Void          setAdaptiveILPred( Bool b )   { m_bAdaptiveILPred = b; }
+  Bool          getAdaptiveILPred() const     { return m_bAdaptiveILPred; }
+
 private:
   ERROR_CONCEAL	m_eErrorConcealMode;
   Bool	        m_bTrueSlice;
@@ -137,6 +140,7 @@ private:
   UInt          m_uiQLDiscardable;
   UInt          m_uiBaseLayerId;
   //<<< remove
+  Bool          m_bAdaptiveILPred;
 };
 
 

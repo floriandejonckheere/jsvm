@@ -141,7 +141,6 @@ public:
   ErrVal writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
   ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
 // JVT-W062 }
-	ErrVal xCalMaxBitrate(UInt uiLayer);//JVT-W051
 
 protected:
   ErrVal xInitParameterSets ();
@@ -189,12 +188,6 @@ protected:
 // JVT-V068 HRD }
   UInt    m_loop_roi_sei;
 	//JVT-W051 {
-	UInt m_uiFrameNumInGOP[MAX_LAYERS];
-	UInt m_uiCodeFrameNum[MAX_LAYERS];
-	Double	m_aaadFrameInGOPBits[65][MAX_LAYERS][MAX_QUALITY_LEVELS];
-	Double	***m_aaadFrameInTimeWindowBits;
-	Double	m_adAvgBitrate[MAX_LAYERS];
-	Double	m_aadMaxBitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
 	UInt		m_uiProfileIdc[MAX_LAYERS];
 	UInt		m_uiLevelIdc[MAX_LAYERS];
 	Bool		m_bConstraint0Flag[MAX_LAYERS];

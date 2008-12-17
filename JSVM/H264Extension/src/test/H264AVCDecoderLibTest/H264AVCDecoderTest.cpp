@@ -149,18 +149,18 @@ H264AVCDecoderTest::uninit()
   PicBufferList::iterator iter;
   for( iter = m_cUnusedPicBufferList.begin(); iter != m_cUnusedPicBufferList.end(); iter++ )
   {
-    delete (*iter)->getBuffer();
-    delete (*iter);
+    delete [] (*iter)->getBuffer();
+    delete    (*iter);
   }
   for( iter = m_cActivePicBufferList.begin(); iter != m_cActivePicBufferList.end(); iter++ )
   {
-    delete (*iter)->getBuffer();
-    delete (*iter);
+    delete [] (*iter)->getBuffer();
+    delete    (*iter);
   }
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 #else
-  delete m_pcLastFrame;
+  delete [] m_pcLastFrame;
 #endif
 
   m_bInitialized = false;

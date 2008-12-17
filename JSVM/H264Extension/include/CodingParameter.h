@@ -149,6 +149,7 @@ public:
 // JVT-Q065 EIDR{
 	  , m_iIDRPeriod						  (0)
   // JVT-Q065 EIDR}
+    , m_iLayerIntraPeriod ( 0 )
     , m_uiMGSVectorMode                      ( 0 )
     , m_dQpModeDecisionLP ( 0.00 )
     , m_uiNumSliceGroupMapUnitsMinus1 ( 0 )
@@ -370,6 +371,7 @@ public:
 // JVT-Q065 EIDR{
   Int				  getIDRPeriod			   () { return m_iIDRPeriod; }
 // JVT-Q065 EIDR}
+  Int         getLayerIntraPeriod  () { return m_iLayerIntraPeriod; }
 
   UInt                getPLR                   () { return m_uiPLR; } //JVT-R057 LA-RDO
   Void                setPLR                   (UInt ui){m_uiPLR=ui;} //JVT-W049
@@ -553,6 +555,7 @@ public:
 // JVT-Q065 EIDR{
   Int						m_iIDRPeriod;
 // JVT-Q065 EIDR}
+  Int       m_iLayerIntraPeriod;
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
   UInt       m_uiMGSVectorMode;

@@ -1,4 +1,14 @@
-﻿[Currently, all validation scripts work except for those that use error concealment features]
+﻿[Currently, all validation scripts work except for those that use error concealment features and QLSEI]
+
+
+JSVM_9_15 -> JSVM_9_16
+======================
+- Bug fix related to the calculation of the priority layer maximum bitrate.
+- Fix for memory leak in SEI code
+- Fix for calculating packet sizes in bitstream extractor
+- Fix for setting POC when receiving an MMCO 5
+- Fixes in encoder control for InterLayerPred = 1
+- Fix for parsing (inferring) residual_prediction_flag
 
 
 JSVM_9_14 -> JSVM_9_15

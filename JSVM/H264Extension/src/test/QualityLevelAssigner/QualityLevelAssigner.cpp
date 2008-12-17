@@ -8,6 +8,7 @@
 #include "H264AVCCommonLib/CommonDefs.h"
 #include "QualityLevelAssigner.h"
 #include <math.h>
+#include <list>
 #if WIN32
 #if VC2005
 #include <stdio.h>
@@ -47,6 +48,10 @@ QualityLevelAssigner::QualityLevelAssigner()
   ::memset( m_aaauiPacketSize,      0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
   ::memset( m_aaauiQualityID,       0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
   ::memset( m_aauiPicNumToFrmID,    0x00, MAX_LAYERS                   *sizeof(Void*));
+  ::memset( m_aaauiNewPacketSize,   0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*));
+  ::memset( m_aauiPrFrameRate,      0x00, MAX_LAYERS*MAX_SIZE_PID*sizeof(UInt) );
+  ::memset( m_aauiBaseIndex,        0x00, MAX_LAYERS*sizeof(UInt*) );
+  m_uiPriorityLevelSEISize = 0;
 }
 
 
@@ -96,6 +101,7 @@ QualityLevelAssigner::init( QualityLevelParameter* pcParameter )
     ROF( m_auiNumFrames[uiLayer] );
     ROFS( ( m_aaadDeltaDist       [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ) );
     ROFS( ( m_aaauiPacketSize     [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaauiNewPacketSize  [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
     ROFS( ( m_aaauiQualityID      [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
     if( uiFGS == 0 )
     {
@@ -160,6 +166,7 @@ QualityLevelAssigner::destroy()
   {
     delete [] m_aaadDeltaDist       [uiLayer][uiFGS];
     delete [] m_aaauiPacketSize     [uiLayer][uiFGS];
+    delete [] m_aaauiNewPacketSize  [uiLayer][uiFGS];
     delete [] m_aaauiQualityID      [uiLayer][uiFGS];
     if( uiFGS == 0 )
     {
@@ -215,6 +222,7 @@ QualityLevelAssigner::go()
     if( m_pcParameter->writePriorityLevelSEI() )//SEI changes update
     {
       RNOK( xWriteQualityLayerStreamSEI() );
+      RNOK( xUpdateScalableSEI         () );
     }
     else
     {
@@ -1405,6 +1413,347 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
   return Err::m_nOK;
 }
 
+Void CalMaxBitrate( std::list<Double>& BitsList, UInt uiFrameRate, Double& dMaxBitrate )
+{
+  if ( BitsList.empty() ) return;
+  if ( uiFrameRate == 0 ) return;
+  
+  std::list<Double>::iterator iter;
+  Double dTotalBits = 0;
+  if ( BitsList.size() > uiFrameRate )
+  {
+    BitsList.pop_front();
+    for ( iter = BitsList.begin(); iter != BitsList.end(); iter ++ )
+    {
+      dTotalBits += *iter;
+    }
+    Double dBitrate = dTotalBits*uiFrameRate/BitsList.size();
+    if ( dMaxBitrate < dBitrate )
+    {
+      dMaxBitrate = dBitrate;
+    }
+  }
+  else
+  {
+    for ( iter = BitsList.begin(); iter != BitsList.end(); iter ++ )
+    {
+      dTotalBits += *iter;
+    }
+    Double dBitrate = dTotalBits*uiFrameRate/BitsList.size();
+    dMaxBitrate = dBitrate;
+  }
+}
+
+ErrVal 
+QualityLevelAssigner::xUpdateScalableSEI()
+{
+  //================================initlization=============================
+  UInt    uiPr_num_dId_minus1;
+  UInt    auiPr_dependency_id[MAX_LAYERS];
+  UInt    auiPr_num_minus1[MAX_LAYERS];
+  UInt    aauiPr_id[MAX_LAYERS][MAX_SIZE_PID];
+  Int32   aaiPr_profile_level_idc[MAX_LAYERS][MAX_SIZE_PID];
+  Double  aadPr_avg_bitrate[MAX_LAYERS][MAX_SIZE_PID];
+  Double  aadPr_max_bitrate[MAX_LAYERS][MAX_SIZE_PID];
+  uiPr_num_dId_minus1 = 0;
+  ::memset( auiPr_dependency_id, 0, MAX_LAYERS*sizeof(UInt) );
+  ::memset( auiPr_num_minus1, 0, MAX_LAYERS*sizeof(UInt) );
+  ::memset( aauiPr_id, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(UInt) );
+  ::memset( aaiPr_profile_level_idc, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Int32) );
+  ::memset( aadPr_avg_bitrate, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Double) );
+  ::memset( aadPr_max_bitrate, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Double) );
+
+  //=============================================================================
+  UInt uiLayer, uiNumLayers, uiFrameNum, ui, uiPrLayer;
+  Bool bPIdExist[MAX_SIZE_PID];
+  //==========================reverse the priority level ========================
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    for ( uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+    {
+      for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers ++ )
+      {
+        m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum] = 63 - m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum];
+      }
+    }
+  }
+
+  //============================================================================
+  uiPr_num_dId_minus1 = m_uiNumLayers - 1;
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    auiPr_dependency_id[uiLayer] = uiLayer;
+    for ( ui = 0; ui < MAX_SIZE_PID; ui ++ )
+    {
+      bPIdExist[ui] = false;
+    }
+    auiPr_num_minus1[uiLayer] = 0;
+    for ( uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+    {
+      for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers ++ )
+      {
+        bPIdExist[m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum]] = true;
+      }
+    }
+    for ( ui = 0; ui < MAX_SIZE_PID; ui ++ )
+    {
+      if ( bPIdExist[ui] )
+      {
+        auiPr_num_minus1[uiLayer] ++;
+      }
+    }
+    auiPr_num_minus1[uiLayer] --;
+    UInt uiPtr = 0;
+    for ( ui = 0; ui < MAX_SIZE_PID; ui ++ )
+    {
+      if ( bPIdExist[ui] )
+      {
+        aauiPr_id[uiLayer][uiPtr++] = ui;
+      }
+    }
+  }
+
+  //==============================================================================
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    if ( uiLayer )
+    {
+      UInt uiBasePrId;
+      for ( uiPrLayer = 0; uiPrLayer < MAX_SIZE_PID; uiPrLayer ++ )
+      {
+        uiBasePrId = MSYS_UINT_MAX;
+        for ( ui = auiPr_num_minus1[uiLayer-1]; ui >= 0; ui -- )
+        {
+          //==========find the first base layer PrId=============
+          if ( aauiPr_id[uiLayer-1][ui] <= uiPrLayer )
+          {
+            uiBasePrId = ui;
+            break;
+          }
+        }
+        if ( uiBasePrId != MSYS_UINT_MAX && m_aauiPrFrameRate[uiLayer][uiPrLayer] < m_aauiPrFrameRate[uiLayer-1][aauiPr_id[uiLayer-1][uiBasePrId]] )
+        {
+          m_aauiPrFrameRate[uiLayer][uiPrLayer] = m_aauiPrFrameRate[uiLayer-1][aauiPr_id[uiLayer-1][uiBasePrId]];
+        }
+      }
+    }
+    for ( ui = 0; ui < MAX_SIZE_PID; ui ++ )
+    {
+      if ( ui )
+      {
+        if ( m_aauiPrFrameRate[uiLayer][ui] < m_aauiPrFrameRate[uiLayer][ui-1] )
+        {
+          m_aauiPrFrameRate[uiLayer][ui] = m_aauiPrFrameRate[uiLayer][ui-1];
+        }
+      }
+    }
+  }
+
+  //==============================calculate bitrate===============================
+  UInt aauiPrAUNum[MAX_LAYERS][MAX_SIZE_PID];
+  ::memset( aauiPrAUNum, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(UInt) );
+
+  Double **aaadPrPacketSize[MAX_LAYERS];
+  ::memset( aaadPrPacketSize, 0, MAX_LAYERS*sizeof(Double**) );
+
+  std::list<Double> PrBitsList[MAX_LAYERS][MAX_SIZE_PID];
+
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    aaadPrPacketSize[uiLayer] = new Double*[m_auiNumFrames[uiLayer]];
+    ::memset( aaadPrPacketSize[uiLayer], 0, m_auiNumFrames[uiLayer]*sizeof(Double*) );
+    for ( uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+    {
+      aaadPrPacketSize[uiLayer][uiFrameNum] = new Double[MAX_SIZE_PID];
+      ::memset( aaadPrPacketSize[uiLayer][uiFrameNum], 0, MAX_SIZE_PID*sizeof(Double) ); 
+      if ( uiLayer )
+      {
+        UInt uiBasePrId;
+        for ( uiPrLayer = 0; uiPrLayer < MAX_SIZE_PID; uiPrLayer ++ )
+        {
+          uiBasePrId = MSYS_UINT_MAX;
+          for ( ui = auiPr_num_minus1[uiLayer-1]; ui >= 0; ui -- )
+          {
+            //==========find the first base layer PrId=============
+            if ( aauiPr_id[uiLayer-1][ui] <= uiPrLayer )
+            {
+              uiBasePrId = ui;
+              break;
+            }
+          }
+          if ( uiBasePrId != MSYS_UINT_MAX && m_aauiBaseIndex[uiLayer][uiFrameNum] != MSYS_UINT_MAX )
+          {
+            aaadPrPacketSize[uiLayer][uiFrameNum][uiPrLayer] += aaadPrPacketSize[uiLayer-1][m_aauiBaseIndex[uiLayer][uiFrameNum]][aauiPr_id[uiLayer-1][uiBasePrId]];
+          }
+        }
+      }
+      for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers ++ )
+      {
+        for ( uiPrLayer = m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum]; uiPrLayer < MAX_SIZE_PID; uiPrLayer ++ )
+        {
+          aaadPrPacketSize[uiLayer][uiFrameNum][uiPrLayer] += (Double)m_aaauiNewPacketSize[uiLayer][uiNumLayers][uiFrameNum]*8;
+        }
+      }
+
+      for ( uiPrLayer = 0; uiPrLayer <= auiPr_num_minus1[uiLayer]; uiPrLayer ++ )
+      {
+        UInt uiPrId = aauiPr_id[uiLayer][uiPrLayer];
+        aadPr_avg_bitrate[uiLayer][uiPrLayer] += aaadPrPacketSize[uiLayer][uiFrameNum][uiPrId];
+        if ( aaadPrPacketSize[uiLayer][uiFrameNum][uiPrId] )
+        {
+          aauiPrAUNum[uiLayer][uiPrLayer] ++;
+          PrBitsList[uiLayer][uiPrLayer].push_back( aaadPrPacketSize[uiLayer][uiFrameNum][uiPrId] );
+        }
+        CalMaxBitrate( PrBitsList[uiLayer][uiPrLayer], m_aauiPrFrameRate[uiLayer][uiPrId], aadPr_max_bitrate[uiLayer][uiPrLayer] );
+      }
+    }
+  }
+
+  //==================================================================================================
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    for ( uiPrLayer = 0; uiPrLayer <= auiPr_num_minus1[uiLayer]; uiPrLayer ++ )
+    {
+      AOF( aauiPrAUNum[uiLayer][uiPrLayer] );
+      aadPr_avg_bitrate[uiLayer][uiPrLayer] *= m_aauiPrFrameRate[uiLayer][aauiPr_id[uiLayer][uiPrLayer]];
+      aadPr_avg_bitrate[uiLayer][uiPrLayer] /= aauiPrAUNum[uiLayer][uiPrLayer];
+    }
+  }
+
+  //===============================resume the priority level ===========================================
+  for ( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    for ( uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+    {
+      for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers ++ )
+      {
+        m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum] = 63 - m_aaauiQualityID[uiLayer][uiNumLayers][uiFrameNum];
+      }
+    }
+  }
+
+  //=========================================free memory================================================
+  for ( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer ++ )
+  {
+    if ( m_aauiBaseIndex[uiLayer] )
+    {
+      delete[] m_aauiBaseIndex[uiLayer];
+      m_aauiBaseIndex[uiLayer] = NULL;
+    }
+
+    if ( aaadPrPacketSize[uiLayer] )
+    {
+      for ( uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+      {
+        if ( aaadPrPacketSize[uiLayer][uiFrameNum] )
+        {
+          delete[] aaadPrPacketSize[uiLayer][uiFrameNum];
+          aaadPrPacketSize[uiLayer][uiFrameNum] = NULL;
+        }
+      }
+      delete[] aaadPrPacketSize[uiLayer];
+      aaadPrPacketSize[uiLayer] = NULL;
+    }
+  }
+
+  //=====================================================================================================
+  BinData*          pcBinData;
+  SEI::SEIMessage*  pcScalableSEI     = 0;
+  PacketDescription cPacketDescription;
+  //===== init =====
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+  ReadBitstreamFile*    pcReadBitStream   = 0;
+  WriteBitstreamToFile* pcWriteBitStream  = 0;
+  RNOK( ReadBitstreamFile   ::create( pcReadBitStream  ) );
+  RNOK( WriteBitstreamToFile::create( pcWriteBitStream ) );
+  std::string tempfile(m_pcParameter->getOutputBitStreamName  ());
+  tempfile += ".temp";
+  RNOK( pcReadBitStream ->init( m_pcParameter->getOutputBitStreamName  () ) );
+  RNOK( pcWriteBitStream->init( tempfile ) );
+
+  //===== loop over packets =====
+  while( true )
+  {
+    //----- read packet -----
+    Bool bEOS = false;
+    RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
+    if( bEOS )
+    {
+      //manu.mathew@samsung : memory leak fix
+      RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+      pcBinData = NULL;
+      //--
+      break;
+    }
+
+    //----- get packet description -----
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+    if ( pcScalableSEI && pcScalableSEI->getMessageType() == SEI::SCALABLE_SEI )
+    {
+      //=============================reset the priority layer information=================================
+      SEI::ScalableSei* pcSSEI = (SEI::ScalableSei*)pcScalableSEI;
+      pcSSEI->setPriorityLayerInfoPresentFlag( true );
+      pcSSEI->setPrNumdIdMinus1( uiPr_num_dId_minus1 );
+      for ( UInt i = 0; i <= pcSSEI->getPrNumdIdMinus1(); i ++ )
+      {
+        pcSSEI->setPrDependencyId( i, auiPr_dependency_id[i] );
+        pcSSEI->setPrNumMinus1( i, auiPr_num_minus1[i] );
+        for ( UInt j = 0; j <= pcSSEI->getPrNumMinus1(i); j ++ )
+        {
+          pcSSEI->setPrId( i, j, aauiPr_id[i][j] );
+          pcSSEI->setPrProfileLevelIdx( i, j, aaiPr_profile_level_idc[i][j] );
+          pcSSEI->setPrAvgBitrateBPS( i, j, (Double)aadPr_avg_bitrate[i][j] );
+          pcSSEI->setPrMaxBitrateBPS( i, j, (Double)aadPr_max_bitrate[i][j] );
+        }
+      }
+
+      const UInt          uiPRSEIMessageBufferSize = 4096;
+      UChar               aucPRSEIMessageBuffer[uiPRSEIMessageBufferSize];
+      BinData             cBinData;
+      ExtBinDataAccessor  cExtBinDataAccessor;
+      cBinData.reset      ();
+      cBinData.set        ( aucPRSEIMessageBuffer, uiPRSEIMessageBufferSize );
+      cBinData.setMemAccessor ( cExtBinDataAccessor );
+
+      SEI::MessageList      cSEIMessageList;
+      UInt uiBits = 0; 
+      cSEIMessageList.push_back( pcScalableSEI );
+      RNOK( m_pcNalUnitEncoder->initNalUnit ( &cExtBinDataAccessor ) );
+      RNOK( m_pcNalUnitEncoder->write       ( cSEIMessageList ) );
+      RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+      RNOK( pcWriteBitStream->writePacket( &m_cBinDataStartCode ) );
+      RNOK( pcWriteBitStream->writePacket( &cExtBinDataAccessor ) );
+      cBinData.reset();
+      RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+    }
+    else
+    {
+      RNOK( pcWriteBitStream->writePacket( &m_cBinDataStartCode ) );
+      RNOK( pcWriteBitStream->writePacket( pcBinData ) );
+      RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+    }
+  }
+  if ( pcScalableSEI )
+  {
+    delete pcScalableSEI;
+    pcScalableSEI = 0;
+  }
+
+
+  //===== uninit =====
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+  RNOK( pcReadBitStream ->uninit  () );
+  RNOK( pcWriteBitStream->uninit  () );
+  RNOK( pcReadBitStream ->destroy () );
+  RNOK( pcWriteBitStream->destroy () );
+
+  RNOK( remove( m_pcParameter->getOutputBitStreamName  ().c_str() ) );
+  RNOK( rename( tempfile.c_str(), m_pcParameter->getOutputBitStreamName  ().c_str() ) );
+
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -1430,6 +1779,27 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
   RNOK( pcWriteBitStream->init( m_pcParameter->getOutputBitStreamName () ) );
 
   Bool bPrevNALUnitWasPrefix = false; //JVT-W137
+  UInt auiFrameRate[MAX_SCALABLE_LAYERS];
+  ::memset( auiFrameRate, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+  UInt aaauiDTQToScalableId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  ::memset( aaauiDTQToScalableId, 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt) );
+  
+  for ( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer ++ )
+  {
+    m_aauiBaseIndex[uiLayer] = new UInt[m_auiNumFrames[uiLayer]];
+    ::memset( m_aauiBaseIndex[uiLayer], MSYS_UINT_MAX, m_auiNumFrames[uiLayer]*sizeof(UInt) );
+    for ( UInt uiFrameNum = 0; uiFrameNum < m_auiNumFrames[uiLayer]; uiFrameNum ++ )
+    {
+      for( UInt uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers ++ )
+      {
+        m_aaauiNewPacketSize[uiLayer][uiNumLayers][uiFrameNum] = m_aaauiPacketSize[uiLayer][uiNumLayers][uiFrameNum];
+      }
+    }
+  }
+  UInt uiPreD, uiPreT, uiPreQ;
+  UInt uiCurD, uiCurT, uiCurQ;
+  uiPreD = uiPreT = uiPreQ = MSYS_UINT_MAX;
+  uiCurD = uiCurT = uiCurQ = MSYS_UINT_MAX;
 
   //===== loop over packets =====
   while( true )
@@ -1448,6 +1818,25 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+    if ( pcScalableSEI )
+    {
+      if ( pcScalableSEI->getMessageType() == SEI::SCALABLE_SEI )
+      {
+        SEI::ScalableSei* pcSSEI = (SEI::ScalableSei*)pcScalableSEI;
+        for ( UInt uiLayer = 0; uiLayer <= pcSSEI->getNumLayersMinus1(); uiLayer ++ )
+        {
+          if ( pcSSEI->getFrmRateInfoPresentFlag(uiLayer) )
+          {
+            auiFrameRate[uiLayer] = pcSSEI->getAvgFrmRate(uiLayer)/256;
+          }
+          UInt uiD, uiT, uiQ;
+          uiD = pcSSEI->getDependencyId( uiLayer );
+          uiT = pcSSEI->getTemporalId( uiLayer );
+          uiQ = pcSSEI->getQualityId( uiLayer );
+          aaauiDTQToScalableId[uiD][uiT][uiQ] = uiLayer;
+        }
+      }
+    }
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- set packet size -----
@@ -1496,10 +1885,40 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
       for( UInt uiLayer = cPacketDescription.Layer; uiLayer < m_uiNumLayers; uiLayer++ )
       {
         auiFrameNum[uiLayer]++;
-        //xInsertQualityLayerSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );//SEI changes update
         xInsertPriorityLevelSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );//SEI changes update
+        m_aaauiNewPacketSize[uiLayer][0][auiFrameNum[uiLayer]] += m_uiPriorityLevelSEISize/8;
       }
       uiNumAccessUnits++;
+    }
+
+    if ( cPacketDescription.NalUnitType == NAL_UNIT_SPS || cPacketDescription.NalUnitType == NAL_UNIT_PPS ||
+       cPacketDescription.NalUnitType == NAL_UNIT_SEI || cPacketDescription.NalUnitType == NAL_UNIT_SUBSET_SPS)
+    {
+      m_aaauiNewPacketSize[0][0][0] += pcBinData->size();
+    }
+    if ( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+      cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+    {
+      UInt uiLayer, uiLevel, uiFGSLayer, uiFrameNum, uiScalableId;
+      uiLayer = cPacketDescription.Layer;
+      uiLevel = cPacketDescription.Level;
+      uiFGSLayer = cPacketDescription.FGSLayer;
+      uiFrameNum = auiFrameNum[uiLayer];
+      uiScalableId = aaauiDTQToScalableId[uiLayer][uiLevel][uiFGSLayer];
+      if ( auiFrameRate[uiScalableId] > m_aauiPrFrameRate[uiLayer][63-m_aaauiQualityID[uiLayer][uiFGSLayer][auiFrameNum[uiLayer]]] )
+      {
+        m_aauiPrFrameRate[uiLayer][63-m_aaauiQualityID[uiLayer][uiFGSLayer][auiFrameNum[uiLayer]]] = auiFrameRate[uiScalableId];
+      }
+      //=====================base layer relationship=====================
+      uiPreD = uiCurD; uiPreT = uiCurT; uiPreQ = uiCurQ;
+      uiCurD = uiLayer;uiCurT = uiLevel;uiCurQ = uiFGSLayer;
+      if ( m_uiNumLayers > 1 )
+      {
+        if ( uiCurD == (uiPreD + 1) && uiCurT == uiPreT && uiCurQ == 0 )//next D in the same AU
+        {
+          m_aauiBaseIndex[uiCurD][auiFrameNum[uiCurD]] = auiFrameNum[uiPreD];
+        }
+      }
     }
 
     //----- write and delete bin data -----
@@ -1607,6 +2026,7 @@ QualityLevelAssigner::xInsertPriorityLevelSEI( WriteBitstreamToFile* pcWriteBitS
   RNOK( m_pcNalUnitEncoder->initNalUnit ( &cExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder->write       ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+  m_uiPriorityLevelSEISize = uiBits;
 
   //===== write SEI message =====
   RNOK( pcWriteBitStream->writePacket( &m_cBinDataStartCode ) );

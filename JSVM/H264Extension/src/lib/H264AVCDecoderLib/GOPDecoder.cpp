@@ -314,6 +314,21 @@ DPBUnit::markLongTerm( PicType ePicType, Int iLongTermFrameIdx )
 }
 
 ErrVal
+DPBUnit::decreasePoc( Int iMMCO5Poc )
+{
+  ROF( m_ePicStatus );
+  if( ( m_ePicStatus & TOP_FIELD ) == TOP_FIELD )
+  {
+    m_aiPoc[0] -= iMMCO5Poc;
+  }
+  if( ( m_ePicStatus & BOT_FIELD ) == BOT_FIELD )
+  {
+    m_aiPoc[1] -= iMMCO5Poc;
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
 DPBUnit::checkStatus( Int iMaxLongTermFrameIdx )
 {
   ROF(  m_ePicStatus );
@@ -1586,6 +1601,13 @@ DecodedPicBuffer::xReset( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHe
     }
   }
   ROF( m_pcCurrDPBUnit->getPoc() > iMaxPoc );
+  //===== modify POC values of pictures in DPB =====
+  iter  = m_cUsedDPBUnitList.begin();
+  end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    (*iter)->decreasePoc( m_pcCurrDPBUnit->getPoc() );
+  }
   //===== mark all pictures as "unused for reference" =====
   RNOK( xMarkAllUnusedForRef() );
   //===== reset PocCalculator and POC values in slice Header =====

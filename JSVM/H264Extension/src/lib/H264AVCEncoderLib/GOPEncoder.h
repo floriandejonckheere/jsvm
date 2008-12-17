@@ -658,6 +658,7 @@ protected:
 // JVT-Q065 EIDR{
   Int           						  	m_iIDRPeriod;
 // JVT-Q065 EIDR}
+  Int                           m_iLayerIntraPeriod;
   //JVT-R057 LA-RDO{
   Bool                          m_bLARDOEnable;
   //JVT-R057 LA-RD}
@@ -748,8 +749,6 @@ protected:
 
 	//JVT-W051 {
 public:
-	Double	m_dFrameBits;
-	Double	m_dAvgBitrate;
 	UInt		m_uiProfileIdc;
 	UInt		m_uiLevelIdc;
 	Bool		m_bConstraint0Flag;

@@ -28,6 +28,7 @@ SliceHeader::SliceHeader()
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
+, m_bAdaptiveILPred( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -55,6 +56,7 @@ SliceHeader::SliceHeader( const NalUnitHeader& rcNalUnitHeader )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
+, m_bAdaptiveILPred( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -82,6 +84,7 @@ SliceHeader::SliceHeader( const PrefixHeader& rcPrefixHeader )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
+, m_bAdaptiveILPred( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -109,6 +112,7 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
+, m_bAdaptiveILPred( false )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -136,6 +140,7 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
+, m_bAdaptiveILPred( false )
 {
   ::memcpy( m_aapcRefFrameList, rcSliceHeader.m_aapcRefFrameList, sizeof( m_aapcRefFrameList ) );
   ::memcpy( m_aauiNumRefIdxActiveUpdate, rcSliceHeader.m_aauiNumRefIdxActiveUpdate, sizeof( m_aauiNumRefIdxActiveUpdate ) );

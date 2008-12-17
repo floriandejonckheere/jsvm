@@ -442,7 +442,18 @@ ErrVal CodingParameter::check()
       ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getUseLongTerm() != pcBaseLayer->getUseLongTerm(),
         "UseLongTerm shall be the same in successive MGS layers" );
 
-      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && !pcLayer->getInterLayerPredictionMode(), "InterLayerPred must not be 0 in MGS enhancement layers" )
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && !pcLayer->getInterLayerPredictionMode(), "InterLayerPred must not be 0 in MGS enhancement layers" );
+
+      if( pcLayer->getInterLayerPredictionMode() == 1 )
+      {
+        ROTREPORT( pcLayer->getLayerIntraPeriod () != pcBaseLayer->getLayerIntraPeriod(), "InterLayerPred must not be 1 when layers have different intra periods" );
+        ROTREPORT( pcLayer->getIDRPeriod        () != pcBaseLayer->getIDRPeriod       (), "InterLayerPred must not be 1 when layers have different IDR periods" );
+      }
+      if( getCGSSNRRefinement() && !bResolutionChange )
+      {
+        ROTREPORT( pcLayer->getLayerIntraPeriod () != pcBaseLayer->getLayerIntraPeriod(), "intra periods must be the same in successive MGS layers" );
+        ROTREPORT( pcLayer->getIDRPeriod        () != pcBaseLayer->getIDRPeriod       (), "IDR periods must be the same in successive MGS layers" );
+      }
 
       ROTREPORT( pcLayer->getFrameWidthInSamples ()  < pcBaseLayer->getFrameWidthInSamples (), "Frame width  less than base layer frame width" );
       ROTREPORT( pcLayer->getFrameHeightInSamples()  < pcBaseLayer->getFrameHeightInSamples(), "Frame height less than base layer frame height" );
@@ -578,6 +589,7 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
     if( bIntraOnly )
     {
       m_iIDRPeriod          = pcCodingParameter->getGOPSize();
+      m_iLayerIntraPeriod   = pcCodingParameter->getGOPSize();
     }
     return Err::m_nOK;
   }
@@ -628,6 +640,7 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
   if( bIntraOnly )
   {
     m_iIDRPeriod          = pcCodingParameter->getGOPSize();
+    m_iLayerIntraPeriod   = pcCodingParameter->getGOPSize();
   }
   return Err::m_nOK;
 }
@@ -778,7 +791,8 @@ LayerParameters::xIsIntraOnly( CodingParameter* pcCodingParameter )
   ROTRS( m_uiUseLongTerm,                                                       false );
   ROFRS( m_uiDecompositionStages        == m_uiNotCodedStages,                  false );
   ROFRS( pcCodingParameter->m_uiGOPSize == pcCodingParameter->m_uiIntraPeriod ||
-         pcCodingParameter->m_uiGOPSize == (UInt)m_iIDRPeriod,                  false );
+         pcCodingParameter->m_uiGOPSize == (UInt)m_iIDRPeriod                 ||
+         pcCodingParameter->m_uiGOPSize == (UInt)m_iLayerIntraPeriod,           false );
   ROTRS( m_uiBaseLayerId                == MSYS_UINT_MAX,                       true  );
   return pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).isIntraOnly();
 }

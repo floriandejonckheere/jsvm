@@ -805,12 +805,6 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                                dLambda,
                                                iMaxDeltaQp ) );
 
-      if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
-      {
-        ROF( pcMbDataAccess->getMbData().getResidualPredFlag() );
-        pcMbDataAccess->getMbData().setBLSkipFlag( true );
-      }
-
       m_pcTransform->setClipMode( true );
 
       RNOK( m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
@@ -977,12 +971,6 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  bCoded,
                                                  dLambda,
                                                  iMaxDeltaQp ) );
-
-        if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
-        {
-          ROF( pcMbDataAccess->getMbData().getResidualPredFlag() );
-          pcMbDataAccess->getMbData().setBLSkipFlag( true );
-        }
 
         m_pcTransform->setClipMode( true );
 
