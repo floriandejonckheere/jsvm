@@ -585,7 +585,17 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     }
     //JVT-U106 Behaviour at slice boundaries}
 
-    if( equals( pcCom, "-h", 2) )
+	// JVT-AD021 {
+	if( equals( pcCom, "-ml", 3 ) )
+	{
+		ROTS( NULL == argv[n] );
+		UInt flag = atoi( argv[n] );
+		CodingParameter::setMultiLayerLambda( flag );
+		continue;
+	}
+	// JVT-AD021 }
+
+	if( equals( pcCom, "-h", 2) )
     {
       printHelp();
       return Err::m_nOK;
@@ -651,6 +661,9 @@ Void EncoderCodingParameter::printHelp()
   printf("  -mbaff  (layer) (Mb Adaptive Frame Field Coding)  \n");
   printf("  -paff   (layer) (Picture Adadptive Frame Field Coding)   \n");
 
+  // JVT-AD021 {
+  printf("  -ml   (mode) [0:disabled(default), 1:multi-layer lambda selection, 2:mode1x0.8]   \n");
+  // JVT-AD021 }
   printf("  -h       Print Option List \n");
   printf("\n");
 }
@@ -816,6 +829,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RateControlEnable",       &m_uiRateControlEnable,                                0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AdaptInitialQP",          &m_uiAdaptInitialQP,                                   0 );
   // JVT-W043 }
+  //JVT-AD021 {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MultiLayerLambdaSel",     &m_uiMultiLayerLambda,                                 0 );
+  //JVT-AD021 }
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

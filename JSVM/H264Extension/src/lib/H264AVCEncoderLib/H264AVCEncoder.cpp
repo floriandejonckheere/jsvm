@@ -198,6 +198,18 @@ H264AVCEncoder::getBaseLayerDataAvailability ( Frame*&       pcFrame,
   return Err::m_nOK;
 }
 
+// JVT-AD021 {
+ErrVal
+H264AVCEncoder::getBaseLayerQpPredData ( UInt uiBaseLayerId , Double & dQpPredData , Int & iPOC , UInt & uiFrameSizeInMB )
+{
+  if( uiBaseLayerId >= MAX_LAYERS )
+    return( Err::m_nDataNotAvailable );
+  
+  RNOK( m_apcLayerEncoder[uiBaseLayerId]->getCurQpPredData( dQpPredData , iPOC , uiFrameSizeInMB ) );
+  
+  return Err::m_nOK;
+}
+// JVT-AD021 }
 
 ErrVal
 H264AVCEncoder::getBaseLayerData( SliceHeader&  rcELSH,

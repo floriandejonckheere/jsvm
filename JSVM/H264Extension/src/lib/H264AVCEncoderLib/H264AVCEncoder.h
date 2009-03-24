@@ -142,6 +142,10 @@ public:
   ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
 // JVT-W062 }
 
+  // JVT-AD021 {
+  ErrVal getBaseLayerQpPredData ( UInt uiBaseLayerId , Double & dQpPredData , Int & uiPOC , UInt & uiFrameSizeInMB );
+  // JVT-AD021 }
+
 protected:
   ErrVal xInitParameterSets ();
 // JVT-V068 HRD {

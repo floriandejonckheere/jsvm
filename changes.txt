@@ -1,6 +1,11 @@
 ﻿[Currently, all validation scripts work except for those that use error concealment features and QLSEI]
 
 
+JSVM_9_16 -> JSVM_9_17
+======================
+- Newly added feature: multi-layer lambda selection algorithm (JVT-AD021) 
+
+
 JSVM_9_15 -> JSVM_9_16
 ======================
 - Bug fix related to the calculation of the priority layer maximum bitrate.

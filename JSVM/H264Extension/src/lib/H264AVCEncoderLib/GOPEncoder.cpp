@@ -31,7 +31,6 @@
 H264AVC_NAMESPACE_BEGIN
 
 
-
 #define FACTOR_22_HP  0.70710678118654752440084436210485  //sqrt( 1.0/ 2.0)
 #define FACTOR_22_LP  1.4142135623730950488016887242097   //sqrt( 2.0/ 1.0)
 #define FACTOR_53_HP  0.84779124789065851738306954082825  //sqrt(23.0/32.0)
@@ -526,6 +525,11 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
     m_uiSliceArgument = MSYS_UINT_MAX;
   }
   //JVT-X046 }
+
+  // JVT-AD021 {
+  m_uiMultiLayerLambda = pcCodingParameter->getMultiLayerLambda();
+  m_uiHighestTempLevel = ( int )( log10( 1.0 * pcCodingParameter->getGOPSize() ) / log10( 2.0 ) + 0.5 );
+  // JVT-AD021 }
 
   return Err::m_nOK;
 }
@@ -3406,6 +3410,10 @@ LayerEncoder::xInitControlDataMotion( UInt          uiBaseLevel,
   Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
   Int             iQp               = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
 
+  // JVT-AD021 {
+  dLambda *= xGetGamma( dQpPredData , rcControlData );
+  // JVT-AD021 }
+
   pcSliceHeader->setSliceHeaderQp( iQp );
   rcControlData. setLambda       ( dLambda );
 
@@ -3456,6 +3464,10 @@ LayerEncoder::xInitControlDataLowPass( UInt           uiFrameIdInGOP,
   }
   // JVT-W043 }
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
+
+  // JVT-AD021 {
+  dLambda *= xGetGamma( dQP , rcControlData );
+  // JVT-AD021 }
 
   pcSliceHeader->setSliceHeaderQp ( iQP );
   rcControlData. setLambda        ( dLambda );
@@ -3519,6 +3531,10 @@ LayerEncoder::xInitControlDataHighPass( UInt          uiFrameIdInGOP,
   // JVT-W043 }
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
+
+  // JVT-AD021 {
+  dLambda *= xGetGamma( dQP , rcControlData );
+  // JVT-AD021 }
 
   pcSliceHeader->setSliceHeaderQp ( iQP );
   rcControlData. setLambda        ( dLambda );
@@ -6370,6 +6386,51 @@ LayerEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
   }
   return Err::m_nOK;
 }
+
+// JVT-AD021 {
+Double LayerEncoder::xGetGamma( double dQpPredData , ControlData & rcControlData )                        
+{                                                                                                         
+  Double dGamma = 1;                                                                                      
+                                                                                                          
+  // save the data for the current frame                                                                  
+  m_dQpPredData = dQpPredData;                                                                            
+  m_iCurPOC = rcControlData.getSliceHeader()->getPoc();       
+                                                                                                          
+  if( m_uiMultiLayerLambda > MULTILAYER_LAMBDA_OFF 
+	  && m_uiHighestTempLevel == rcControlData.getSliceHeader()->getTemporalId() ) 
+  {                          
+    // currently, this algorithm is only enabled for IPPP and the highest temporal
+    // level in hierarchical structures.
+    Double dBaseQpPredData = 0;                                                                           
+    Int iBasePOC = 0;                                                                                     
+    UInt uiBaseFrameSizeInMB = 0;                                                                         
+    if( Err::m_nOK == m_pcH264AVCEncoder->getBaseLayerQpPredData( rcControlData.getBaseLayerIdMotion() ,  
+      dBaseQpPredData , iBasePOC , uiBaseFrameSizeInMB ) )                                                
+    {                                                                                                     
+      if( m_iCurPOC == iBasePOC )                                                                         
+      {                                                                                                   
+        // ensure the same temporal position                                                              
+        double dBeta = 1.0 * m_uiFrameWidthInMb * m_uiFrameHeightInMb / uiBaseFrameSizeInMB;              
+        double dDeltaQP = dBaseQpPredData - m_dQpPredData;                                                
+        double tmp = pow( 2.0 , dDeltaQP / 6.0 );                                                         
+        dGamma = dBeta * tmp / ( dBeta * tmp + 1 );                                                       
+      }                                                                                                   
+    }                                                                                                     
+  }                           
+  if( m_uiMultiLayerLambda == MULTILAYER_LAMBDA_C08 )                                                   
+	  dGamma *= 0.8;                                                                                      
+                                                                                                          
+  return( dGamma );                                                                                       
+}                                                                                                         
+                                                                                                          
+ErrVal LayerEncoder::getCurQpPredData ( Double & dQpPredData , Int & iPOC , UInt & uiFrameSizeInMB ) const
+{                                                                                                         
+  dQpPredData = m_dQpPredData;                                                                            
+  iPOC = m_iCurPOC;                                                                                       
+  uiFrameSizeInMB = m_uiFrameWidthInMb * m_uiFrameHeightInMb;                                             
+                                                                                                          
+  return( Err::m_nOK );                                                                                   
+}                                                                                                         // JVT-AD021 }
 
 // TMM_INTERLACE}
 //JVT-U106 Behaviour at slice boundaries}

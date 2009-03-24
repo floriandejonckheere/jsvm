@@ -275,6 +275,11 @@ public:
 	UInt			xGetParameterSetBits()	{ return m_uiParameterSetBits; }
 	//JVT-W051 }
 	//JVT-X046 {
+
+  // JVT-AD021 {
+  ErrVal getCurQpPredData ( Double & dQpPredData , Int & iPOC , UInt & uiFrameSizeInMB ) const;
+  // JVT-AD021 }
+
   ErrVal xEncodeNonKeyPictureSlices(  UInt               uiBaseLevel,
 								                      UInt               uiFrame,
 								                      AccessUnitData&    rcAccessUnitData,
@@ -542,6 +547,10 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           PicType               ePicType );
   ErrVal  xInitSliceHeadersAndRefLists  ();
 
+  // JVT-AD021 {
+  Double xGetGamma( Double dQpPredData , ControlData & rcControlData );
+  // JVT-AD021 }
+
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -747,7 +756,14 @@ protected:
   UIntList      m_acActiveRefListFrameNum     [    MAX_DSTAGES +1];
   UIntList      m_cActiveRefBasePicListFrameNum;
 
-	//JVT-W051 {
+  // JVT-AD021 {
+  UInt			m_uiMultiLayerLambda;
+  Double		m_dQpPredData;
+  Int			m_iCurPOC;
+  UInt			m_uiHighestTempLevel;
+  // JVT-AD021 }
+
+  //JVT-W051 {
 public:
 	UInt		m_uiProfileIdc;
 	UInt		m_uiLevelIdc;

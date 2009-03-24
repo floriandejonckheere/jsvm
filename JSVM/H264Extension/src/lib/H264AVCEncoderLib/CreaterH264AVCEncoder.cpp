@@ -33,7 +33,6 @@
 #include "H264AVCCommonLib/SequenceParameterSet.h"
 // JVT-V068 HRD }
 
-
 H264AVC_NAMESPACE_BEGIN
 
 

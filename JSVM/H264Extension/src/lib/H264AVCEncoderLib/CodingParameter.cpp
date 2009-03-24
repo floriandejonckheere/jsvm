@@ -368,6 +368,10 @@ ErrVal CodingParameter::check()
   ROTREPORT( m_uiMGSKeyPictureControl &&
             !m_uiCGSSNRRefinementFlag,              "MGSControl can only be specified in connection with CGSSNRRefinement=1" );
 
+  // JVT-AD021 {
+  ROTREPORT(  getMultiLayerLambda() > MULTILAYER_LAMBDA_C08 , "Multi-Layer lambda selection mode not supported" );
+  // JVT-AD021 }
+
   Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
   UInt    uiMaxFrameDelay = (UInt)floor( dMaxFrameDelay );
   Double  dMinUnrstrDelay = Double( ( 1 << m_uiDecompositionStages ) - 1 ) / m_dMaximumFrameRate * 1000.0;
@@ -896,6 +900,5 @@ LayerParameters::xForceScalableHighProfile( CodingParameter* pcCodingParameter )
   SETREPORT( m_uiUseRedundantKeySlice,    0, "Redundant slices disabled for Scalable High profile compatibility" );
   return Err::m_nOK;
 }
-
 
 H264AVC_NAMESPACE_END

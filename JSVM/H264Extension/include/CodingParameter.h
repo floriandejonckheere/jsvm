@@ -11,6 +11,11 @@
 
 H264AVC_NAMESPACE_BEGIN
 
+// JVT-AD021 {
+#define MULTILAYER_LAMBDA_OFF		0
+#define MULTILAYER_LAMBDA_C1		1
+#define MULTILAYER_LAMBDA_C08		2
+// JVT-AD021 }
 
 
 #if defined( MSYS_WIN32 )
@@ -701,6 +706,9 @@ public:
 // JVT-W043 }
     , m_uiBiPred8x8Disable                ( 0 )
     , m_uiMCBlks8x8Disable                ( 0 )
+	// JVT-AD021 {
+	, m_uiMultiLayerLambda				  ( 0 )
+	// JVT-AD021 }
   {
     for( UInt uiLayerId = 0; uiLayerId < MAX_LAYERS; uiLayerId++ )
     {
@@ -868,6 +876,11 @@ public:
   UInt  getMCBlks8x8Disable       () const            { return m_uiMCBlks8x8Disable; }
   Void  setMCBlks8x8Disable       ( UInt ui )         { m_uiMCBlks8x8Disable = ui; }
 
+  // JVT-AD021 {
+  Void  setMultiLayerLambda		  ( UInt ui )		  { m_uiMultiLayerLambda = ui; }
+  UInt  getMultiLayerLambda		  ()				  { return m_uiMultiLayerLambda; }
+  // JVT-AD021 }
+
 private:
   UInt    getLogFactor( Double  r0, Double  r1 );
 
@@ -963,6 +976,10 @@ protected:
   //JVT-W049 }
   UInt    m_uiBiPred8x8Disable;
   UInt    m_uiMCBlks8x8Disable;
+
+  // JVT-AD021 {
+  UInt	  m_uiMultiLayerLambda;
+  // JVT-AD021 }
 
   // JVT-W043
   public:
