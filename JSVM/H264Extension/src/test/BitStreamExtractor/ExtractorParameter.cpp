@@ -160,7 +160,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bTraceExtractionSpecified,  "Option \"-r\" used in connection with option \"-et\"" ); // HS: packet trace
       EXIT( bScalableLayerSpecified,    "Option \"-r\" used in connection with option \"-sl\"" );
       ++iArg;
-      UInt uiLen = strlen( argv[iArg] );
+      UInt uiLen = (UInt)strlen( argv[iArg] );
       if( argv[iArg][uiLen-1] == '%' )
       {
         ROT( uiLen > 99 );
@@ -403,7 +403,7 @@ ErrVal
 ExtractorParameter::xParseFormatStringROI_Only( Char*   pFormatString, Point&  rcPoint  )
 {
   std::string inputpara = pFormatString;
-  int iParaLength = inputpara.length();
+  int iParaLength = (int)inputpara.length();
 
   iExtractedNumROI = ( iParaLength + 1 )/2;
 

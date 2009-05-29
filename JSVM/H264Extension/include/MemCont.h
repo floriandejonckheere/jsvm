@@ -6,9 +6,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+
 #include "MemIf.h"
 #include "MemAccessor.h"
-
 
 
 template< class T >
@@ -66,7 +66,7 @@ public:
       m_pcT = new T[m_uiSize];
       AOT( NULL == m_pcT );
       m_pcOrigT = m_pcT;
-      ::memcpy( m_pcT, rcMemCont.m_pcT, sizeof( T ) * m_uiSize );
+      memcpy( m_pcT, rcMemCont.m_pcT, sizeof( T ) * m_uiSize );
     }
   }
 
@@ -111,7 +111,7 @@ public:
       m_pcT = new T[m_uiSize];
       AOT( NULL == m_pcT );
       m_pcOrigT = m_pcT;
-      ::memcpy( m_pcT, rcMemCont.m_pcT, sizeof( T ) * m_uiSize );
+      memcpy( m_pcT, rcMemCont.m_pcT, sizeof( T ) * m_uiSize );
     }
     else
     {
@@ -219,7 +219,7 @@ public:
         ruiSize = m_uiSize;
         rpcT = new T[ruiSize];
         AOT( NULL == rpcT );
-        ::memcpy( rpcT, m_pcT, sizeof( T ) * ruiSize );
+        memcpy( rpcT, m_pcT, sizeof( T ) * ruiSize );
       }
       else
       {

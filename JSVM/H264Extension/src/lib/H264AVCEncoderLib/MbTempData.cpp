@@ -90,7 +90,7 @@ Void IntMbTempData::copyResidualDataTo( MbDataAccess& rcMbDataAccess )
 
 Void IntMbTempData::loadChromaData( IntMbTempData& rcMbTempData )
 {
-  ::memcpy( get(CIdx(0)), rcMbTempData.get(CIdx(0)), sizeof(TCoeff)*128);
+  memcpy( get(CIdx(0)), rcMbTempData.get(CIdx(0)), sizeof(TCoeff)*128);
   setChromaPredMode( rcMbTempData.getChromaPredMode() );
   YuvMbBuffer::loadChroma( rcMbTempData );
   distU()  = rcMbTempData.distU();

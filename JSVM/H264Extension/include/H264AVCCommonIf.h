@@ -93,8 +93,8 @@ public:
   MyList& operator += ( const MyList& rcMyList) { if( ! rcMyList.empty() ) { insert( this->end(), rcMyList.begin(), rcMyList.end());} return *this; } // leszek
   T popBack()                           { T cT = this->back(); this->pop_back(); return cT;  }
   T popFront()                          { T cT = this->front(); this->pop_front(); return cT; }
-  Void pushBack( const T& rcT )         { if( sizeof(T) == 4) { if( rcT != NULL ){ push_back( rcT);} } }
-  Void pushFront( const T& rcT )        { if( sizeof(T) == 4) { if( rcT != NULL ){ push_front( rcT);} } }
+  Void pushBack( const T& rcT )         { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ push_back( rcT);} } }
+  Void pushFront( const T& rcT )        { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ push_front( rcT);} } }
   MyIterator find( const T& rcT ) {  return std::find( this->begin(), this->end(), rcT ); } // leszek
 };
 

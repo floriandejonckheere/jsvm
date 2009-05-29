@@ -272,11 +272,11 @@ YuvPicBuffer::interpolatedPicBuffer( PicBuffer* pcPicBuffer, Bool bBotField )
     Int   iStride   = ( iComp ? getCStride() : getLStride() );
     UInt  uiHeight  = ( iComp ? getCHeight() : getLHeight() ) / 2 - 1;
     UInt  uiWidth   = ( iComp ? getCWidth () : getLWidth () );
-    UInt  uiOffset  = ( iComp == 0 ? getMbLumAddr() : iComp == 1 ? getMbCbAddr() : getMbCrAddr() ) - m_pucYuvBuffer;
+    UInt  uiOffset  = UInt( ( iComp == 0 ? getMbLumAddr() : iComp == 1 ? getMbCbAddr() : getMbCrAddr() ) - m_pucYuvBuffer );
     Pel*  pDes      = pcPicBuffer->getBuffer() + uiOffset + ( bBotField ? iStride : 0 );
     if( ! bBotField )
     {
-      ::memcpy( pDes, pDes + iStride, uiWidth*sizeof(Pel) );
+      memcpy( pDes, pDes + iStride, uiWidth*sizeof(Pel) );
       pDes += 2*iStride;
     }
     for( y = 0; y < uiHeight; y++, pDes += 2*iStride )
@@ -290,7 +290,7 @@ YuvPicBuffer::interpolatedPicBuffer( PicBuffer* pcPicBuffer, Bool bBotField )
     }
     if( bBotField )
     {
-      ::memcpy( pDes, pDes - iStride, uiWidth*sizeof(Pel) );
+      memcpy( pDes, pDes - iStride, uiWidth*sizeof(Pel) );
     }
   }
 
@@ -378,7 +378,7 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer, Int iMbXOffset, Int
 
   for( y = 0; y < 16; y++ )
   {
-    ::memcpy( pDes, pScr, 16* sizeof(XPel) );
+    memcpy( pDes, pScr, 16* sizeof(XPel) );
     pDes += iDesStride,
     pScr += iSrcStride;
   }
@@ -390,7 +390,7 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer, Int iMbXOffset, Int
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pScr, 8* sizeof(XPel) );
+    memcpy( pDes, pScr, 8* sizeof(XPel) );
     pDes += iDesStride,
     pScr += iSrcStride;
   }
@@ -400,7 +400,7 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer, Int iMbXOffset, Int
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pScr, 8* sizeof(XPel) );
+    memcpy( pDes, pScr, 8* sizeof(XPel) );
     pDes += iDesStride,
     pScr += iSrcStride;
   }
@@ -424,7 +424,7 @@ ErrVal YuvPicBuffer::loadBuffer_MbAff( YuvMbBuffer *pcYuvMbBuffer, UInt uiMask )
 
   for( y = 0; y < iYSizeLuma; y++ )
   {
-    ::memcpy( pDes, pSrc, 16* sizeof(XPel) );
+    memcpy( pDes, pSrc, 16* sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -436,7 +436,7 @@ ErrVal YuvPicBuffer::loadBuffer_MbAff( YuvMbBuffer *pcYuvMbBuffer, UInt uiMask )
 
   for( y = 0; y < iYSizeChroma; y++ )
   {
-    ::memcpy( pDes, pSrc, 8* sizeof(XPel) );
+    memcpy( pDes, pSrc, 8* sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -446,7 +446,7 @@ ErrVal YuvPicBuffer::loadBuffer_MbAff( YuvMbBuffer *pcYuvMbBuffer, UInt uiMask )
 
   for( y = 0; y < iYSizeChroma; y++ )
   {
-    ::memcpy( pDes, pSrc, 8* sizeof(XPel) );
+    memcpy( pDes, pSrc, 8* sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -1283,7 +1283,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
       pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
   //===== chrominance U =====
@@ -1299,7 +1299,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
       pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
   //===== chrominance V =====
@@ -1312,7 +1312,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
       pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
   delete [] pChar; // bug-fix by H. Schwarz / J. Reichel
@@ -1365,7 +1365,7 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
         pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
   //===== chrominance U =====
@@ -1384,7 +1384,7 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
         pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
   //===== chrominance V =====
@@ -1400,7 +1400,7 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
         pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
-    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+    ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
   }
 
 
@@ -1540,7 +1540,7 @@ Void YuvPicBuffer::xCopyFillPlaneMargin( XPel *pucSrc, XPel *pucDest, Int iHeigh
   UInt uiSize = sizeof(XPel)*(iWidth + 2*iXMargin);
   for( n = 0; n < iHeight; n++ )
   {
-    ::memcpy( pucDest + iOffset, pucSrc + iOffset, uiSize );
+    memcpy( pucDest + iOffset, pucSrc + iOffset, uiSize );
     iOffset += iStride;
   }
 
@@ -1548,7 +1548,7 @@ Void YuvPicBuffer::xCopyFillPlaneMargin( XPel *pucSrc, XPel *pucDest, Int iHeigh
   puc = pucDest - iXMargin + iStride * iHeight;
   for( n = 0; n < iYMargin; n++ )
   {
-    ::memcpy( puc, puc - iStride, uiSize );
+    memcpy( puc, puc - iStride, uiSize );
     puc += iStride;
   }
 
@@ -1556,7 +1556,7 @@ Void YuvPicBuffer::xCopyFillPlaneMargin( XPel *pucSrc, XPel *pucDest, Int iHeigh
   puc = pucDest - iXMargin;
   for( n = 0; n < iYMargin; n++ )
   {
-    ::memcpy( puc - iStride, puc, uiSize );
+    memcpy( puc - iStride, puc, uiSize );
     puc -= iStride;
   }
 }
@@ -1570,7 +1570,7 @@ Void YuvPicBuffer::xCopyPlane( XPel *pucSrc, XPel *pucDest, Int iHeight, Int iWi
   Int iOffset = 0;
   for( Int n = 0; n < iHeight; n++)
   {
-    ::memcpy( pucDest + iOffset, pucSrc + iOffset, uiSize );
+    memcpy( pucDest + iOffset, pucSrc + iOffset, uiSize );
     iOffset += iStride;
   }
 }
@@ -1645,7 +1645,7 @@ Void YuvPicBuffer::xFillPlaneMargin( XPel *pucDest, Int iHeight, Int iWidth, Int
   UInt uiSize = iWidth + 2*iXMargin;
   for( n = 0; n < iYMargin; n++)
   {
-    ::memcpy( puc, puc - iStride, uiSize*sizeof(XPel) );
+    memcpy( puc, puc - iStride, uiSize*sizeof(XPel) );
     puc += iStride;
   }
 
@@ -1653,7 +1653,7 @@ Void YuvPicBuffer::xFillPlaneMargin( XPel *pucDest, Int iHeight, Int iWidth, Int
   puc = pucDest - iXMargin;
   for( n = 0; n < iYMargin; n++)
   {
-    ::memcpy( puc - iStride, puc, uiSize*sizeof(XPel) );
+    memcpy( puc - iStride, puc, uiSize*sizeof(XPel) );
     puc -= iStride;
   }
 }

@@ -614,7 +614,7 @@ H264AVCEncoderTest::ScalableDealing()
 	do
   {
 		fseek( ftemp, loffset, SEEK_END);
-		fread( pvBuffer, 1, 4, ftemp );
+		ROF( 4 == fread( pvBuffer, 1, 4, ftemp ) );
 		if( pvBuffer[0] == 0 && pvBuffer[1] == 0 && pvBuffer[2] == 0 && pvBuffer[3] == 1)
 		{
 			bMoreSets = false;
@@ -629,12 +629,12 @@ H264AVCEncoderTest::ScalableDealing()
 	fseek( ftemp, loffset, SEEK_END );
 
 	UChar *pvChar = new UChar[lFileLength];
-	fread( pvChar, 1, lpos, ftemp );
+	ROF( lpos == fread( pvChar, 1, lpos, ftemp ) );
 	fseek( ftemp, 0, SEEK_SET );
-	fread( pvChar+lpos, 1, lFileLength-lpos, ftemp);
+	ROF( lFileLength-lpos == fread( pvChar+lpos, 1, lFileLength-lpos, ftemp) );
 	fclose(ftemp);
 	fflush(ftemp);
-	fwrite( pvChar, 1, lFileLength, f);
+	ROF( lFileLength == fwrite( pvChar, 1, lFileLength, f ) );
 	delete pvChar;
 	fclose(f);
 	fflush(f);

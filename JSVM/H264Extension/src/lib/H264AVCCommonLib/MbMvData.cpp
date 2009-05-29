@@ -15,7 +15,7 @@ MbMvData::save( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiSave = ::fwrite( &m_acMv[0], sizeof(Mv), 16, pFile );
+  UInt uiSave = (UInt) ::fwrite( &m_acMv[0], sizeof(Mv), 16, pFile );
   ROF( uiSave == 16 );
 
   return Err::m_nOK;
@@ -27,7 +27,7 @@ MbMvData::load( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiRead = ::fread( &m_acMv[0], sizeof(Mv), 16, pFile );
+  UInt uiRead = (UInt) ::fread( &m_acMv[0], sizeof(Mv), 16, pFile );
   ROF( uiRead == 16 );
 
   return Err::m_nOK;
@@ -41,8 +41,8 @@ MbMotionData::save( FILE* pFile )
 
   RNOK( MbMvData::save( pFile ) );
 
-  UInt uiSave  = ::fwrite( &m_ascRefIdx[0],   sizeof(SChar),      4, pFile );
-  uiSave      += ::fwrite( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
+  UInt uiSave  = (UInt) ::fwrite( &m_ascRefIdx[0],   sizeof(SChar),      4, pFile );
+  uiSave      += (UInt) ::fwrite( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
 
   ROF( uiSave == ( 4 + 1 ) );
 
@@ -57,8 +57,8 @@ MbMotionData::load( FILE* pFile )
 
   RNOK( MbMvData::load( pFile ) );
 
-  UInt uiRead  = ::fread( &m_ascRefIdx[0],   sizeof(SChar),  4, pFile );
-  uiRead      += ::fread( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
+  UInt uiRead  = (UInt) ::fread( &m_ascRefIdx[0],   sizeof(SChar),  4, pFile );
+  uiRead      += (UInt) ::fread( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
 
   ROF( uiRead == ( 4 + 1 ) );
 
@@ -88,7 +88,7 @@ Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData, const ParIdx8x
 
 Void MbMvData::copyFrom( const MbMvData& rcMbMvData )
 {
-  ::memcpy( m_acMv, rcMbMvData.m_acMv, sizeof(m_acMv) );
+  memcpy( m_acMv, rcMbMvData.m_acMv, sizeof(m_acMv) );
   m_bFieldFlag  = rcMbMvData.m_bFieldFlag;
 }
 
@@ -167,8 +167,8 @@ BlkMode MbMotionData::getBlkMode( const ParIdx8x8 eParIdx, BlkMode eBlkMode )
 
 Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData )
 {
-  ::memcpy( m_ascRefIdx,  rcMbMotionData.m_ascRefIdx, 4 * sizeof(SChar) );
-  ::memcpy( m_acRefPicIdc, rcMbMotionData.m_acRefPicIdc, 4 * sizeof(RefPicIdc) );
+  memcpy( m_ascRefIdx,  rcMbMotionData.m_ascRefIdx, 4 * sizeof(SChar) );
+  memcpy( m_acRefPicIdc, rcMbMotionData.m_acRefPicIdc, 4 * sizeof(RefPicIdc) );
   m_usMotPredFlags = rcMbMotionData.m_usMotPredFlags;
 
   m_bFieldFlag = rcMbMotionData.m_bFieldFlag;

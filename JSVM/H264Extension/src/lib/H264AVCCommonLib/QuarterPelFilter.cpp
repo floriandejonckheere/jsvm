@@ -354,9 +354,9 @@ Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuf
 
 Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride,  UInt uiSizeY, UInt uiSizeX )
 {
-  for( UInt y = 0; y < uiSizeY; y++)
+  for( Int y = 0; y < (Int)uiSizeY; y++)
   {
-    for( UInt x = 0; x < uiSizeX; x++)
+    for( Int x = 0; x < (Int)uiSizeX; x++)
     {
       Int iTemp;
       iTemp  = pucSrc[x - 0];
@@ -379,9 +379,9 @@ Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
 {
 
   iDx >>= 1;
-  for( UInt y = 0; y < uiSizeY; y++)
+  for( Int y = 0; y < (Int)uiSizeY; y++)
   {
-    for( UInt x = 0; x < uiSizeX; x++)
+    for( Int x = 0; x < (Int)uiSizeX; x++)
     {
       Int iTemp;
       iTemp  = pucSrc[x - 0];
@@ -403,9 +403,9 @@ Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
 
 Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX )
 {
-  for( UInt y = 0; y < uiSizeY; y++)
+  for( Int y = 0; y < (Int)uiSizeY; y++)
   {
-    for( UInt x = 0; x < uiSizeX; x++)
+    for( Int x = 0; x < (Int)uiSizeX; x++)
     {
       Int iTemp;
       iTemp  = pucSrc[x - 0*iSrcStride];
@@ -427,9 +427,15 @@ Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride
 Void QuarterPelFilter::xPredDx0Dy13( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
 {
   iDy = (iDy>>1) * iSrcStride;
+#if 0
   for( UInt y = 0; y < uiSizeY; y++)
   {
     for( UInt x = 0; x < uiSizeX; x++)
+#else
+  for( Int y = 0; y < (Int)uiSizeY; y++)
+  {
+    for( Int x = 0; x < (Int)uiSizeX; x++)
+#endif
     {
       Int iTemp;
       iTemp  = pucSrc[x - 0*iSrcStride];
@@ -582,9 +588,9 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
   pucSrcY += (iDx == 1) ? 0 : 1;
   pucSrcX += (iDy == 1) ? 0 : iSrcStride;
 
-  for( UInt y = 0; y < uiSizeY; y++)
+  for( Int y = 0; y < (Int)uiSizeY; y++)
   {
-    for( UInt x = 0; x < uiSizeX; x++)
+    for( Int x = 0; x < (Int)uiSizeX; x++)
     {
       Int iTempX;
       iTempX  = pucSrcX[x - 0];

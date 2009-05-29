@@ -9,7 +9,7 @@
 
 #include "H264AVCCommonLib/Sei.h"
 
-#define MAX_ROI_NUM  5
+#define MAX_ROI_NUM  8
 
 class H264AVCDecoder;
 class ControlMngH264AVCDecoder;

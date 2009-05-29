@@ -122,7 +122,7 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
   BinData*  pcBinDataCopy = new BinData;
   ROF( pucBuffer );
   ROF( pcBinDataCopy );
-  ::memcpy( pucBuffer, rpcBinData->data(), rpcBinData->size() );
+  memcpy( pucBuffer, rpcBinData->data(), rpcBinData->size() );
   pcBinDataCopy->set( pucBuffer, rpcBinData->size() );
 
   //===== parse required part of the NAL unit =====

@@ -8,7 +8,6 @@
 
 #include <list>
 
-
 template< class T >
 class MemAccessor
 {
@@ -205,7 +204,7 @@ public:
     for( pcPair = m_cMemAccessorList.begin(); pcPair != m_cMemAccessorList.end(); pcPair++ )
     {
       ROTV( uiPos + pcPair->size() > ruiSize );
-      ::memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
+      memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
       uiPos += pcPair->size();
     }
 

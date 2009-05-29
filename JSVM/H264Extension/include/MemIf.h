@@ -6,12 +6,13 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <string.h>
+
 enum MemType
 {
   MEM_CONT =      0,
   MEM_LIST =      1
 };
-
 
 template< class T >
 class MemIf

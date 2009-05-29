@@ -886,7 +886,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   //===== copy bin data and init NAL unit =====
   UChar*  pucBuffer = new UChar [ pcBinData->size() ];
   ROF( pucBuffer );
-  ::memcpy( pucBuffer, pcBinData->data(), pcBinData->size() );
+  memcpy( pucBuffer, pcBinData->data(), pcBinData->size() );
   BinData         cBinData( pucBuffer, pcBinData->size() );
   BinDataAccessor cBinDataAccessor;
   cBinData.setMemAccessor( cBinDataAccessor );

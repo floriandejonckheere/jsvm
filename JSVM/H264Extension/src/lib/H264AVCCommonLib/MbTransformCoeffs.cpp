@@ -13,7 +13,7 @@ MbTransformCoeffs::save( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiSave  = ::fwrite( this, sizeof(MbTransformCoeffs), 1, pFile );
+  UInt uiSave  = (UInt) ::fwrite( this, sizeof(MbTransformCoeffs), 1, pFile );
 
   ROF( uiSave == 1 );
 
@@ -26,7 +26,7 @@ MbTransformCoeffs::load( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiRead  = ::fread( this, sizeof(MbTransformCoeffs), 1, pFile );
+  UInt uiRead  = (UInt) ::fread( this, sizeof(MbTransformCoeffs), 1, pFile );
 
   ROF( uiRead == 1 );
 
@@ -219,13 +219,13 @@ Void MbTransformCoeffs::setAllCoeffCount( UChar ucCoeffCountValue )
 
 Void MbTransformCoeffs::copyFrom( const MbTransformCoeffs& rcMbTransformCoeffs )
 {
-  ::memcpy( m_aaiLevel, rcMbTransformCoeffs.m_aaiLevel, sizeof( m_aaiLevel ) );
-  ::memcpy( m_aaucCoeffCount, rcMbTransformCoeffs.m_aaucCoeffCount, sizeof( m_aaucCoeffCount ) );
+  memcpy( m_aaiLevel, rcMbTransformCoeffs.m_aaiLevel, sizeof( m_aaiLevel ) );
+  memcpy( m_aaucCoeffCount, rcMbTransformCoeffs.m_aaucCoeffCount, sizeof( m_aaucCoeffCount ) );
 }
 
 Void MbTransformCoeffs::copyCoeffCounts( const MbTransformCoeffs& rcMbTransformCoeffs )
 {
-  ::memcpy( m_aaucCoeffCount, rcMbTransformCoeffs.m_aaucCoeffCount, sizeof( m_aaucCoeffCount ) );
+  memcpy( m_aaucCoeffCount, rcMbTransformCoeffs.m_aaucCoeffCount, sizeof( m_aaucCoeffCount ) );
 }
 
 MbTransformCoeffs::MbTransformCoeffs()

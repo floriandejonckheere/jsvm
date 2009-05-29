@@ -554,7 +554,7 @@ Void IntraPrediction::xPred16x16IMode0Vert( Pel* puc, Int iStride ) // vertical
 {
   AOF( xIsAboveRef() );
 
-  for( UInt n = 0; n < 16; n++ )
+  for( Int n = 0; n < 16; n++ )
   {
     ::memcpy( puc, puc - iStride, 16 );
     puc += iStride;
@@ -567,7 +567,7 @@ Void IntraPrediction::xPred16x16IMode1Hori( Pel* puc, Int iStride ) // horizonta
 {
   AOF( xIsLeftRef() );
 
-  for( UInt n = 0; n < 16; n++ )
+  for( Int n = 0; n < 16; n++ )
   {
    ::memset( puc, puc[-1], 16 );
     puc += iStride;
@@ -676,7 +676,7 @@ Void IntraPrediction::xPred8x8IMode2Vert( Pel* puc, Int iStride ) // vertical
 {
   AOF( xIsAboveRef() );
 
-  for( UInt n = 0; n < 8; n++ )
+  for( Int n = 0; n < 8; n++ )
   {
     ::memcpy( puc, puc - iStride, 8 );
     puc += iStride;
@@ -688,7 +688,7 @@ Void IntraPrediction::xPred8x8IMode1Hori( Pel* puc, Int iStride ) // horizontal
 {
   AOF( xIsLeftRef() );
 
-  for( UInt n = 0; n < 8; n++ )
+  for( Int n = 0; n < 8; n++ )
   {
    ::memset( puc, puc[-1], 8 );
     puc += iStride;
@@ -774,7 +774,7 @@ Void IntraPrediction::xPred16x16IMode0Vert( XPel* puc, Int iStride ) // vertical
 {
   AOF( xIsAboveRef() );
 
-  for( UInt n = 0; n < 16; n++ )
+  for( Int n = 0; n < 16; n++ )
   {
     ::memcpy( puc, puc - iStride, 16*sizeof(XPel) );
     puc += iStride;
@@ -785,9 +785,9 @@ Void IntraPrediction::xPred16x16IMode1Hori( XPel* puc, Int iStride ) // horizont
 {
   AOF( xIsLeftRef() );
 
-  for( UInt n = 0; n < 16; n++ )
+  for( Int n = 0; n < 16; n++ )
   {
-    for( UInt m = 0; m < 16; m++ )
+    for( Int m = 0; m < 16; m++ )
     {
       puc[m] = puc[m-1];
     }
@@ -1147,7 +1147,7 @@ Void IntraPrediction::xPred8x8IMode2Vert( XPel* puc, Int iStride ) // vertical
 {
   AOF( xIsAboveRef() );
 
-  for( UInt n = 0; n < 8; n++ )
+  for( Int n = 0; n < 8; n++ )
   {
     ::memcpy( puc, puc - iStride, 8*sizeof(XPel) );
     puc += iStride;
@@ -1159,9 +1159,9 @@ Void IntraPrediction::xPred8x8IMode1Hori( XPel* puc, Int iStride ) // horizontal
 {
   AOF( xIsLeftRef() );
 
-  for( UInt n = 0; n < 8; n++ )
+  for( Int n = 0; n < 8; n++ )
   {
-    for( UInt m = 0; m < 8; m++ )
+    for( Int m = 0; m < 8; m++ )
     {
       puc[m] = puc[m-1];
     }

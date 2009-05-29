@@ -17,7 +17,7 @@ ResizeParameters::readPictureParameters( FILE* pFile, Bool bFrameMbsOnlyFlag )
   Int iTop  = 0;
   Int iSW   = 0;
   Int iSH   = 0;
-  if( fscanf( pFile, "%d,%d,%d,%d\n", &iLeft, &iTop, &iSW, &iSH ) == 0 )
+  if( fscanf( pFile, "%d,%d,%d,%d\n", &iLeft, &iTop, &iSW, &iSH ) != 4 )
   {
     printf("\nPictureParameters::read() : cannot read picture params\n");
     return Err::m_nERR;

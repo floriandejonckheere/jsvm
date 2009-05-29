@@ -187,7 +187,12 @@ void encode( EncoderParameters& rcEncoderParameters )
 
   cEchoLineString += cCommandLineString;
   cEchoLineString += "\n";
-  system( cEchoLineString.c_str() );
+  int iEResult = system( cEchoLineString.c_str() );
+  if( iEResult )
+  {
+    printf("\n\nERROR while executing \"...\"\n\n%s\n\n", cEchoLineString.c_str() );
+    exit(2);
+  }
 
   //----- run encoder -----
   int iResult = system( cCommandLineString.c_str() );
@@ -280,8 +285,8 @@ encode_layer( EncoderParameters& rcEncoderParameters )
 				( ((rcEncoderParameters.uiMode == 0)?rcLayer.uiCurrSize:rcLayer.uiCurrPSNR) - dTarget ) / dTarget * 100.0,
 				rcLayer.uiNumIter );
 
-		fprintf( stdout, acTempString );
-		fprintf( stderr, acTempString );
+		fprintf( stdout, "%s", acTempString );
+		fprintf( stderr, "%s", acTempString );
 
 		uiCurr = (rcEncoderParameters.uiMode == 0) ? rcLayer.uiCurrSize : rcLayer.uiCurrPSNR;
 		}
@@ -362,7 +367,7 @@ read_line( FILE* pFile, const char* pcFormat, void* pPar )
   if( pPar )
   {
     int  result = fscanf( pFile, pcFormat, pPar );
-    ROF( result );
+    ROT( result <= 0 );
   }
 
   for( int n = 0; n < 1024; n++ )
@@ -481,8 +486,8 @@ int main( int argc, char** argv)
 			rcLayer.dPSNR,
 			( ((cEncoderParameters.uiMode == 0)?rcLayer.dRate:rcLayer.dPSNR) - rcLayer.dTarget ) / rcLayer.dTarget * 100.0,
 			rcLayer.uiNumIter );
-		fprintf( stdout, acTempString );
-		fprintf( stderr, acTempString );
+		fprintf( stdout, "%s", acTempString );
+		fprintf( stderr, "%s", acTempString );
   }
   printf("\n\n\n");
 

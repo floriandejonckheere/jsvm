@@ -15,7 +15,7 @@ MbDataStruct::save( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiSave  = ::fwrite( this, sizeof(MbDataStruct), 1, pFile );
+  UInt uiSave  = (UInt) ::fwrite( this, sizeof(MbDataStruct), 1, pFile );
 
   ROF( uiSave == 1 );
 
@@ -28,7 +28,7 @@ MbDataStruct::load( FILE* pFile )
 {
   ROF( pFile );
 
-  UInt uiRead  = ::fread( this, sizeof(MbDataStruct), 1, pFile );
+  UInt uiRead  = (UInt) ::fread( this, sizeof(MbDataStruct), 1, pFile );
 
   ROF( uiRead == 1 );
 
@@ -171,8 +171,8 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_bTransformSize8x8   = rcMbDataStruct.m_bTransformSize8x8;
   m_bFieldFlag          = rcMbDataStruct.m_bFieldFlag;
 
-  ::memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
-  ::memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );
+  memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
+  memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );
 }
 
 

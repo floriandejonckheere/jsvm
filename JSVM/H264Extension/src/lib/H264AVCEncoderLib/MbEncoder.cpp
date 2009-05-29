@@ -5266,7 +5266,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     //----- set macroblock bits -----
     if( ! bPSlice )
     {
-      ::memcpy( uiMbBits, aauiMbBits[uiBlk][uiLastMode], 3*sizeof(UInt) );
+      memcpy( uiMbBits, aauiMbBits[uiBlk][uiLastMode], 3*sizeof(UInt) );
     }
 
     //===== LIST 0 PREDICTION ======
@@ -5666,7 +5666,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     //----- set macroblock bits -----
     if( ! bPSlice )
     {
-      ::memcpy( uiMbBits, aauiMbBits[uiBlk][uiLastMode], 3*sizeof(UInt) );
+      memcpy( uiMbBits, aauiMbBits[uiBlk][uiLastMode], 3*sizeof(UInt) );
     }
 
     //===== LIST 0 PREDICTION ======
@@ -6932,7 +6932,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
     bBLPredBi [0] = bBLPred [0];
     bBLPredBi [1] = bBLPred [1];
 
-    ::memcpy( cMvBi,      cMv,      2*2*sizeof(Mv ) );
+    memcpy( cMvBi,      cMv,      2*2*sizeof(Mv ) );
 
     cMvPredBi[0][0]     = cMvPred[0][iRefIdx[0]][0];
     cMvPredBi[0][1]     = cMvPred[0][iRefIdx[0]][1];
@@ -7423,7 +7423,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
     bBLPredBi [0] = bBLPred [0];
     bBLPredBi [1] = bBLPred [1];
 
-    ::memcpy( cMvBi,      cMv,      2*2*sizeof(Mv ) );
+    memcpy( cMvBi,      cMv,      2*2*sizeof(Mv ) );
 
     cMvPredBi [0][0]    = cMvPred [0][iRefIdx[0]][0];
     cMvPredBi [0][1]    = cMvPred [0][iRefIdx[0]][1];
@@ -7929,7 +7929,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
     bBLPredBi [0] = bBLPred [0];
     bBLPredBi [1] = bBLPred [1];
 
-    ::memcpy( cMvBi,      cMv,      2*4*sizeof(Mv ) );
+    memcpy( cMvBi,      cMv,      2*4*sizeof(Mv ) );
 
     cMvPredBi [0][0]    = cMvPred [0][iRefIdx[0]][0];
     cMvPredBi [0][1]    = cMvPred [0][iRefIdx[0]][1];

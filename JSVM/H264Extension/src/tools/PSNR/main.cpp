@@ -56,7 +56,7 @@ void readColorComponent( ColorComponent* cc, FILE* file )
   unsigned int size   = cc->width*cc->height;
   unsigned int rsize;
 
-  rsize = fread( cc->data, sizeof(unsigned char), size, file );
+  rsize = (unsigned int)fread( cc->data, sizeof(unsigned char), size, file );
 
   if( size != rsize )
   {
@@ -73,7 +73,7 @@ void writeColorComponent( ColorComponent* cc, FILE* file, int downScale )
 
   for( int i = 0; i < outheight; i++ )
   {
-    wsize = fwrite( cc->data+i*cc->width, sizeof(unsigned char), outwidth, file );
+    wsize = (int)fwrite( cc->data+i*cc->width, sizeof(unsigned char), outwidth, file );
 
     if( outwidth != wsize )
     {

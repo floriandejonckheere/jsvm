@@ -114,7 +114,7 @@ ErrVal SIPParameters::xReadLine( FILE* pFile, const char* pcFormat, void* pPar )
   if( pPar )
   {
     int  result = fscanf( pFile, pcFormat, pPar );
-    ROFS( result );
+    ROT( result <= 0 );
   }
 
   for( int n = 0; n < 1024; n++ )

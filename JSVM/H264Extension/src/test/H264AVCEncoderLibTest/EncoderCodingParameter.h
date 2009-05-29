@@ -1295,9 +1295,8 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 			{
 				for(i=0;i<=rcLayer.getNumSliceGroupsMinus1();i++)
 				{
-					fscanf(sgfile,"%d",(rcLayer.getArrayRunLengthMinus1()+i));
-					fscanf(sgfile,"%*[^\n]");
-
+					ROF( 1   == fscanf(sgfile,"%d",(rcLayer.getArrayRunLengthMinus1()+i)) );
+					ROF( EOF != fscanf(sgfile,"%*[^\n]") );
 				}
 			}
 			else if (rcLayer.getSliceGroupMapType() == 2)
@@ -1305,10 +1304,10 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 				// every two lines contain 'top_left' and 'bottom_right' value
 				for(i=0;i<rcLayer.getNumSliceGroupsMinus1();i++)
 				{
-					fscanf(sgfile,"%d",(rcLayer.getArrayTopLeft()+i));
-					fscanf(sgfile,"%*[^\n]");
-					fscanf(sgfile,"%d",(rcLayer.getArrayBottomRight()+i));
-					fscanf(sgfile,"%*[^\n]");
+					ROF( 1   == fscanf(sgfile,"%d",(rcLayer.getArrayTopLeft()+i)) );
+					ROF( EOF != fscanf(sgfile,"%*[^\n]") );
+					ROF( 1   == fscanf(sgfile,"%d",(rcLayer.getArrayBottomRight()+i)) );
+					ROF( EOF != fscanf(sgfile,"%*[^\n]") );
 				}
 
 			}
@@ -1335,11 +1334,11 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 				// each line contains slice_group_id for one Macroblock
 				for (i=0;i<mapunit_height*mb_width;i++)
 				{
-					fscanf(sgfile,"%d", &tmp);
+					ROF( 1   == fscanf(sgfile,"%d", &tmp) );
 					//input->set_slice_group_id_ith( i, (unsigned) tmp);
 					rcLayer.setSliceGroupId(i,(UInt)tmp);
 					assert(*(rcLayer.getArraySliceGroupId()+i) <= rcLayer.getNumSliceGroupsMinus1() );
-					fscanf(sgfile,"%*[^\n]");
+					ROF( EOF != fscanf(sgfile,"%*[^\n]") );
 				}
 
 			}
@@ -1371,12 +1370,12 @@ ErrVal EncoderCodingParameter::xReadROICfg( h264::LayerParameters&  rcLayer )
 			// every two lines contain 'top_left' and 'bottom_right' value
 			for(i=0;i<rcLayer.getNumROI(); i++)
 			{
-				fscanf(roifile, "%d",(rcLayer.getROIID()+i));
-				fscanf(roifile, "%*[^\n]");
-				fscanf(roifile, "%d",(rcLayer.getSGID()+i));
-				fscanf(roifile, "%*[^\n]");
-				fscanf(roifile, "%d",(rcLayer.getSLID()+i));
-				fscanf(roifile, "%*[^\n]");
+				ROF( 1   == fscanf(roifile, "%d",(rcLayer.getROIID()+i)) );
+				ROF( EOF != fscanf(roifile, "%*[^\n]") );
+				ROF( 1   == fscanf(roifile, "%d",(rcLayer.getSGID()+i)) );
+				ROF( EOF != fscanf(roifile, "%*[^\n]") );
+				ROF( 1   == fscanf(roifile, "%d",(rcLayer.getSLID()+i)) );
+				ROF( EOF != fscanf(roifile, "%*[^\n]") );
 			}
 
 			fclose(roifile);

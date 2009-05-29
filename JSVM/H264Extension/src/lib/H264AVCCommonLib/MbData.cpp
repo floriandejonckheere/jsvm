@@ -220,8 +220,8 @@ ErrVal
 MbData::copyIntraPred( MbData &rcMbData )
 {
 	// COPY INTRA PREDICTION MODES
-	::memcpy(m_ascIPredMode, rcMbData.m_ascIPredMode, sizeof(m_ascIPredMode) );
-	::memcpy( &m_ucChromaPredMode, &rcMbData.m_ucChromaPredMode, sizeof(m_ucChromaPredMode) );
+	memcpy(m_ascIPredMode, rcMbData.m_ascIPredMode, sizeof(m_ascIPredMode) );
+	memcpy( &m_ucChromaPredMode, &rcMbData.m_ucChromaPredMode, sizeof(m_ucChromaPredMode) );
 
 	// COPY TRANSFORM SIZE
 	m_bTransformSize8x8 = rcMbData.m_bTransformSize8x8;
@@ -248,14 +248,14 @@ MbData::copyTCoeffs( MbData& rcMbData )
   for( B4x4Idx b4x4Idx; b4x4Idx.isLegal(); b4x4Idx++ )
   {
 	  piCoeff = getMbTCoeffs().get(b4x4Idx);
-    ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(b4x4Idx), 16*sizeof(TCoeff) );
+    memcpy( piCoeff, rcMbData.getMbTCoeffs().get(b4x4Idx), 16*sizeof(TCoeff) );
   }
 
   // Chroma
   for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
   {
 	  piCoeff = getMbTCoeffs().get(cIdx);
-	  ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(cIdx), 16*sizeof(TCoeff) );
+	  memcpy( piCoeff, rcMbData.getMbTCoeffs().get(cIdx), 16*sizeof(TCoeff) );
   }
 
   // COPY TRANSFORM SIZE

@@ -168,7 +168,7 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
 
     UChar* pucNewBuffer = new UChar [ uiBytes ];
     ROF( pucNewBuffer );
-    ::memcpy( pucNewBuffer, pucPayload, uiBytes * sizeof( UChar ) );
+    memcpy( pucNewBuffer, pucPayload, uiBytes * sizeof( UChar ) );
 
     if( pcH264AVCEncoder )
     {

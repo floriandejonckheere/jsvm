@@ -498,11 +498,11 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
     //----- get base layer distortion -----
     RNOK( xInitDistortion( aaaauiDistortionDep[uiLayer][0][0], uiTopLayer, uiLayer, 0 ) );
 
-    ::memcpy(              aaaauiDistortionInd[uiLayer][0][0], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
+    memcpy(              aaaauiDistortionInd[uiLayer][0][0], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
     for( uiTLevel = 1; uiTLevel <= m_auiNumTempLevel[uiLayer]; uiTLevel++ )
     {
-      ::memcpy(     aaaauiDistortionDep[uiLayer][0][uiTLevel], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
-      ::memcpy(     aaaauiDistortionInd[uiLayer][0][uiTLevel], aaaauiDistortionInd[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
+      memcpy(     aaaauiDistortionDep[uiLayer][0][uiTLevel], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
+      memcpy(     aaaauiDistortionInd[uiLayer][0][uiTLevel], aaaauiDistortionInd[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
     }
     //----- get enhancement distortions -----
     for( uiFGS    = 1; uiFGS    <= m_auiNumFGSLayers[uiLayer]; uiFGS   ++ )

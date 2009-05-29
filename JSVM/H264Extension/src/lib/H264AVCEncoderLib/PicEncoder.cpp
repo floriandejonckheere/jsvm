@@ -589,7 +589,7 @@ PicEncoder::xAppendNewExtBinDataAccessor( ExtBinDataAccessorList& rcExtBinDataAc
   UInt    uiNewSize     = pcExtBinDataAccessor->size();
   UChar*  pucNewBuffer  = new UChar [ uiNewSize ];
   ROF( pucNewBuffer );
-  ::memcpy( pucNewBuffer, pcExtBinDataAccessor->data(), uiNewSize * sizeof( UChar ) );
+  memcpy( pucNewBuffer, pcExtBinDataAccessor->data(), uiNewSize * sizeof( UChar ) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor );

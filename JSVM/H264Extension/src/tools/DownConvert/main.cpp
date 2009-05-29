@@ -67,7 +67,7 @@ readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool s
   for( int i = 0; i < height; i++ )
   {
     unsigned char* buffer = ( second ? c.data2 : c.data ) + i * c.stride;
-    int            rsize  = fread( buffer, sizeof(unsigned char), width, file );
+    int            rsize  = (int)fread( buffer, sizeof(unsigned char), width, file );
     if( rsize != width )
     {
       return 1;
@@ -92,7 +92,7 @@ readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool s
 void
 duplicateColorComponent( ColorComponent& c )
 {
-  ::memcpy( c.data2, c.data, c.stride * c.lines * sizeof(unsigned char) );
+  memcpy( c.data2, c.data, c.stride * c.lines * sizeof(unsigned char) );
 }
 
 void
@@ -103,7 +103,7 @@ combineTopAndBottomInColorComponent( ColorComponent& c, Bool bBotField )
   unsigned char* pSrc = c.data2 + offs;
   for( int i = 0; i < c.lines / 2; i++, pDes += 2*c.stride, pSrc += 2*c.stride )
   {
-    ::memcpy( pDes, pSrc, c.stride * sizeof(unsigned char) );
+    memcpy( pDes, pSrc, c.stride * sizeof(unsigned char) );
   }
 }
 
@@ -116,7 +116,7 @@ writeColorComponent( ColorComponent& c, FILE* file, int width, int height, bool 
   for( int i = 0; i < height; i++ )
   {
     unsigned char* buffer = ( second ? c.data2 : c.data ) + i * c.stride;
-    int            wsize  = fwrite( buffer, sizeof(unsigned char), width, file );
+    int            wsize  = (int)fwrite( buffer, sizeof(unsigned char), width, file );
 
     if( wsize != width )
     {
@@ -250,11 +250,11 @@ print_usage_and_exit( int test, const char* name, const char* message = 0 )
 void
 updateCropParametersFromFile( ResizeParameters& cRP, FILE* cropFile, int resamplingMethod, char* name )
 {
-  int crop_x0;
-  int crop_y0;
-  int crop_w;
-  int crop_h;
-  if( fscanf( cropFile, "%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w, &crop_h ) != EOF )
+  int crop_x0 = 0;
+  int crop_y0 = 0;
+  int crop_w  = 0;
+  int crop_h  = 0;
+  if( fscanf( cropFile, "%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w, &crop_h ) == 4 )
   {
     cRP.m_iLeftFrmOffset      = crop_x0;
     cRP.m_iTopFrmOffset       = crop_y0;

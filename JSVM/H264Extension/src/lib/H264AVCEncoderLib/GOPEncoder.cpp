@@ -797,7 +797,7 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     while(!feof(file))
   {
     UInt tmp;
-    fscanf(file,"%d",&tmp);
+    ROF( 1 == fscanf(file,"%d",&tmp) );
     m_cPocList.push_back(tmp);
   }
     fclose(file);
@@ -1425,7 +1425,7 @@ LayerEncoder::xAppendNewExtBinDataAccessor( ExtBinDataAccessorList& rcExtBinData
   UInt    uiNewSize     = pcExtBinDataAccessor->size();
   UChar*  pucNewBuffer  = new UChar [ uiNewSize ];
   ROF( pucNewBuffer );
-  ::memcpy( pucNewBuffer, pcExtBinDataAccessor->data(), uiNewSize * sizeof( UChar ) );
+  memcpy( pucNewBuffer, pcExtBinDataAccessor->data(), uiNewSize * sizeof( UChar ) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor );
@@ -2041,8 +2041,8 @@ LayerEncoder::xInitRefFrameLists( UInt uiFrameIdInGOP, UInt uiTemporalId )
   }
 
   //===== set reference list sizes =====
-  UInt  uiL0Size  = cBwdList.size();
-  UInt  uiL1Size  = cFwdList.size();
+  UInt  uiL0Size  = (UInt)cBwdList.size();
+  UInt  uiL1Size  = (UInt)cFwdList.size();
   if( m_auiPicCodingType[ uiFrameIdInGOP ] == 1 )
   {
     uiL0Size += uiL1Size;
@@ -2260,8 +2260,8 @@ LayerEncoder::xSetSliceTypeAndRefLists( SliceHeader& rcSliceHeader, UInt uiFrame
 
   //===== set active entries =====
   Bool  bOverride = false;
-  UInt  uiL0Size  = cPicNumList0.size ();
-  UInt  uiL1Size  = cPicNumList1.size ();
+  UInt  uiL0Size  = (UInt)cPicNumList0.size ();
+  UInt  uiL1Size  = (UInt)cPicNumList1.size ();
   if( uiL0Size )
   {
     bOverride     = ( uiL0Size != rcSliceHeader.getPPS().getNumRefIdxActive( LIST_0 ) );
@@ -2639,7 +2639,7 @@ ErrVal
 LayerEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 {
   //========== INITIALIZE DECOMPOSITION STRUCTURES ==========
-  m_uiGOPSize                         = rcPicBufferInputList.size();
+  m_uiGOPSize                         = (UInt)rcPicBufferInputList.size();
   PicBufferList::iterator cInputIter  = rcPicBufferInputList.begin();
   UInt                    uiFrame     = 0;
 
@@ -5832,7 +5832,7 @@ LayerEncoder::xWriteIntegrityCheckSEI(ExtBinDataAccessorList &rcOutExtBinDataAcc
   UInt uiNewSize = m_cExtBinDataAccessor.size();
   UChar* pucNewBuffer = new UChar[ uiNewSize];
   ROF ( pucNewBuffer);
-  ::memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
+  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor);
@@ -5868,7 +5868,7 @@ LayerEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAcces
   UInt    uiNewSize     = m_cExtBinDataAccessor.size();
   UChar*  pucNewBuffer  = new UChar [ uiNewSize ];
   ROF( pucNewBuffer );
-  ::memcpy( pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof( UChar ) );
+  memcpy( pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof( UChar ) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor );
@@ -5902,7 +5902,7 @@ LayerEncoder::xWriteSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI
   UInt uiNewSize = m_cExtBinDataAccessor.size();
   UChar* pucNewBuffer = new UChar[ uiNewSize];
   ROF ( pucNewBuffer);
-  ::memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
+  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor);
@@ -5948,7 +5948,7 @@ LayerEncoder::xWriteNestingSEIforHrd(ExtBinDataAccessorList &rcOutExtBinDataAcce
   UInt uiNewSize = m_cExtBinDataAccessor.size();
   UChar* pucNewBuffer = new UChar[ uiNewSize];
   ROF ( pucNewBuffer);
-  ::memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
+  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor);
@@ -5982,7 +5982,7 @@ LayerEncoder::xWriteSEIforAVCCompatibleHrd(ExtBinDataAccessorList &rcOutExtBinDa
   UInt uiNewSize = m_cExtBinDataAccessor.size();
   UChar* pucNewBuffer = new UChar[ uiNewSize];
   ROF ( pucNewBuffer);
-  ::memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
+  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor);
@@ -6098,7 +6098,7 @@ LayerEncoder::xWriteRedundantKeyPicSEI ( ExtBinDataAccessorList& rcOutExtBinData
   UInt uiNewSize = m_cExtBinDataAccessor.size();
   UChar* pucNewBuffer = new UChar[ uiNewSize];
   ROF ( pucNewBuffer);
-  ::memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
+  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
 
   ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
   ROF( pcNewExtBinDataAccessor);
@@ -6351,13 +6351,13 @@ LayerEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
       if ( m_bLoadMotionInfo )
       {
         char ch;
-        fread( &ch, sizeof(char), 1, m_pMotionInfoFile );
+        ROF( 1 == fread( &ch, sizeof(char), 1, m_pMotionInfoFile ) );
         bFieldMode = ( ch == 1 );
       }
       if ( m_bSaveMotionInfo )
       {
         char ch = ( bFieldMode == true );
-        fwrite( &ch, sizeof(char), 1, m_pMotionInfoFile );
+        ROF( 1 == fwrite( &ch, sizeof(char), 1, m_pMotionInfoFile ) );
       }
 
   #ifdef RANDOM_MBAFF

@@ -2221,9 +2221,9 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   UInt   uiMaxFGSLayer    = (UInt)ceil( dMaxFGSLayer );
   Double dSNRLayerDiff    = uiMaxFGSLayer - dMaxFGSLayer;
   Double dUpRound         = ceil ( dSNRLayerDiff );
-  Bool   bTruncate        = ( dUpRound > 0.0 ) && ( uiMaxFGSLayer < MAX_QUALITY_LEVELS ) || //-f
-     ( uiWantedScalableLayer != MSYS_UINT_MAX && uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX ) ||//-e
-     ( uiMaxBitrate != MSYS_UINT_MAX && dUpRound > 0.0 ); //-b
+  Bool   bTruncate        = ( ( dUpRound > 0.0 && uiMaxFGSLayer < MAX_QUALITY_LEVELS ) || //-f
+                              ( uiWantedScalableLayer != MSYS_UINT_MAX && uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX ) ||//-e
+                              ( uiMaxBitrate != MSYS_UINT_MAX && dUpRound > 0.0 ) ); //-b
 //JVT-S036 lsj start
   Bool   bExactMatchFlag[MAX_LAYERS];
   for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
@@ -2259,17 +2259,17 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     {
       if( m_pcExtractorParameter->getKeepfExtraction() ) // -keepf is in use
       {
-        if( pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel ||
-            pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer ||
-            pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
-            pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer
+        if( ( pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel ) ||
+            ( pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer ) ||
+            ( ( pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer ) &&
+              ( pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer ) )
           )
           continue;
       }
       else // not -keepf
         if( pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer    ||
-          pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer ||
-          pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel  )
+            pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer ||
+            pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel  )
           continue;
     }
     else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX ) // -e
@@ -2917,7 +2917,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
     }
     else if( m_uiExtractNonRequiredPics != MSYS_UINT_MAX ) // non-required
       uiWantedScalableLayer = m_cScalableStreamDescription.getNumOfScalableLayers() - 1;
-    uiKeepScalableLayer = m_acDepLayerList[uiWantedScalableLayer].size()+1;
+    uiKeepScalableLayer = (UInt)m_acDepLayerList[uiWantedScalableLayer].size()+1;
   }
   if( uiKeepScalableLayer == 0 )
   {
@@ -3067,7 +3067,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
         {
           if( uiTempLevel <= uiMaxTempLevel)
           {
-            if( uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer || uiLayer < uiMaxLayer )
+            if( ( uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer ) || uiLayer < uiMaxLayer )
               bKeep = true;
             else
               bKeep = false;
@@ -3084,7 +3084,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
         {
           if( uiTempLevel <= uiMaxTempLevel)
           {
-            if( uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer || uiLayer < uiMaxLayer )
+            if( ( uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer ) || uiLayer < uiMaxLayer )
               bKeep = true;
             else
               bKeep = false;
@@ -3296,7 +3296,7 @@ Extractor::xReadLineExtractTrace( const Char* pcFormatString,
   if( NULL != puiStart && NULL != puiLength )
   {
     //--- don't ask me why ----
-    ROTR( 0 == fscanf( m_pcExtractionTraceFile, pcFormatString, puiStart, puiLength ), Err::m_nInvalidParameter );
+    ROTR( 0 >= fscanf( m_pcExtractionTraceFile, pcFormatString, puiStart, puiLength ), Err::m_nInvalidParameter );
   }
 
   for( Int n = 0; n < 0x400; n++ )

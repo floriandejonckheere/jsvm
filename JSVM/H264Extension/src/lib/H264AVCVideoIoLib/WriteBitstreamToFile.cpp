@@ -64,7 +64,7 @@ ErrVal WriteBitstreamToFile::writePacket( BinDataAccessor* pcBinDataAccessor, Bo
     }
 
     std::string cFileName = m_cFileName;
-    Int iPos = cFileName.find_last_of(".");
+    Int iPos = (Int)cFileName.find_last_of(".");
 
     Char acBuffer[20];
     itoa( ++m_uiNumber, acBuffer, 10 );

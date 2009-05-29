@@ -134,7 +134,7 @@ TraceFile::startSlice()
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   Char acSliceHead[100];
-  ::snprintf( acSliceHead, 100, "Slice # %d Frame # %d", sm_uiSliceNum[sm_uiLayer], sm_uiFrameNum[sm_uiLayer] );
+  ::snprintf( acSliceHead, 99, "Slice # %d Frame # %d", sm_uiSliceNum[sm_uiLayer], sm_uiFrameNum[sm_uiLayer] );
 
   RNOK( printHeading( acSliceHead ) );
   sm_uiSliceNum[sm_uiLayer]++;
@@ -148,7 +148,7 @@ TraceFile::startMb( Int iMbAddress )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   Char acMbHead[100];
-  ::snprintf( acMbHead, 100, "MB # %d", iMbAddress );
+  ::snprintf( acMbHead, 99, "MB # %d", iMbAddress );
   RNOK( printHeading( acMbHead ) );
 
   return Err::m_nOK;
@@ -166,8 +166,8 @@ TraceFile::printHeading( const Char* pcString )
     return Err::m_nOK;
   }
 
-  ::snprintf( sm_acLine, MAX_LINE_LENGTH, "-------------------- %s --------------------\n", pcString );
-  ::fprintf ( sm_fTrace[sm_uiLayer], sm_acLine );
+  ::snprintf( sm_acLine, MAX_LINE_LENGTH-1, "-------------------- %s --------------------\n", pcString );
+  ::fprintf ( sm_fTrace[sm_uiLayer], "%s", sm_acLine );
   ::fflush  ( sm_fTrace[sm_uiLayer] );
   sm_acLine[0] = '\0';
 
@@ -198,7 +198,7 @@ ErrVal
 TraceFile::printString( const Char* pcString )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
-  ::strncat( sm_acLine, pcString, MAX_LINE_LENGTH );
+  ::strncat( sm_acLine, pcString, MAX_LINE_LENGTH-1 );
   return Err::m_nOK;
 }
 
@@ -217,8 +217,8 @@ TraceFile::printVal( UInt uiVal )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
-  ::snprintf( tmp, 8, "%3u", uiVal);
-  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH);
+  ::snprintf( tmp, 7, "%3u", uiVal);
+  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH-1 );
   return Err::m_nOK;
 }
 
@@ -228,8 +228,8 @@ TraceFile::printVal( Int iVal )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
-  ::snprintf( tmp, 8, "%3i", iVal );
-  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH );
+  ::snprintf( tmp, 7, "%3i", iVal );
+  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH-1 );
   return Err::m_nOK;
 }
 
@@ -239,8 +239,8 @@ TraceFile::printXVal( UInt uiVal )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
-  ::snprintf( tmp, 8, "0x%04x", uiVal );
-  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH);
+  ::snprintf( tmp, 7, "0x%04x", uiVal );
+  ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH-1 );
   return Err::m_nOK;
 }
 
@@ -260,7 +260,7 @@ TraceFile::addBits( UInt uiVal,
   }
   acBuffer[uiLength] = '\0';
 
-  i = strlen( sm_acBits );
+  i = (UInt)strlen( sm_acBits );
   if( i < 2 )
   {
     sm_acBits[0] = '[';
@@ -295,7 +295,7 @@ ErrVal
 TraceFile::printCode( UInt uiVal )
 {
   ROTRS( sm_bDisable, Err::m_nOK );
-  ::snprintf( sm_acCode, MAX_LINE_LENGTH, "%u", uiVal );
+  ::snprintf( sm_acCode, 5, "%u", uiVal );
   return Err::m_nOK;
 }
 
@@ -304,7 +304,7 @@ ErrVal
 TraceFile::printCode(Int iVal)
 {
   ROTRS( sm_bDisable, Err::m_nOK );
-  ::snprintf( sm_acCode, MAX_LINE_LENGTH, "%i", iVal );
+  ::snprintf( sm_acCode, 5, "%i", iVal );
   return Err::m_nOK;
 }
 
@@ -316,10 +316,10 @@ TraceFile::newLine()
   if( ! sm_fTrace[0] )
   {
     sm_acLine[0] = '\0';
-    sm_acType[0] ='\0';
-    sm_acCode[0] ='\0';
-    sm_acBits[0] ='\0';
-    sm_acPos [0] ='\0';
+    sm_acType[0] = '\0';
+    sm_acCode[0] = '\0';
+    sm_acBits[0] = '\0';
+    sm_acPos [0] = '\0';
     return Err::m_nOK;
   }
 

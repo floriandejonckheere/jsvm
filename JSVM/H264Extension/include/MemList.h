@@ -29,7 +29,7 @@ public:
         {
           T* pcT = new T[pcPair->size()];
           AOT( NULL == pcT );
-          ::memcpy( pcT, pcPair->data(), sizeof( T ) * pcPair->size() );
+          memcpy( pcT, pcPair->data(), sizeof( T ) * pcPair->size() );
           m_cMemAccessorList.push_back( MemAccessor< T >( pcT, pcPair->size(), pcT, pcPair->size() ) );
         }
         else
@@ -66,7 +66,7 @@ public:
         {
           T* pcT = new T[pcPair->size()];
           AOT( NULL == pcT );
-          ::memcpy( pcT, pcPair->data(), sizeof( T ) * pcPair->size() );
+          memcpy( pcT, pcPair->data(), sizeof( T ) * pcPair->size() );
           m_cMemAccessorList.push_back( MemAccessor< T >( pcT, pcPair->size(), pcT, pcPair->size() ) );
         }
         else
@@ -127,7 +127,7 @@ public:
       for( pcPair = m_cMemAccessorList.begin(); pcPair != m_cMemAccessorList.end(); pcPair++ )
       {
         ROTV( uiPos + pcPair->size() > ruiSize );
-        ::memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
+        memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
         uiPos += pcPair->size();
       }
       ROTV( uiPos != ruiSize );
@@ -149,7 +149,7 @@ public:
       {
         rpcT = new T[ruiSize];
         ROTV( NULL == rpcT );
-        ::memcpy( rpcT, pcPair->data(), sizeof(T) * pcPair->size() );
+        memcpy( rpcT, pcPair->data(), sizeof(T) * pcPair->size() );
         deleteData();
       }
     }
@@ -179,7 +179,7 @@ public:
       for( pcPair = m_cMemAccessorList.begin(); pcPair != m_cMemAccessorList.end(); pcPair++ )
       {
         ROTV( uiPos + pcPair->size() > ruiSize );
-        ::memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
+        memcpy( &rpcT[uiPos], pcPair->data(), sizeof(T) * pcPair->size() );
         uiPos += pcPair->size();
       }
       ROTV( uiPos != ruiSize );

@@ -1251,10 +1251,10 @@ FormattedStringParser::separatString( const String& rcString,
                                       String&       rcRplrStringL0,
                                       String&       rcRplrStringL1 )
 {
-  UInt uiMPos   = rcString.find_first_of( "M" );
-  UInt uiR1Pos  = rcString.find_first_of( "R" );
-  UInt uiR2Pos  = rcString.find_last_of ( "R" );
-  UInt uiSize   = rcString.size();
+  UInt uiMPos   = (UInt)rcString.find_first_of( "M" );
+  UInt uiR1Pos  = (UInt)rcString.find_first_of( "R" );
+  UInt uiR2Pos  = (UInt)rcString.find_last_of ( "R" );
+  UInt uiSize   = (UInt)rcString.size();
 
   if( String::npos == uiMPos ) // MMCO commands are not present
   {
@@ -1360,8 +1360,8 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
                                                 Bool&          rbUseBaseRep,
                                                 UInt&          ruiLayer)
 {
-  UInt    uiKeyPos   = rcString.find_first_of( "K" );
-  UInt    uiLayerPos = rcString.find_first_of( "L" );
+  UInt    uiKeyPos   = (UInt)rcString.find_first_of( "K" );
+  UInt    uiLayerPos = (UInt)rcString.find_first_of( "L" );
   String  cKeyString;
   String  cLayerString;
   String  cFrameString;
@@ -1436,7 +1436,7 @@ FormattedStringParser::extractRplr( const String& rcString,
   //--- check if string is correct ---
   ROFS( rcString.find_first_of( "R" ) == 0 );
 
-  UInt uiSize = rcString.size();
+  UInt uiSize = (UInt)rcString.size();
   UInt uiNext = 0;
 
   for( UInt nBuf = 0, nPos = 1; nPos < uiSize; nPos = uiNext, nBuf++ )
@@ -1458,7 +1458,7 @@ FormattedStringParser::extractMmco( const String& rcString,
   //--- check if string is correct ---
   ROFS( rcString.find_first_of   ( "M" ) == 0 );
 
-  UInt uiSize = rcString.size();
+  UInt uiSize = (UInt)rcString.size();
   UInt uiNext = 0;
 
   for( UInt nBuf = 0, nPos = 1; nPos < uiSize; nPos = uiNext, nBuf++ )
@@ -1513,12 +1513,12 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
   //--- check if string is correct ---
   ROFS( rcString.find_first_of( "LNE" ) == 0 );
 
-  UInt uiSize     = rcString.size();
+  UInt uiSize     = (UInt)rcString.size();
   Char cCommand1  = rcString[0];
 
   if( cCommand1 == 'L' )
   {
-    UInt  uiEnd = rcString.find_first_of( "+-$:" );
+    UInt  uiEnd = (UInt)rcString.find_first_of( "+-$:" );
     ROTS( uiEnd == String::npos );
     String cString = rcString.substr( 1, uiEnd-1 );
 
@@ -1596,9 +1596,9 @@ FormattedStringParser::extractRepetitions( const String&  rcString,
   }
   else
   {
-    UInt  uiLastPos   = rcString.length () - 1;
-    UInt  uiOpenPos   = rcString.find   ( '{' );
-    UInt  uiClosePos  = rcString.rfind  ( '}' );
+    UInt  uiLastPos   = (UInt)rcString.length () - 1;
+    UInt  uiOpenPos   = (UInt)rcString.find   ( '{' );
+    UInt  uiClosePos  = (UInt)rcString.rfind  ( '}' );
 
     ROTS(  uiOpenPos   == String::npos  );
     ROFS(  uiClosePos  == uiLastPos          );
@@ -1626,13 +1626,13 @@ ErrVal
 FormattedStringParser::getNumberOfFrames( const String&  rcString,
                                           UInt&          ruiNumberOfFrames )
 {
-  UInt  uiPos       = rcString.find_first_of( sm_cSetOfTypes );
+  UInt  uiPos       = (UInt)rcString.find_first_of( sm_cSetOfTypes );
   ruiNumberOfFrames = 0;
 
   while( uiPos != String::npos )
   {
     ruiNumberOfFrames++;
-    uiPos = rcString.find_first_of( sm_cSetOfTypes, uiPos+1 );
+    uiPos = (UInt)rcString.find_first_of( sm_cSetOfTypes, uiPos+1 );
   }
 
   return Err::m_nOK;
@@ -1647,7 +1647,7 @@ FormattedStringParser::extractNextFrameDescription( const String&  rcString,
 {
   ROTS( ruiStartPos >= rcString.length() - 1 );
 
-  UInt uiEndPos = rcString.find_first_of( sm_cSetOfTypes, ruiStartPos + 1 );
+  UInt uiEndPos = (UInt)rcString.find_first_of( sm_cSetOfTypes, ruiStartPos + 1 );
   rcFDString    = rcString.substr       ( ruiStartPos, uiEndPos - ruiStartPos );
   ruiStartPos   = uiEndPos;
 
@@ -1660,7 +1660,7 @@ ErrVal
 FormattedStringParser::getNumberOfParts( const String& rcString,
                                          UInt&         ruiNumberOfParts )
 {
-  UInt  uiPos       = rcString.find_first_of( sm_cSetOfPartStart );
+  UInt  uiPos       = (UInt)rcString.find_first_of( sm_cSetOfPartStart );
   ruiNumberOfParts  = 0;
 
   while( uiPos != String::npos )
@@ -1669,24 +1669,24 @@ FormattedStringParser::getNumberOfParts( const String& rcString,
 
     if( rcString[uiPos] == '*' )
     {
-      UInt  uiEndPos        = rcString.find( '{', uiPos+1 );
+      UInt  uiEndPos        = (UInt)rcString.find( '{', uiPos+1 );
       UInt  uiOpenBrackets  = 1;
       ROTS( uiEndPos == String::npos );
 
       while( uiOpenBrackets )
       {
-        uiEndPos  = rcString.find_first_of( "{}", uiEndPos+1 );
+        uiEndPos  = (UInt)rcString.find_first_of( "{}", uiEndPos+1 );
         ROTS( uiEndPos == String::npos );
 
         if( rcString[uiEndPos] == '{' )   uiOpenBrackets++;
         else                              uiOpenBrackets--;
       }
 
-      uiPos = rcString.find_first_of( sm_cSetOfPartStart, uiEndPos + 1 );
+      uiPos = (UInt)rcString.find_first_of( sm_cSetOfPartStart, uiEndPos + 1 );
     }
     else
     {
-      uiPos = rcString.find( '*', uiPos+1 );
+      uiPos = (UInt)rcString.find( '*', uiPos+1 );
     }
   }
 
@@ -1706,24 +1706,24 @@ FormattedStringParser::extractPart( const String&  rcString,
 
   if( rcString[ruiStartPos] == '*' )
   {
-    UInt  uiEndPos        = rcString.find( '{', ruiStartPos+1 );
+    UInt  uiEndPos        = (UInt)rcString.find( '{', ruiStartPos+1 );
     UInt  uiOpenBrackets  = 1;
     ROTS( uiEndPos == String::npos );
 
     while( uiOpenBrackets )
     {
-      uiEndPos  = rcString.find_first_of( "{}", uiEndPos+1 );
+      uiEndPos  = (UInt)rcString.find_first_of( "{}", uiEndPos+1 );
       ROTS( uiEndPos == String::npos );
 
       if( rcString[uiEndPos] == '{' )   uiOpenBrackets++;
       else                              uiOpenBrackets--;
     }
 
-    uiNextStartPos = rcString.find_first_of( sm_cSetOfPartStart, uiEndPos + 1 );
+    uiNextStartPos = (UInt)rcString.find_first_of( sm_cSetOfPartStart, uiEndPos + 1 );
   }
   else
   {
-    uiNextStartPos = rcString.find( '*', ruiStartPos+1 );
+    uiNextStartPos = (UInt)rcString.find( '*', ruiStartPos+1 );
   }
 
   rcPartString  = rcString.substr( ruiStartPos, uiNextStartPos - ruiStartPos );

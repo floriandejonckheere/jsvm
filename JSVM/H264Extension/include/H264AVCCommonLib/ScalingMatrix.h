@@ -88,7 +88,7 @@ ScalingMatrix::ScalingList<uiBufSize>::init( const UChar* pucBuffer )
 {
   ROF( pucBuffer );
   UChar* pDestBuffer = &(this->get(0));
-  ::memcpy( pDestBuffer, pucBuffer, uiBufSize*sizeof(UChar) );
+  memcpy( pDestBuffer, pucBuffer, uiBufSize*sizeof(UChar) );
   return Err::m_nOK;
 }
 

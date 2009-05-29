@@ -361,7 +361,7 @@ MCTF::xInitGOP( PicBufferList&  rcPicBufferInputList )
   PicBufferList::iterator cInputIter    = rcPicBufferInputList.begin();
   UInt                    uiFrame       = 0;
   UInt                    uiOldGOPSize  = m_uiGOPSize;
-  m_uiGOPSize                           = rcPicBufferInputList.size () - ( m_bFirstGOPCoded ? 0 : 1 );
+  m_uiGOPSize                           = (UInt)rcPicBufferInputList.size () - ( m_bFirstGOPCoded ? 0 : 1 );
   if( m_bFirstGOPCoded )
   {
     m_papcFrame[ uiFrame++ ]->copyAll( m_papcFrame[ uiOldGOPSize ] );

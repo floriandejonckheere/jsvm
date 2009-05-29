@@ -13,7 +13,6 @@
 #include "LargeFile.h"
 #include "ReadBitstreamIf.h"
 
-
 #if defined( WIN32 )
 # pragma warning( disable: 4251 )
 #endif

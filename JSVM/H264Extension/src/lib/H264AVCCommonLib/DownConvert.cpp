@@ -9,6 +9,7 @@
 #endif
 #include "DownConvert.h"
 #include <math.h>
+#include <string.h>
 
 
 #ifdef DOWN_CONVERT_STATIC
@@ -900,7 +901,7 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
         }
       }
       //----- copy row back to image buffer -----
-      ::memcpy( piSrc, m_paiTmp1dBuffer, iCurrW*sizeof(int) );
+      memcpy( piSrc, m_paiTmp1dBuffer, iCurrW*sizeof(int) );
     }
   }
 
@@ -1134,7 +1135,7 @@ DownConvert::xCompUpsamplingLanczos( ResizeParameters* pcParameters, bool bChrom
       m_paiTmp1dBuffer[xin] = piSrc[xin];
     }
     xUpsamplingDataLanczos( iInWidth, iOutWidth, spos );
-    ::memcpy( piSrc, m_paiTmp1dBufferOut, iOutWidth*sizeof(int) );
+    memcpy( piSrc, m_paiTmp1dBufferOut, iOutWidth*sizeof(int) );
   }
 }
 
@@ -1186,7 +1187,7 @@ DownConvert::xGetNumDenomLanczos( int iInWidth, int iOutWidth, int& riNumerator,
 long
 DownConvert::xGetFilterLanczos( long x )
 {
-  x      = abs( x );
+  x      = ( x < 0 ? -x : x );
   int i  = (int)( ( x / TMM_FILTER_WINDOW_SIZE ) * TMM_TABLE_SIZE ) >> NFACT;
   if( i >= TMM_TABLE_SIZE )
   {
@@ -1327,7 +1328,7 @@ DownConvert::xCompDownsamplingDyadic( int iCurrW, int iCurrH )
         }
       }
       //----- copy row back to image buffer -----
-      ::memcpy( piSrc, m_paiTmp1dBuffer, iBaseW*sizeof(int) );
+      memcpy( piSrc, m_paiTmp1dBuffer, iBaseW*sizeof(int) );
     }
   }
 
@@ -1655,7 +1656,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
         }
       }
       //--- copy row back to image buffer ---
-      ::memcpy( piSrc, m_paiTmp1dBuffer, iBaseW*sizeof(int) );
+      memcpy( piSrc, m_paiTmp1dBuffer, iBaseW*sizeof(int) );
     }
   }
 
@@ -2744,7 +2745,7 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
         }
       }
       //----- copy row back to image buffer -----
-      ::memcpy( piSrc, m_paiTmp1dBuffer, iCurrW*sizeof(int) );
+      memcpy( piSrc, m_paiTmp1dBuffer, iCurrW*sizeof(int) );
     }
   }
 

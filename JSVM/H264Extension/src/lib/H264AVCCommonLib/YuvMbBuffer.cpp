@@ -39,8 +39,8 @@ Void YuvMbBuffer::loadIntraPredictors( YuvPicBuffer* pcSrcBuffer )
   pSrc -= iSrcStride+1;
   pDes -= iDesStride+1;
 
-  ::memcpy( pDes, pSrc, sizeof(XPel)*21 );
-  ::memcpy( pDes+iDesStride+17, pSrc+21, sizeof(XPel)*4 );
+  memcpy( pDes, pSrc, sizeof(XPel)*21 );
+  memcpy( pDes+iDesStride+17, pSrc+21, sizeof(XPel)*4 );
 
   for( y = 0; y < 16; y++)
   {
@@ -58,7 +58,7 @@ Void YuvMbBuffer::loadIntraPredictors( YuvPicBuffer* pcSrcBuffer )
   pSrc -= iSrcStride+1;
   pDes -= iDesStride+1;
 
-  ::memcpy( pDes, pSrc, sizeof(XPel)*9 );
+  memcpy( pDes, pSrc, sizeof(XPel)*9 );
 
   for( y = 0; y < 8; y++)
   {
@@ -73,7 +73,7 @@ Void YuvMbBuffer::loadIntraPredictors( YuvPicBuffer* pcSrcBuffer )
   pSrc -= iSrcStride+1;
   pDes -= iDesStride+1;
 
-  ::memcpy( pDes, pSrc, sizeof(XPel)*9 );
+  memcpy( pDes, pSrc, sizeof(XPel)*9 );
 
   for( y = 0; y < 8; y++)
   {
@@ -99,7 +99,7 @@ Void YuvMbBuffer::loadBuffer( YuvPicBuffer* pcSrcBuffer )
 
   for( y = 0; y < 16; y++ )
   {
-    ::memcpy( pDes, pSrc, 16 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 16 * sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -111,7 +111,7 @@ Void YuvMbBuffer::loadBuffer( YuvPicBuffer* pcSrcBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pSrc, 8 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 8 * sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -121,7 +121,7 @@ Void YuvMbBuffer::loadBuffer( YuvPicBuffer* pcSrcBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pSrc, 8 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 8 * sizeof(XPel) );
     pDes += iDesStride;
     pSrc += iSrcStride;
   }
@@ -302,7 +302,7 @@ Void YuvMbBuffer::loadChroma( YuvMbBuffer& rcSrcBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pSrc, 8 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 8 * sizeof(XPel) );
     pDes += iStride;
     pSrc += iStride;
   }
@@ -312,7 +312,7 @@ Void YuvMbBuffer::loadChroma( YuvMbBuffer& rcSrcBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pSrc, 8 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 8 * sizeof(XPel) );
     pDes += iStride;
     pSrc += iStride;
   }
@@ -327,7 +327,7 @@ Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, LumaIdx c4x4Idx )
 
   for( Int y = 0; y < 4; y++ )
   {
-    ::memcpy( pDes, pSrc, 4 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 4 * sizeof(XPel) );
     pDes += iStride;
     pSrc += iStride;
   }
@@ -342,7 +342,7 @@ Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, B8x8Idx c8x8Idx )
 
   for( Int y = 0; y < 8; y++ )
   {
-    ::memcpy( pDes, pSrc, 8 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 8 * sizeof(XPel) );
     pDes += iStride;
     pSrc += iStride;
   }
@@ -357,7 +357,7 @@ Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer )
 
   for( Int y = 0; y < 16; y++ )
   {
-    ::memcpy( pDes, pSrc, 16 * sizeof(XPel) );
+    memcpy( pDes, pSrc, 16 * sizeof(XPel) );
     pDes += iStride;
     pSrc += iStride;
   }
@@ -629,7 +629,7 @@ Void YuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx, Bool bHalfYSize )
   pPel += 8*iStride;
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel-iStride, pPel, 8 * sizeof(XPel) );
+    memcpy( pPel-iStride, pPel, 8 * sizeof(XPel) );
     pPel -= iStride;
   }
 
@@ -640,7 +640,7 @@ Void YuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx, Bool bHalfYSize )
   pPel += 4*iStride;
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
+    memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
     pPel -= iStride;
   }
 
@@ -649,7 +649,7 @@ Void YuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx, Bool bHalfYSize )
   pPel += 4*iStride;
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
+    memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
     pPel -= iStride;
   }
 }
@@ -702,7 +702,7 @@ Void YuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx, Bool bHalfYSize )
 
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel, pPel-iStride, 8 * sizeof(XPel) );
+    memcpy( pPel, pPel-iStride, 8 * sizeof(XPel) );
     pPel += iStride;
   }
 
@@ -712,7 +712,7 @@ Void YuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx, Bool bHalfYSize )
 
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
+    memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
     pPel += iStride;
   }
 
@@ -720,7 +720,7 @@ Void YuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx, Bool bHalfYSize )
 
   for( y = 0; y < iYSize; y++ )
   {
-    ::memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
+    memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
     pPel += iStride;
   }
 }

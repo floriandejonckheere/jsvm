@@ -111,12 +111,12 @@ ErrVal SIPAnalyser::xReadData()
 
     for(UInt j=0;j<m_pcSIPParameters->getFrameNum();j+=iStep)
     {
-      if(fscanf(pFileWith,"%d",&m_aaaiFrameBits[i][j][0])==0)
+      if(fscanf(pFileWith,"%d",&m_aaaiFrameBits[i][j][0])!=1)
       {
         printf("\nError when reading input files\n");
         return Err::m_nERR;
       }
-      if(fscanf(pFileWithout,"%d",&m_aaaiFrameBits[i][j][1])==0)
+      if(fscanf(pFileWithout,"%d",&m_aaaiFrameBits[i][j][1])!=1)
       {
         printf("\nError when reading input files\n");
         return Err::m_nERR;

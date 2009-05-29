@@ -1801,7 +1801,7 @@ DecodedPicBuffer::xGetRefPicEntryList( RefPicEntryList& rcRefPicEntryList, DPBUn
   PicType eOppositeParity     = PicType( FRAME - eCurrentParity );
   UInt    uiCurrentParityIdx  = 0;
   UInt    uiOppositeParityIdx = 0;
-  UInt    uiFrameListSize     = rcDPBUnitList.size();
+  UInt    uiFrameListSize     = (UInt)rcDPBUnitList.size();
   while( uiCurrentParityIdx < uiFrameListSize || uiOppositeParityIdx < uiFrameListSize )
   {
     // current parity
