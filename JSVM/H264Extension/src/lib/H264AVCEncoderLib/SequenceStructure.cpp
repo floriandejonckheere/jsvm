@@ -1256,11 +1256,11 @@ FormattedStringParser::separatString( const String& rcString,
   UInt uiR2Pos  = (UInt)rcString.find_last_of ( "R" );
   UInt uiSize   = (UInt)rcString.size();
 
-  if( String::npos == uiMPos ) // MMCO commands are not present
+  if( UInt(String::npos) == uiMPos ) // MMCO commands are not present
   {
     rcMmcoString           = "";
 
-    if( String::npos == uiR1Pos )
+    if( UInt(String::npos) == uiR1Pos )
     {
       rcFDString           = rcString;
       rcRplrStringL0       = "";
@@ -1284,7 +1284,7 @@ FormattedStringParser::separatString( const String& rcString,
   }
   else
   {
-    if( String::npos == uiR1Pos )
+    if( UInt(String::npos) == uiR1Pos )
     {
       rcFDString           = rcString.substr( 0,       uiMPos );
       rcMmcoString         = rcString.substr( uiMPos,  uiSize - uiMPos );
@@ -1367,9 +1367,9 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
   String  cFrameString;
 
   //===== separate strings =====
-  if( uiLayerPos == String::npos )
+  if( uiLayerPos == UInt(String::npos) )
   {
-    if( uiKeyPos == String::npos )
+    if( uiKeyPos == UInt(String::npos) )
     {
       cFrameString  = rcString;
       cKeyString    = "";
@@ -1382,7 +1382,7 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
       cLayerString  = "";
     }
   }
-  else if( uiKeyPos == String::npos )
+  else if( uiKeyPos == UInt(String::npos) )
   {
     cFrameString    = rcString.substr( 0,           uiLayerPos );
     cLayerString    = rcString.substr( uiLayerPos,  rcString.size() - uiLayerPos );
@@ -1519,11 +1519,11 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
   if( cCommand1 == 'L' )
   {
     UInt  uiEnd = (UInt)rcString.find_first_of( "+-$:" );
-    ROTS( uiEnd == String::npos );
+    ROTS( uiEnd == UInt(String::npos) );
     String cString = rcString.substr( 1, uiEnd-1 );
 
     ROTS( 0            != cString.find_first_of   ( sm_cSetOfDigits  ) );
-    ROTS( String::npos != cString.find_last_not_of( sm_cSetOfDigits  ) );
+    ROTS( UInt(String::npos) != cString.find_last_not_of( sm_cSetOfDigits  ) );
     UInt uiLtId  = atoi( cString.c_str() );
 
     Char cCommand2 = rcString[uiEnd];
@@ -1546,7 +1546,7 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
     {
       String cString2 = rcString.substr( uiEnd+1, uiSize );
       ROTS( 0            != cString2.find_first_of   ( sm_cSetOfDigits  ) );
-      ROTS( String::npos != cString2.find_last_not_of( sm_cSetOfDigits  ) );
+      ROTS( UInt(String::npos) != cString2.find_last_not_of( sm_cSetOfDigits  ) );
 
       UInt uiStId  = atoi( cString2.c_str() );
       rcMmco = MmcoCommand( MMCO_ASSIGN_LONG_TERM, uiLtId, uiStId );
@@ -1600,7 +1600,7 @@ FormattedStringParser::extractRepetitions( const String&  rcString,
     UInt  uiOpenPos   = (UInt)rcString.find   ( '{' );
     UInt  uiClosePos  = (UInt)rcString.rfind  ( '}' );
 
-    ROTS(  uiOpenPos   == String::npos  );
+    ROTS(  uiOpenPos   == UInt(String::npos)  );
     ROFS(  uiClosePos  == uiLastPos          );
 
     rcNoRepString     = rcString.substr( uiOpenPos+1, uiClosePos-uiOpenPos-1 );
@@ -1629,7 +1629,7 @@ FormattedStringParser::getNumberOfFrames( const String&  rcString,
   UInt  uiPos       = (UInt)rcString.find_first_of( sm_cSetOfTypes );
   ruiNumberOfFrames = 0;
 
-  while( uiPos != String::npos )
+  while( uiPos != UInt(String::npos) )
   {
     ruiNumberOfFrames++;
     uiPos = (UInt)rcString.find_first_of( sm_cSetOfTypes, uiPos+1 );
@@ -1663,7 +1663,7 @@ FormattedStringParser::getNumberOfParts( const String& rcString,
   UInt  uiPos       = (UInt)rcString.find_first_of( sm_cSetOfPartStart );
   ruiNumberOfParts  = 0;
 
-  while( uiPos != String::npos )
+  while( uiPos != UInt(String::npos) )
   {
     ruiNumberOfParts++;
 
@@ -1671,12 +1671,12 @@ FormattedStringParser::getNumberOfParts( const String& rcString,
     {
       UInt  uiEndPos        = (UInt)rcString.find( '{', uiPos+1 );
       UInt  uiOpenBrackets  = 1;
-      ROTS( uiEndPos == String::npos );
+      ROTS( uiEndPos == UInt(String::npos) );
 
       while( uiOpenBrackets )
       {
         uiEndPos  = (UInt)rcString.find_first_of( "{}", uiEndPos+1 );
-        ROTS( uiEndPos == String::npos );
+        ROTS( uiEndPos == UInt(String::npos) );
 
         if( rcString[uiEndPos] == '{' )   uiOpenBrackets++;
         else                              uiOpenBrackets--;
@@ -1708,12 +1708,12 @@ FormattedStringParser::extractPart( const String&  rcString,
   {
     UInt  uiEndPos        = (UInt)rcString.find( '{', ruiStartPos+1 );
     UInt  uiOpenBrackets  = 1;
-    ROTS( uiEndPos == String::npos );
+    ROTS( uiEndPos == UInt(String::npos) );
 
     while( uiOpenBrackets )
     {
       uiEndPos  = (UInt)rcString.find_first_of( "{}", uiEndPos+1 );
-      ROTS( uiEndPos == String::npos );
+      ROTS( uiEndPos == UInt(String::npos) );
 
       if( rcString[uiEndPos] == '{' )   uiOpenBrackets++;
       else                              uiOpenBrackets--;

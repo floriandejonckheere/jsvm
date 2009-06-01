@@ -322,7 +322,11 @@ protected:
   UInt                          m_uiMaxSize;
 
   Void    xOutput          ( );
-  UInt    getScalableLayer ( UInt uiLayer, UInt uiTL, UInt uiQL ) const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
+  UInt    getScalableLayer ( UInt uiLayer, UInt uiTL, UInt uiQL ) const 
+  {
+    return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; 
+  }
+  
   Bool                          m_bAVCCompatible;
   UInt                          m_uiScalableNumLayersMinus1;
   UInt                          m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];

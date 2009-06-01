@@ -4358,6 +4358,11 @@ Extractor::xSetParameters_SIP()
           //====== set fractional FGS layer and exit =====
           Double  dFGSLayer = dRemainingBytes / (Double)i64NALUBytes;
           m_aadTargetSNRLayerNoUse[uiLayer][uiLevel] += dFGSLayer;
+          // >>>>> fix >>>>>
+          m_uiTruncateLayer = uiExtLayer;
+          m_uiTruncateLevel = uiLevel;
+          m_uiTruncateFGSLayer = uiFGSLayer;
+          // <<<<< fix <<<<<
           return Err::m_nOK;
         }
       }
