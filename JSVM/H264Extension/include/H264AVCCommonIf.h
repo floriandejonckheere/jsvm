@@ -44,14 +44,14 @@ public:
 #include "MemList.h"
 
 
-#define min(x,y) ((x)<(y)?(x):(y))
-#define max(x,y) ((x)>(y)?(x):(y))
-
 typedef MemCont< UChar > BinData;
 typedef MemAccessor< UChar > BinDataAccessor;
 
 #include <list>
 #include <algorithm>
+
+#define min(x,y) ((x)<(y)?(x):(y))
+#define max(x,y) ((x)>(y)?(x):(y))
 
 typedef UChar   Pel;
 typedef Short   XPel;

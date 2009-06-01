@@ -4086,19 +4086,8 @@ MbEncoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess, MbTransformCoeffs& rcTCo
   for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
   {
     RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), ( cIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
+    rcTCoeffs.get( cIdx )[0] *= ( cIdx.plane() ? iScaleV : iScaleU );
   }
-  UInt    uiDCIdx;
-  TCoeff* piCoeff = rcTCoeffs.get( CIdx(0) );
-  for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
-  {
-    piCoeff[16*uiDCIdx] *= iScaleU;
-  }
-  piCoeff = rcTCoeffs.get( CIdx(4) );
-  for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
-  {
-    piCoeff[16*uiDCIdx] *= iScaleV;
-  }
-
 
   return Err::m_nOK;
 }

@@ -892,17 +892,7 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
   for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
   {
     RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), ( cIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
-  }
-  UInt    uiDCIdx;
-  TCoeff* piCoeff = rcTCoeffs.get( CIdx(0) );
-  for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
-  {
-    piCoeff[16*uiDCIdx] *= iScaleU;
-  }
-  piCoeff = rcTCoeffs.get( CIdx(4) );
-  for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
-  {
-    piCoeff[16*uiDCIdx] *= iScaleV;
+    rcTCoeffs.get( cIdx )[0] *= ( cIdx.plane() ? iScaleV : iScaleU );
   }
 
   // store the coefficient for non intra 16x16 block
