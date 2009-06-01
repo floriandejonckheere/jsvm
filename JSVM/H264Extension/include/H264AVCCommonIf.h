@@ -55,7 +55,7 @@ typedef MemAccessor< UChar > BinDataAccessor;
 
 typedef UChar   Pel;
 typedef Short   XPel;
-typedef Long    XXPel;
+typedef Int     XXPel;
 
 class TCoeff
 {

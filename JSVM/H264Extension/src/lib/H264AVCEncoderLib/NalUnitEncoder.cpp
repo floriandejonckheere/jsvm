@@ -112,7 +112,7 @@ NalUnitEncoder::initNalUnit( BinDataAccessor* pcBinDataAccessor )
     ROF( m_pucTempBuffer );
   }
 
-  RNOK( m_pcBitWriteBuffer->initPacket( (ULong*)(m_pucTempBuffer), m_uiPacketLength-1 ) );
+  RNOK( m_pcBitWriteBuffer->initPacket( (UInt*)(m_pucTempBuffer), m_uiPacketLength-1 ) );
 
   return Err::m_nOK;
 }
@@ -181,7 +181,7 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
           uicrcVal = pcH264AVCEncoder->m_uicrcVal[uiLayerCGSSNR];
           uicrcMsb = 0;
           Bool BitVal = false;
-          for ( ULong uiBitIdx = 0; uiBitIdx< uiBytes*8; uiBitIdx++ )
+          for ( UInt uiBitIdx = 0; uiBitIdx< uiBytes*8; uiBitIdx++ )
           {
             uicrcMsb = ( uicrcVal >> 15 ) & 1;
             BitVal = ( pucNewBuffer[uiBitIdx>>3] >> (7-(uiBitIdx&7)) )&1;
@@ -191,7 +191,7 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
           if( pcH264AVCEncoder->m_uiNumofCGS[uiLayerCGSSNR] == uiQualityLevelCGSSNR + uiFragment )
           {
             ROT( pcCurrentWriteBuffer->nextBitWriteBufferActive() );
-            for(ULong uiBitIdx = 0; uiBitIdx< 16; uiBitIdx++)
+            for(UInt uiBitIdx = 0; uiBitIdx< 16; uiBitIdx++)
             {
               uicrcMsb = ( uicrcVal >> 15 ) & 1;
               BitVal = 0;

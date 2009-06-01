@@ -14,7 +14,7 @@ protected:
 public:
   static ErrVal Create         ( ScalableSEIModifyCode*& rpcScalableSEIModifyCode );
 	ErrVal Destroy               ();
-	ErrVal init                  ( ULong* pulStream, UInt uiBytes );
+	ErrVal init                  ( UInt* pulStream, UInt uiBytes );
 	ErrVal Uninit                ();
   ErrVal Write                 ( UInt uiBits, UInt uiNumberOfBits );
 	ErrVal WriteUVLC             ( UInt uiValue );
@@ -32,7 +32,7 @@ public:
 	ErrVal SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableSEIModifyCode *pcScalableCodeIf );
 
 protected:
-	ULong  xSwap( ULong ul )
+	UInt  xSwap( UInt ul )
 	{
 		// heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
 #ifdef MSYS_BIG_ENDIAN
@@ -51,13 +51,13 @@ protected:
 
 private:
 	BinData *m_pcBinData;
-	ULong *m_pulStreamPacket;
+	UInt *m_pulStreamPacket;
 	UInt m_uiBitCounter;
 	UInt m_uiPosCounter;
 	UInt m_uiDWordsLeft;
 	UInt m_uiBitsWritten;
 	UInt m_iValidBits;
-	ULong m_ulCurrentBits;
+	UInt m_ulCurrentBits;
 	UInt m_uiCoeffCost;
 };
 

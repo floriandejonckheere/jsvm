@@ -2118,7 +2118,7 @@ Extractor::xWriteScalableSEIToBuffer(h264::SEI::SEIMessage* pcScalableSei, BinDa
 
   ScalableSEIModifyCode *pcScalableTestCode;
   RNOK( ScalableSEIModifyCode::Create(pcScalableTestCode) );
-  RNOK( pcScalableTestCode->init( (ULong*) pulStreamPacket, uiSEILength ) );
+  RNOK( pcScalableTestCode->init( (UInt*) pulStreamPacket, uiSEILength ) );
   switch( pcScalableSei->getMessageType() )
   {
   case h264::SEI::SCALABLE_SEI:
@@ -2147,7 +2147,7 @@ Extractor::xWriteScalableSEIToBuffer(h264::SEI::SEIMessage* pcScalableSei, BinDa
 
   ScalableSEIModifyCode *pcScalableSEIModifyCode;
   RNOK( ScalableSEIModifyCode::Create(pcScalableSEIModifyCode) );
-  RNOK( pcScalableSEIModifyCode->init( (ULong*) pulStreamPacket, uiSEILength ) );
+  RNOK( pcScalableSEIModifyCode->init( (UInt*) pulStreamPacket, uiSEILength ) );
 
   RNOK( pcScalableSEIModifyCode->WriteFlag( 0 ) );
   RNOK( pcScalableSEIModifyCode->WriteCode( 0 ,2 ) );

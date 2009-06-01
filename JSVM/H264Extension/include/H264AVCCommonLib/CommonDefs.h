@@ -284,4 +284,7 @@ typedef	enum
 
 #define MAX_NUM_PD_FRAGMENTS                          12
 
+
+#define HEIKO 1
+
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

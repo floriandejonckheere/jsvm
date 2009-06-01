@@ -55,7 +55,7 @@ BitWriteBufferIf* BitWriteBuffer::getNextBitWriteBuffer( Bool bStartNewBitstream
 
     AOT( m_pucNextStreamPacket );
     m_pucNextStreamPacket = new UChar [m_uiInitPacketLength + 1];
-    m_pcNextBitWriteBuffer->initPacket( (ULong*)m_pucNextStreamPacket, m_uiInitPacketLength );
+    m_pcNextBitWriteBuffer->initPacket( (UInt*)m_pucNextStreamPacket, m_uiInitPacketLength );
   }
   else
   {
@@ -88,7 +88,7 @@ ErrVal BitWriteBuffer::destroy()
 }
 
 
-ErrVal BitWriteBuffer::initPacket( ULong* pulBits, UInt uiPacketLength )
+ErrVal BitWriteBuffer::initPacket( UInt* pulBits, UInt uiPacketLength )
 {
   // invalidate all members if something is wrong
   uninit();

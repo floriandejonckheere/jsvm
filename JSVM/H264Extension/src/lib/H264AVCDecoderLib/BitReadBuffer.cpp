@@ -37,7 +37,7 @@ BitReadBuffer::destroy()
 }
 
 ErrVal
-BitReadBuffer::initPacket( ULong*  puiBits,
+BitReadBuffer::initPacket( UInt*   puiBits,
                            UInt    uiBitsInPacket )
 {
   // invalidate all members if something is wrong

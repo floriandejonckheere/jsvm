@@ -31,7 +31,7 @@ ScalableSEIModifyCode::Destroy()
 }
 
 ErrVal
-ScalableSEIModifyCode::init( ULong* pulStream, UInt uiBytes )
+ScalableSEIModifyCode::init( UInt* pulStream, UInt uiBytes )
 {
   ROT( pulStream == NULL );
   m_pulStreamPacket = pulStream;
@@ -125,6 +125,8 @@ ScalableSEIModifyCode::Write( UInt uiBits, UInt uiNumberOfBits )
 
   return Err::m_nOK;
 }
+
+
 ErrVal
 ScalableSEIModifyCode::WritePayloadHeader( enum h264::SEI::MessageType eType, UInt uiSize )
 {

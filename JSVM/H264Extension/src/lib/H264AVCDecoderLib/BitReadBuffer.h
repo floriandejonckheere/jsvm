@@ -20,7 +20,7 @@ public:
   ErrVal init   () { return Err::m_nOK; }
   ErrVal uninit () { return Err::m_nOK; }
 
-  ErrVal  initPacket  ( ULong*  puiBits,
+  ErrVal  initPacket  ( UInt*  puiBits,
                         UInt    uiBitsInPacket );
   Void    setModeCabac()
   { // problem with cabac, cause cabac decoder uses stop bit + trailing stuffing bits
@@ -40,12 +40,12 @@ public:
 private:
   __inline Void xReadNextWord();
 
-  ULong  xSwap( ULong ul )
+  UInt  xSwap( UInt ul )
   {
 #ifdef MSYS_BIG_ENDIAN
     return ul;
 #else
-    ULong ul2;
+    UInt ul2;
     ul2  = ul>>24;
     ul2 |= (ul>>8) & 0x0000ff00;
     ul2 |= (ul<<8) & 0x00ff0000;
@@ -58,9 +58,9 @@ protected:
   UInt   m_uiDWordsLeft;
   UInt   m_uiBitsLeft;
   Int    m_iValidBits;
-  ULong  m_ulCurrentBits;
+  UInt   m_ulCurrentBits;
   UInt   m_uiNextBits;
-  ULong* m_pulStreamPacket;
+  UInt*  m_pulStreamPacket;
 };
 
 

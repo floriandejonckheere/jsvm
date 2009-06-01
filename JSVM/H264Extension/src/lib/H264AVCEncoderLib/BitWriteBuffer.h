@@ -29,7 +29,7 @@ public:
   ErrVal init();
   ErrVal uninit() { return init(); }
 
-  ErrVal initPacket( ULong* pulBits, UInt uiPacketLength );
+  ErrVal initPacket( UInt* pulBits, UInt uiPacketLength );
 
   ErrVal write( UInt uiBits, UInt uiNumberOfBits = 1);
 
@@ -46,8 +46,8 @@ public:
 	UInt   getDWordsLeft(void)  { return m_uiDWordsLeft;   }
 	UInt   getBitsWritten(void) { return m_uiBitsWritten;  }
 	Int    getValidBits(void)   { return m_iValidBits;     }
-	ULong	 getCurrentBits(void) { return m_ulCurrentBits;  }
-	ULong* getStreamPacket(void){ return m_pulStreamPacket;}
+	UInt	 getCurrentBits(void) { return m_ulCurrentBits;  }
+	UInt*  getStreamPacket(void){ return m_pulStreamPacket;}
 	void loadBitWriteBuffer(BitWriteBufferIf* pcBitWriteBufferIf)
 	{
 		BitWriteBuffer* pcBitWriteBuffer = (BitWriteBuffer*)(pcBitWriteBufferIf);
@@ -61,7 +61,7 @@ public:
 	UInt getBitsWriten() { return m_uiBitsWritten; }
 	//JVT-X046 }
 protected:
-  ULong  xSwap( ULong ul )
+  UInt  xSwap( UInt ul )
   {
     // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
 #ifdef MSYS_BIG_ENDIAN
@@ -82,8 +82,8 @@ protected:
   UInt   m_uiDWordsLeft;
   UInt   m_uiBitsWritten;
   Int    m_iValidBits;
-  ULong  m_ulCurrentBits;
-  ULong* m_pulStreamPacket;
+  UInt   m_ulCurrentBits;
+  UInt*  m_pulStreamPacket;
 
 private:
   UInt   m_uiInitPacketLength;

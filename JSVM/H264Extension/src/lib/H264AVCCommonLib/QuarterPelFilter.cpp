@@ -71,17 +71,17 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
   Int     iWidth      = pcPelBuffer->getLWidth    ();
   Int     iStride     = pcPelBuffer->getLStride   ();
   Int     iMargin     = pcPelBuffer->getLXMargin  ();
-  UInt    uiTmpXSize  = (iMargin + iWidth + iMargin) * 2;
-  UInt    uiTmpYSize  = iMargin + iHeight + iMargin;
+  Int     iTmpXSize  = (iMargin + iWidth + iMargin) * 2;
+  Int     iTmpYSize  = iMargin + iHeight + iMargin;
   Int     iMarginNew  = iMargin-4;
   Int     x, y;
 
-  XXPel*  psTemp      = new XXPel[uiTmpXSize * uiTmpYSize];
-  ::memset( psTemp, 0x00, (uiTmpXSize * uiTmpYSize)*sizeof(XXPel) );
+  XXPel*  psTemp      = new XXPel[iTmpXSize * iTmpYSize];
+  ::memset( psTemp, 0x00, (iTmpXSize * iTmpYSize)*sizeof(XXPel) );
 
   ROT( NULL == psTemp )
 
-  XXPel*  ps          = &psTemp[ iMargin * uiTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
+  XXPel*  ps          = &psTemp[ iMargin * iTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
 
   for( y = 0; y < iHeight; y++ )
   {
@@ -100,7 +100,7 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
       ps[2*x+1]  = iTemp;
     }
 
-    ps     += uiTmpXSize;
+    ps     += iTmpXSize;
     pucSrc += iStride;
   }
 
@@ -108,18 +108,18 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
   ps -= iMargin*2;               // fix provided by Shijun Sun
   for( y = 0; y < iMargin; y++ ) // fix provided by Shijun Sun
   {
-    ::memcpy( &ps[y*uiTmpXSize], &ps[(y-1)*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
+    ::memcpy( &ps[y*iTmpXSize], &ps[(y-1)*iTmpXSize], iTmpXSize*sizeof(XXPel) );
   }
 
   //top
-  ps = &psTemp[ iMargin * uiTmpXSize ]; // fix provided by Shijun Sun
+  ps = &psTemp[ iMargin * iTmpXSize ]; // fix provided by Shijun Sun
   for( y = 0; y < iMargin; y++ )        // fix provided by Shijun Sun
   {
-    ::memcpy( &ps[-(y+1)*uiTmpXSize], &ps[-y*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
+    ::memcpy( &ps[-(y+1)*iTmpXSize], &ps[-y*iTmpXSize], iTmpXSize*sizeof(XXPel) );
   }
 
-  ps = &psTemp[ 4*uiTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
-  iStride = uiTmpXSize;
+  ps = &psTemp[ 4*iTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
+  iStride = iTmpXSize;
 
   Int   iDesStrideHP  = pcHalfPelBuffer->getLStride();
   XPel* pucDesHP      = pcHalfPelBuffer->getMbLumAddr();

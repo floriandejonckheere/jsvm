@@ -215,7 +215,7 @@ NalUnitParser::xInitSODB( BinDataAccessor&  rcBinDataAccessor,
   }
 
   //===== init bit read buffer =====
-  ULong*  pulBuffer = (ULong*)pucBuffer;
+  UInt*  pulBuffer = (UInt*)pucBuffer;
   RNOK( m_pcBitReadBuffer->initPacket( pulBuffer, uiBitsInPacket ) );
   return Err::m_nOK;
 }
