@@ -794,12 +794,16 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
       printf("\nCan't open SIP file %s",m_cInSIPFileName.c_str());
       return Err::m_nOK;
     }
-    while(!feof(file))
-  {
-    UInt tmp;
-    ROF( 1 == fscanf(file,"%d",&tmp) );
-    m_cPocList.push_back(tmp);
-  }
+    while( true )
+    {
+      UInt tmp;
+      Int  iRead = fscanf(file,"%d",&tmp);
+      m_cPocList.push_back(tmp);
+      if( iRead != 1)
+      {
+        break;
+      }
+    }
     fclose(file);
   }
   //S051}
