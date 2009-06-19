@@ -16,7 +16,7 @@ protected:
 	virtual ~MbSymbolReadIf() {}
 
 public:
-  virtual Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
+  virtual Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess, UInt& uiNextSkippedVLC ) = 0;
   virtual Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual Bool    isEndOfSlice()                               = 0;
   virtual ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess ) = 0;

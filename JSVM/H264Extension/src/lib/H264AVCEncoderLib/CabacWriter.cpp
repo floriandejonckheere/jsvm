@@ -255,7 +255,7 @@ ErrVal CabacWriter::xRefFrame( MbDataAccess& rcMbDataAccess, UInt uiRefFrame, Li
     RNOK( CabaEncoder::writeUnarySymbol( uiRefFrame-2, &m_cRefPicCCModel.get( 0, 4 ), 1 ) );
   }
 
-  ETRACE_T( "RefFrame" );
+  ETRACE_TH( "RefFrame" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiRefFrame -1 );
   ETRACE_N;
@@ -270,7 +270,7 @@ ErrVal CabacWriter::xMotionPredFlag( Bool bFlag, ListIdx eLstIdx )
 
   RNOK( CabaEncoder::writeSymbol( uiCode, m_cMotPredFlagCCModel.get( 0, eLstIdx ) ) );
 
-  ETRACE_T( "MotionPredFlag" );
+  ETRACE_TH( "MotionPredFlag" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiCode );
   ETRACE_N;
@@ -349,7 +349,7 @@ ErrVal CabacWriter::xWriteBlockMode( UInt uiBlockMode )
     }
   }
 
-  ETRACE_T( "BlockMode" );
+  ETRACE_TH( "BlockMode" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE(uiBlockMode);
   ETRACE_N;
@@ -365,18 +365,18 @@ ErrVal CabacWriter::fieldFlag( MbDataAccess& rcMbDataAccess )
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cFieldFlagCCModel.get( 0, rcMbDataAccess.getCtxFieldFlag() ) ) );
 
-  ETRACE_T( "FieldFlag:" );
+  ETRACE_TH( "FieldFlag:" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( rcMbDataAccess.getMbData().getFieldFlag() );
   ETRACE_N;
 
   return Err::m_nOK;
 }
-ErrVal CabacWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
+ErrVal CabacWriter::skipFlag( MbDataAccess& rcMbDataAccess )
 {
   ROTRS( m_pcSliceHeader->isIntraSlice(), Err::m_nOK );
 
-  UInt uiSymbol = bNotAllowed ? 0 : rcMbDataAccess.isSkippedMb() ? 1 : 0;
+  UInt uiSymbol = rcMbDataAccess.isSkippedMb() ? 1 : 0;
 
   if( m_pcSliceHeader->isBSlice() )
   {
@@ -390,7 +390,7 @@ ErrVal CabacWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
   ROTRS( 0 == uiSymbol, Err::m_nOK );
 
   m_uiLastDQpNonZero = 0; // no DeltaQP for Skipped Macroblock
-  ETRACE_T( "MbMode" );
+  ETRACE_TH( "MbMode" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( 0 );
   ETRACE_N;
@@ -406,7 +406,7 @@ ErrVal CabacWriter::BLSkipFlag( MbDataAccess& rcMbDataAccess )
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cBLSkipCCModel.get( 0, uiCtx ) ) );
 
-  ETRACE_T( "BLSkipFlag" );
+  ETRACE_TH( "BLSkipFlag" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiSymbol );
   ETRACE_N;
@@ -422,7 +422,7 @@ ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
 
-  ETRACE_T( "ResidualPredFlag " );
+  ETRACE_TH( "ResidualPredFlag " );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiSymbol );
   ETRACE_N;
@@ -606,7 +606,7 @@ ErrVal CabacWriter::mbMode( MbDataAccess& rcMbDataAccess )
     m_uiLastDQpNonZero = 0; // no DQP for IPCM
   }
 
-  ETRACE_T( "MbMode" );
+  ETRACE_TH( "MbMode" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiOrigMbMode );
   ETRACE_N;
@@ -709,23 +709,23 @@ ErrVal CabacWriter::xWriteMvd( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cId
 
   RNOK( xWriteMvdComponent( sHor, cMvA.getAbsHor() + cMvB.getAbsHor(), 0 ) );
 
-  ETRACE_T( "Mvd: x" );
+  ETRACE_TH( "Mvd: x" );
   ETRACE_TY( "ae(v)" );
   ETRACE_V( sHor );
-  ETRACE_T( " above " );
+  ETRACE_TH( " above " );
   ETRACE_V( cMvA.getHor() );
-  ETRACE_T( " left " );
+  ETRACE_TH( " left " );
   ETRACE_V( cMvB.getHor() );
   ETRACE_N;
 
   RNOK( xWriteMvdComponent( sVer, cMvA.getAbsVer() + cMvB.getAbsVer(), 5 ) );
 
-  ETRACE_T( "Mvd: y" );
+  ETRACE_TH( "Mvd: y" );
   ETRACE_TY( "ae(v)" );
   ETRACE_V( sVer );
-  ETRACE_T( " above " );
+  ETRACE_TH( " above " );
   ETRACE_V( cMvA.getVer() );
-  ETRACE_T( " left " );
+  ETRACE_TH( " left " );
   ETRACE_V( cMvB.getVer() );
   ETRACE_N;
 
@@ -754,7 +754,7 @@ ErrVal CabacWriter::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
 
   }
 
-  ETRACE_T( "IntraPredModeChroma" );
+  ETRACE_TH( "IntraPredModeChroma" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiIntraPredModeChroma );
   ETRACE_N;
@@ -774,7 +774,7 @@ ErrVal CabacWriter::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cId
     RNOK( CabaEncoder::writeSymbol( (iIntraPredModeLuma & 0x04) >> 2, m_cIntraPredCCModel.get( 0, 1 ) ) );
   }
 
-  ETRACE_T( "IntraPredModeLuma" );
+  ETRACE_TH( "IntraPredModeLuma" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( iIntraPredModeLuma );
   ETRACE_N;
@@ -838,7 +838,7 @@ ErrVal CabacWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
 
   AOF_DBG( 48 >= uiCbp );
 
-  ETRACE_T( "Cbp" );
+  ETRACE_TH( "Cbp" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiCbp );
   ETRACE_N;
@@ -856,7 +856,7 @@ ErrVal CabacWriter::residualBlock( MbDataAccess&  rcMbDataAccess,
   const Bool bFrame    = ( FRAME == rcMbDataAccess.getMbPicType());
   const UChar* pucScan = ( eResidualMode==LUMA_I16_DC ? ((bFrame) ? g_aucLumaFrameDCScan : g_aucLumaFieldDCScan) : ((bFrame) ? g_aucFrameScan : g_aucFieldScan) );
 
-  ETRACE_T( "LUMA:" );
+  ETRACE_TH( "LUMA:" );
   ETRACE_V( cIdx );
   ETRACE_N;
 
@@ -888,13 +888,13 @@ ErrVal CabacWriter::residualBlock( MbDataAccess&  rcMbDataAccess,
   {
   case CHROMA_DC:
     {
-      ETRACE_T( "CHROMA_DC:" );
+      ETRACE_TH( "CHROMA_DC:" );
       pucScan = g_aucIndexChromaDCScan;
       break;
     }
   case CHROMA_AC:
     {
-      ETRACE_T( "CHROMA_AC:" );
+      ETRACE_TH( "CHROMA_AC:" );
       pucScan = (bFrame ? g_aucFrameScan : g_aucFieldScan);
       break;
     }
@@ -986,7 +986,7 @@ UInt CabacWriter::xGetNumberOfSigCoeff( TCoeff* piCoeff, ResidualMode eResidualM
     if( uiStart == 0 && uiStop > 0 )
     {
       // process all DC coefficients if the range uiStart to uiStop demands the processing of scanpos 0
-      uiStop  = CHROMA_DC == eResidualMode ? 4 : 16;
+      uiStop  = ( CHROMA_DC == eResidualMode ? 4 : 16 );
     }
     else
     {
@@ -997,7 +997,7 @@ UInt CabacWriter::xGetNumberOfSigCoeff( TCoeff* piCoeff, ResidualMode eResidualM
   {
     if( uiStop > 1 )
     {
-      uiStart = max( 1, uiStart );
+      uiStart = gMax( 1, uiStart );
     }
     else
     {
@@ -1033,7 +1033,7 @@ ErrVal CabacWriter::xWriteCoeff( UInt         uiNumSig,
   {
     if( uiStart == 0 && uiStop > 0 )
     {
-      uiStop = CHROMA_DC == eResidualMode ? 3 : 15;
+      uiStop = ( CHROMA_DC == eResidualMode ? 3 : 15 );
     }
     else
     {
@@ -1046,7 +1046,7 @@ ErrVal CabacWriter::xWriteCoeff( UInt         uiNumSig,
     {
       if( uiStop > 1 )
       {
-        uiStart = max( 1, uiStart );
+        uiStart = gMax( 1, uiStart );
       }
       else
       {
@@ -1090,13 +1090,13 @@ ErrVal CabacWriter::xWriteCoeff( UInt         uiNumSig,
       if( iCoeff > 0) { uiAbs = static_cast<UInt>( iCoeff);  uiSign = 0; }
       else            { uiAbs = static_cast<UInt>(-iCoeff);  uiSign = 1; }
 
-      UInt uiCtx    = min (c1, 4);
+      UInt uiCtx    = gMin (c1, 4);
       UInt uiSymbol = uiAbs > 1 ? 1 : 0;
       RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cOneCCModel.get( type2ctx1 [eResidualMode], uiCtx ) ) );
 
       if( uiSymbol )
       {
-        uiCtx  = min (c2,4);
+        uiCtx  = gMin (c2,4);
         uiAbs -= 2;
         c1     = 0;
         c2++;
@@ -1118,7 +1118,7 @@ ErrVal CabacWriter::terminatingBit ( UInt uiIsLast )
 {
   RNOK( CabaEncoder::writeTerminatingBit( uiIsLast ) );
 
-  ETRACE_T( "EOS" );
+  ETRACE_TH( "EOS" );
   ETRACE_CODE( uiIsLast );
   ETRACE_N;
 
@@ -1142,7 +1142,7 @@ ErrVal CabacWriter::deltaQp( MbDataAccess& rcMbDataAccess )
     RNOK( CabaEncoder::writeUnarySymbol( uiDQp, &m_cDeltaQpCCModel.get( 0, 2 ), 1 ) );
   }
 
-  ETRACE_T( "DQp" );
+  ETRACE_TH( "DQp" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE ( iDQp );
   ETRACE_N;
@@ -1153,7 +1153,7 @@ ErrVal CabacWriter::deltaQp( MbDataAccess& rcMbDataAccess )
 ErrVal CabacWriter::samplesPCM( MbDataAccess& rcMbDataAccess )
 {
   ETRACE_POS;
-  ETRACE_T( "  PCM SAMPLES: " );
+  ETRACE_TH( "  PCM SAMPLES: " );
 
   RNOK( CabaEncoder::finish() );
   RNOK( m_pcBitWriteBufferIf->write(1) );
@@ -1188,7 +1188,7 @@ ErrVal CabacWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess, UInt uiS
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cTransSizeCCModel.get( 0, uiCtx ) ) );
 
-  ETRACE_T( "transformSize8x8Flag:" );
+  ETRACE_TH( "transformSize8x8Flag:" );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( rcMbDataAccess.getMbData().isTransformSize8x8() );
   ETRACE_N;
@@ -1218,7 +1218,7 @@ ErrVal CabacWriter::residualBlock8x8( MbDataAccess& rcMbDataAccess,
       return Err::m_nERR;
     }
   }
-  ETRACE_T( "LUMA_8x8:" );
+  ETRACE_TH( "LUMA_8x8:" );
   ETRACE_V( c8x8Idx.b8x8Index() );
   ETRACE_N;
 
@@ -1285,13 +1285,13 @@ ErrVal CabacWriter::residualBlock8x8( MbDataAccess& rcMbDataAccess,
       if( iCoeff > 0) { uiAbs = static_cast<UInt>( iCoeff);  uiSign = 0; }
       else            { uiAbs = static_cast<UInt>(-iCoeff);  uiSign = 1; }
 
-      UInt uiCtx    = min (c1, 4);
+      UInt uiCtx    = gMin (c1, 4);
       UInt uiSymbol = uiAbs > 1 ? 1 : 0;
       RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cOneCCModel.get( uiCtxOffset, uiCtx ) ) );
 
       if( uiSymbol )
       {
-        uiCtx  = min (c2,4);
+        uiCtx  = gMin (c2,4);
         uiAbs -= 2;
         c1     = 0;
         c2++;
@@ -1335,17 +1335,13 @@ CabacWriter::loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
 	m_cIntraPredCCModel.setCabacContextModel(pcCabacWriter->getIntraPredCCModel().getCabacContextModel());
 	m_cCbpCCModel.setCabacContextModel(pcCabacWriter->getCbpCCModel().getCabacContextModel());
 	m_cTransSizeCCModel.setCabacContextModel(pcCabacWriter->getTransSizeCCModel().getCabacContextModel());
-	if ( m_pcBitWriteBufferIf == NULL )
-	{
-		BitWriteBuffer* pcBitWriteBuffer;
-		BitWriteBuffer::create(pcBitWriteBuffer);
-		m_pcBitWriteBufferIf = pcBitWriteBuffer;
-	}
 	m_uiRange        = pcCabacWriter->m_uiRange;
 	m_uiLow          = pcCabacWriter->m_uiLow;
 	m_uiByte         = pcCabacWriter->m_uiByte;
 	m_uiBitsLeft     = pcCabacWriter->m_uiBitsLeft;
 	m_uiBitsToFollow = pcCabacWriter->m_uiBitsToFollow;
+
+  AOF( m_pcBitWriteBufferIf );
 	m_pcBitWriteBufferIf->loadBitWriteBuffer(pcCabacWriter->getBitWriteBufferIf());
 }
 //JVT-X046 }

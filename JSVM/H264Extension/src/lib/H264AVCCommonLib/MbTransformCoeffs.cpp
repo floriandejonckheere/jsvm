@@ -56,6 +56,39 @@ ErrVal MbTransformCoeffs::clearPrediction()
   return Err::m_nOK;
 }
 
+Bool
+MbTransformCoeffs::allCoeffsZero() const
+{
+  const TCoeff* pcDst = get( B4x4Idx(0) );
+  for( UInt ui = 0; ui < 384; ui++ )
+  {
+    ROTRS( pcDst[ui].getCoeff(), false );
+  }
+  return true;  
+}
+
+Bool  
+MbTransformCoeffs::allLevelsZero() const
+{
+  const TCoeff* pcDst = get( B4x4Idx(0) );
+  for( UInt ui = 0; ui < 384; ui++ )
+  {
+    ROTRS( pcDst[ui].getLevel() , false );
+  }
+  return true;  
+}
+
+Bool  
+MbTransformCoeffs::allLevelsAndPredictionsZero() const
+{
+  const TCoeff* pcDst = get( B4x4Idx(0) );
+  for( UInt ui = 0; ui < 384; ui++ )
+  {
+    ROTRS( pcDst[ui].getLevel() || pcDst[ui].getSPred(), false );
+  }
+  return true;  
+}
+
 ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
 {
   TCoeff *pcDst     = get( B4x4Idx(0) );
@@ -203,7 +236,7 @@ UInt MbTransformCoeffs::calcCoeffCount( ChromaIdx cChromaIdx, const UChar *pucSc
 {
   const TCoeff *piCoeff = get( cChromaIdx );
   UInt uiCount = 0;
-  for( UInt ui = max( 1, uiStart ); ui < uiStop; ui++ )
+  for( UInt ui = gMax( 1, uiStart ); ui < uiStop; ui++ )
   {
     if( piCoeff[pucScan[ui]] )
       uiCount++;

@@ -245,10 +245,8 @@ MCTF::xFillAndExtendFrame( Frame* rcFrame )
 
 
 ErrVal
-MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
-                         RefFrameList*    pcRefFrameList1,
-                         const Frame*  pcOrigFrame,
-                         ControlData&     rcControlData )
+MCTF::xMotionEstimation( const Frame*   pcOrigFrame,
+                         ControlData&   rcControlData )
 {
   SliceHeader&  rcSliceHeader = *rcControlData.getSliceHeader();
   MbDataCtrl*   pcMbDataCtrl  =  rcControlData.getMbDataCtrl ();
@@ -270,22 +268,10 @@ MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
     RNOK( m_pcYuvHalfPelBufferCtrl->initMb  ( uiMbY, uiMbX,false ) );
     RNOK( m_pcMotionEstimation    ->initMb  ( uiMbY, uiMbX, *pcMbDataAccess ) );
 
-    RNOK( m_pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
-                                               NULL,
-                                              *pcRefFrameList0,
-                                              *pcRefFrameList1,
-                                              NULL,
-                                              NULL,
-                                              *pcOrigFrame,
-                                              *m_pcFrameTemp,
-                                              32,
-                                              false,
-                                              false,
-                                              4,
-                                              8,
-                                              rcControlData.getLambda(),
-                                              dCost,
-                                              true ) );
+    RNOK( m_pcMbEncoder->estimatePrediction ( *pcMbDataAccess, rcControlData.getRefListStruct(), 
+                                              *pcOrigFrame, *m_pcFrameTemp, 
+                                              32, false, false, 4, 8, rcControlData.getLambda(),
+                                              dCost ) );
   }
 
   return Err::m_nOK;
@@ -293,11 +279,10 @@ MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
 
 
 ErrVal
-MCTF::xMotionCompensation( Frame*        pcMCFrame,
-                           RefFrameList*    pcRefFrameList0,
-                           RefFrameList*    pcRefFrameList1,
-                           MbDataCtrl*      pcMbDataCtrl,
-                           SliceHeader&     rcSH )
+MCTF::xMotionCompensation( Frame*         pcMCFrame,
+                           RefListStruct& rcRefListStruct,
+                           MbDataCtrl*    pcMbDataCtrl,
+                           SliceHeader&   rcSH )
 {
   RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcMotionEstimation->initSlice( rcSH ) );
@@ -313,8 +298,7 @@ MCTF::xMotionCompensation( Frame*        pcMCFrame,
     RNOK( m_pcYuvHalfPelBufferCtrl->initMb    (                 uiMbY, uiMbX,false ) );
     RNOK( m_pcMotionEstimation    ->initMb    (                 uiMbY, uiMbX, *pcMbDataAccess ) );
 
-    RNOK( m_pcMbEncoder->compensatePrediction ( *pcMbDataAccess, pcMCFrame,
-                                                *pcRefFrameList0, *pcRefFrameList1,
+    RNOK( m_pcMbEncoder->compensatePrediction ( *pcMbDataAccess, pcMCFrame, rcRefListStruct,
                                                 false, false ) );
   }
 
@@ -429,10 +413,10 @@ MCTF::xGetListSizes( UInt  uiTemporalLevel,
       {
         auiPredListSize[1]  = ( uiFrameIdWrap + 1 ) >> 1;
       }
-      auiPredListSize[0]    = min( 1, auiPredListSize[0] );
-      auiPredListSize[1]    = min( 1, auiPredListSize[1] );
+      auiPredListSize[0]    = gMin( 1, auiPredListSize[0] );
+      auiPredListSize[1]    = gMin( 1, auiPredListSize[1] );
       UInt  uiMaxL1Size     = ( ( m_uiGOPSize >> uiBaseLevel ) + 1 - uiFrameIdLevel ) >> 1;
-      auiPredListSize[1]    = min( uiMaxL1Size, auiPredListSize[1] );
+      auiPredListSize[1]    = gMin( uiMaxL1Size, auiPredListSize[1] );
     }
     else
     {
@@ -449,10 +433,10 @@ MCTF::xGetListSizes( UInt  uiTemporalLevel,
         pauiUpdListSize[0]  = uiFrameIdWrap >> 1;
         pauiUpdListSize[1]  = ( uiFrameIdLevel == 0 ? 0 : ( 1 - uiFrameIdWrap ) >> 1 );
       }
-      pauiUpdListSize[0]    = min( 1, pauiUpdListSize[0] );
-      pauiUpdListSize[1]    = min( 1, pauiUpdListSize[1] );
+      pauiUpdListSize[0]    = gMin( 1, pauiUpdListSize[0] );
+      pauiUpdListSize[1]    = gMin( 1, pauiUpdListSize[1] );
       UInt  uiMaxL1Size     = ( ( m_uiGOPSize >> uiBaseLevel ) + 1 - uiFrameIdLevel ) >> 1;
-      pauiUpdListSize[1]    = min( uiMaxL1Size, pauiUpdListSize[1] );
+      pauiUpdListSize[1]    = gMin( uiMaxL1Size, pauiUpdListSize[1] );
     }
   }
 
@@ -603,6 +587,29 @@ MCTF::xClearBufferExtensions()
   return Err::m_nOK;
 }
 
+ErrVal
+MCTF::xGetAndSetPredictionLists( UInt uiBaseLevel,
+                                 UInt uiFrame,
+                                 Bool bHalfPel )
+{
+  ControlData&    rcControlData   = m_pacControlData[uiFrame<<uiBaseLevel];
+  RefListStruct&  rcRefListStruct = rcControlData.getRefListStruct();
+  SliceHeader*    pcSliceHeader   = rcControlData.getSliceHeader();
+  RefFrameList&   rcRefList0      = rcRefListStruct.acRefFrameListRC[ 0 ];
+  RefFrameList&   rcRefList1      = rcRefListStruct.acRefFrameListRC[ 1 ];
+
+  RNOK( xGetPredictionLists( rcRefList0, rcRefList1, uiBaseLevel, uiFrame, bHalfPel ) );
+  rcRefListStruct.uiFrameIdCol        = MSYS_UINT_MAX;
+  rcRefListStruct.bMCandRClistsDiffer = false;
+  rcRefListStruct.acRefFrameListME[0].copy( rcRefList0 );
+  rcRefListStruct.acRefFrameListME[1].copy( rcRefList1 );
+  rcRefListStruct.acRefFrameListMC[0].copy( rcRefList0 );
+  rcRefListStruct.acRefFrameListMC[1].copy( rcRefList1 );
+
+  pcSliceHeader->setRefFrameList( &rcRefList0, FRAME, LIST_0 );
+  pcSliceHeader->setRefFrameList( &rcRefList1, FRAME, LIST_1 );
+  return Err::m_nOK;
+}
 
 ErrVal
 MCTF::xGetPredictionLists( RefFrameList& rcRefList0,
@@ -737,8 +744,8 @@ MCTF::xInitControlDataMotion( UInt uiBaseLevel,
   MbDataCtrl*     pcMbDataCtrl      = rcControlData.getMbDataCtrl   ();
   Double          dScalFactor       = rcControlData.getScalingFactor() * FACTOR_53_HP;
   Double          dQpPredData       = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-  Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
-  Int             iQp               = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
+  Double          dLambda           = 0.85 * pow( 2.0, gMin( 52.0, dQpPredData ) / 3.0 - 4.0 );
+  Int             iQp               = gMax( MIN_QP, gMin( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
 
   pcSliceHeader->setSliceHeaderQp( iQp );
   rcControlData. setLambda       ( dLambda );
@@ -763,11 +770,9 @@ MCTF::xMotionEstimationStage( UInt uiBaseLevel )
     Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
 
     //===== get reference frame lists =====
-    RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-    RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-    RNOK( xGetPredictionLists   ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, true ) );
-    RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, true ) );
-    RNOK( xMotionEstimation     ( &rcRefFrameList0, &rcRefFrameList1, pcFrame, rcControlData ) );
+    RNOK( xGetAndSetPredictionLists ( uiBaseLevel, uiFrame, true ) );
+    RNOK( xInitControlDataMotion    ( uiBaseLevel, uiFrame, true ) );
+    RNOK( xMotionEstimation         ( pcFrame, rcControlData ) );
   }
   RNOK( xClearBufferExtensions() );
 
@@ -787,15 +792,13 @@ MCTF::xDecompositionStage( UInt uiBaseLevel )
     Frame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
     Frame*     pcMCFrame       = m_pcFrameTemp;
 
-    RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-    RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-    RNOK( xGetPredictionLists   ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFramePrd, false ) );
-    RNOK( xInitControlDataMotion( uiBaseLevel, uiFramePrd, false ) );
-    RNOK( xMotionCompensation   ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1,
-                                  rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
-    RNOK( pcFrame ->prediction  ( pcMCFrame, pcFrame, FRAME ) );
-    RNOK( pcResidual->copy      ( pcFrame, FRAME ) );
-    RNOK( xZeroIntraMacroblocks ( pcResidual, rcControlData ) );
+    RNOK( xGetAndSetPredictionLists ( uiBaseLevel, uiFramePrd, true ) );
+    RNOK( xInitControlDataMotion    ( uiBaseLevel, uiFramePrd, false ) );
+    RNOK( xMotionCompensation       ( pcMCFrame, rcControlData.getRefListStruct(),
+                                      rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
+    RNOK( pcFrame ->prediction      ( pcMCFrame, pcFrame, FRAME ) );
+    RNOK( pcResidual->copy          ( pcFrame, FRAME ) );
+    RNOK( xZeroIntraMacroblocks     ( pcResidual, rcControlData ) );
   }
   RNOK  ( xClearBufferExtensions() );
 
@@ -830,11 +833,8 @@ MCTF::xCompositionStage( UInt           uiBaseLevel,
     Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
     Frame*     pcMCFrame       = m_pcFrameTemp;
 
-    RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-    RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-    RNOK( xGetPredictionLists         ( rcRefFrameList0, rcRefFrameList1,
-                                        uiBaseLevel, uiFramePrd, false ) );
-    RNOK( xMotionCompensation         ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1,
+    RNOK( xGetAndSetPredictionLists   ( uiBaseLevel, uiFramePrd, true ) );
+    RNOK( xMotionCompensation         ( pcMCFrame, rcControlData.getRefListStruct(),
                                         rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
     RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame, FRAME ) );
   }

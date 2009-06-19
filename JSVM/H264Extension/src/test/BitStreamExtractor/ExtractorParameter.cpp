@@ -171,7 +171,7 @@ ExtractorParameter::init( Int     argc,
         EXIT( m_dMaximumRate > 100.0,  "Option \"-r\": Percentage may not exceed 100%." );
         EXIT( m_dMaximumRate < 0.0,    "Option \"-r\": Percentage may not be smaller than 0%." );
         m_dMaximumRate /= 100.0;
-        m_dMaximumRate = max( 0.0, min( 1.0, m_dMaximumRate ) );
+        m_dMaximumRate = gMax( 0.0, gMin( 1.0, m_dMaximumRate ) );
         m_bMinusRPercentageMode = true;
       }
       else

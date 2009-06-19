@@ -49,9 +49,6 @@ public:
   ErrVal write            ( const SliceHeader&          rcSH  );
   ErrVal write            ( SEI::MessageList&           rcSEIMessageList );
 
-//JVT-T073 {
-  ErrVal writeNesting     ( SEI::MessageList&           rcSEIMessageList );
-//JVT-T073 }
 //JVT-V068 {
   ErrVal writeScalableNestingSei     ( SEI::MessageList&           rcSEIMessageList );
 //JVT-V068 }

@@ -50,8 +50,8 @@ typedef MemAccessor< UChar > BinDataAccessor;
 #include <list>
 #include <algorithm>
 
-#define min(x,y) ((x)<(y)?(x):(y))
-#define max(x,y) ((x)>(y)?(x):(y))
+#define gMin(x,y) ((x)<(y)?(x):(y))
+#define gMax(x,y) ((x)>(y)?(x):(y))
 
 typedef UChar   Pel;
 typedef Short   XPel;

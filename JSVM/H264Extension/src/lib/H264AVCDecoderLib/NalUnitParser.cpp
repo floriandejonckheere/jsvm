@@ -65,7 +65,7 @@ NalUnitParser::uninit()
 }
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
+NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor, Int iDQId )
 {
   ROF( m_bInitialized );
   ROT( m_bNalUnitInitialized );
@@ -79,8 +79,9 @@ NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
   }
 
   //===== determine NAL unit type =====
+  DTRACE_LAYER( iDQId == MSYS_INT_MIN ? 0 : iDQId );
   UChar       ucFirstByte   = rcBinDataAccessor.data()[ 0 ];
-  NalUnitType eNalUnitType  = NalUnitType (   ucFirstByte & 0x1F );
+  NalUnitType eNalUnitType  = NalUnitType ( ucFirstByte & 0x1F );
   Bool        bTrailingBits = true;
   switch( eNalUnitType )
   {
@@ -97,7 +98,7 @@ NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
     DTRACE_HEADER( "PICTURE PARAMETER SET" );
     break;
   case NAL_UNIT_SEI:
-    DTRACE_HEADER( "SEI" );
+    DTRACE_HEADER( "SEI NAL UNIT" );
     break;
   case NAL_UNIT_FILLER_DATA:
     DTRACE_HEADER( "FILLER DATA" );
@@ -114,7 +115,7 @@ NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
     bTrailingBits = false;
     break;
   case NAL_UNIT_PREFIX:
-    DTRACE_HEADER( "PREFIX" );
+    DTRACE_HEADER( "PREFIX UNIT" );
     bTrailingBits = ( rcBinDataAccessor.size() > 4 );
     break;
   case NAL_UNIT_CODED_SLICE:
@@ -175,16 +176,18 @@ NalUnitParser::xInitSODB( BinDataAccessor&  rcBinDataAccessor,
       uiReadOffset++;
       uiNumZeros = 0;
     }
-
-    pucBuffer[ uiRBSPSize++ ] = pucBuffer[ uiReadOffset ];
-
-    if( pucBuffer[ uiReadOffset] == 0x00 )
+    if( uiReadOffset < rcBinDataAccessor.size() )
     {
-      uiNumZeros++;
-    }
-    else
-    {
-      uiNumZeros = 0;
+      pucBuffer[ uiRBSPSize++ ] = pucBuffer[ uiReadOffset ];
+
+      if( pucBuffer[ uiReadOffset] == 0x00 )
+      {
+        uiNumZeros++;
+      }
+      else
+      {
+        uiNumZeros = 0;
+      }
     }
   }
 

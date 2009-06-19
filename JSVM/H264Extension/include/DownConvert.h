@@ -8,9 +8,9 @@
 
 #ifdef DOWN_CONVERT_STATIC
 
-#ifndef  max
-#define  max(x,y)   ((x)>(y)?(x):(y))
-#define  min(x,y)   ((x)<(y)?(x):(y))
+#ifndef  gMax
+#define  gMax(x,y)   ((x)>(y)?(x):(y))
+#define  gMin(x,y)   ((x)<(y)?(x):(y))
 #endif
 
 #else

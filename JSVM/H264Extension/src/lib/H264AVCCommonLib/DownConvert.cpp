@@ -20,9 +20,9 @@
 #define  MASKFACT                (VALFACT-1)
 #endif
 
-#ifndef max
-#define max(x,y) ((x)>(y)?(x):(y))
-#define min(x,y) ((x)<(y)?(x):(y))
+#ifndef gMax
+#define gMax(x,y) ((x)>(y)?(x):(y))
+#define gMin(x,y) ((x)<(y)?(x):(y))
 #endif
 
 
@@ -1036,7 +1036,7 @@ DownConvert::xCompUpsamplingDyadic( int iBaseW, int iBaseH, bool bChroma )
         if( bChroma )
         {
           int m1 = i;
-          int m2 = min( i + 1, iBaseH - 1 );
+          int m2 = gMin( i + 1, iBaseH - 1 );
           m_paiTmp1dBuffer[2*i+1] += piSrc[m1*m_iImageStride] << 4;
           m_paiTmp1dBuffer[2*i+1] += piSrc[m2*m_iImageStride] << 4;
         }
@@ -1071,7 +1071,7 @@ DownConvert::xCompUpsamplingDyadic( int iBaseW, int iBaseH, bool bChroma )
         if( bChroma )
         {
           int m1 = i;
-          int m2 = min( i + 1, iBaseW - 1 );
+          int m2 = gMin( i + 1, iBaseW - 1 );
           m_paiTmp1dBuffer[2*i+1] += piSrc[m1] << 4;
           m_paiTmp1dBuffer[2*i+1] += piSrc[m2] << 4;
         }

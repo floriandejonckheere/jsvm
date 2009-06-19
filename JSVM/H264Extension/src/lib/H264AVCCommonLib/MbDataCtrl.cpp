@@ -151,21 +151,44 @@ MotionUpsampling::resample( Int iMbXCurr, Int iMbYCurr )
 ErrVal
 MotionUpsampling::xInitMb( Int iMbXCurr, Int iMbYCurr )
 {
-  m_iMbXCurr            = iMbXCurr;
-  m_iMbYCurr            = iMbYCurr;
-  m_bInCropWindow       = xIsInCropWindow();
-  m_bIntraBL            = false;
-  m_eMbMode             = MODE_SKIP;
-  m_uiFwdBwd            = 0;
-  m_bResPredSafe        = m_bInCropWindow;
-  m_aeBlkMode[0]        = BLK_8x8;
-  m_aeBlkMode[1]        = BLK_8x8;
-  m_aeBlkMode[2]        = BLK_8x8;
-  m_aeBlkMode[3]        = BLK_8x8;
-  m_aabBaseIntra[0][0]  = false;
-  m_aabBaseIntra[0][1]  = false;
-  m_aabBaseIntra[1][0]  = false;
-  m_aabBaseIntra[1][1]  = false;
+  m_iMbXCurr              = iMbXCurr;
+  m_iMbYCurr              = iMbYCurr;
+  m_bInCropWindow         = xIsInCropWindow();
+  m_bIntraBL              = false;
+  m_eMbMode               = MODE_SKIP;
+  m_uiFwdBwd              = 0;
+  m_bResPredSafe          = m_bInCropWindow;
+  m_aeBlkMode[0]          = BLK_8x8;
+  m_aeBlkMode[1]          = BLK_8x8;
+  m_aeBlkMode[2]          = BLK_8x8;
+  m_aeBlkMode[3]          = BLK_8x8;
+  m_aabBaseIntra[0][0]    = false;
+  m_aabBaseIntra[0][1]    = false;
+  m_aabBaseIntra[1][0]    = false;
+  m_aabBaseIntra[1][1]    = false;
+  m_aaaiRefIdx  [0][0][0] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [0][0][1] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [0][1][0] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [0][1][1] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [1][0][0] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [1][0][1] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [1][1][0] = BLOCK_NOT_PREDICTED;
+  m_aaaiRefIdx  [1][1][1] = BLOCK_NOT_PREDICTED;
+
+  //--- set field mode for SNR scalability ---
+  if( m_bInCropWindow && ( m_bSCoeffPred || m_bTCoeffPred ) )
+  {
+    Int     iFieldPic     = ( m_rcResizeParameters.m_bFieldPicFlag ? 1 : 0 );
+    Int     iBotField     = ( m_rcResizeParameters.m_bBotFieldFlag ? 1 : 0 );
+    Int     iMbXBase      = m_iMbXCurr -   ( m_rcResizeParameters.m_iLeftFrmOffset >> 4 );
+    Int     iMbYBase      = m_iMbYCurr - ( ( m_rcResizeParameters.m_iTopFrmOffset  >> 4 ) >> iFieldPic );
+    Int     iMbStrideBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 ) << iFieldPic;
+    Int     iMbOffsetBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 )  * iBotField;
+    Int     iMbIdxBase    = iMbOffsetBase + iMbYBase * iMbStrideBase + iMbXBase;
+    MbData& rcMbDataBase  = m_rcMbDataCtrlBase.getMbDataByIndex( (UInt)iMbIdxBase );
+    Bool    bFieldMbFlag  = rcMbDataBase.getFieldFlag();
+    m_bCurrFieldMb        = bFieldMbFlag;
+  }
   return Err::m_nOK;
 }
 
@@ -536,7 +559,7 @@ MotionUpsampling::xGetMinRefIdx( Int iRefIdxA, Int iRefIdxB )
 {
   ROTRS( iRefIdxA < 1,  iRefIdxB );
   ROTRS( iRefIdxB < 1,  iRefIdxA );
-  return min( iRefIdxA, iRefIdxB );
+  return gMin( iRefIdxA, iRefIdxB );
 }
 
 
@@ -847,8 +870,9 @@ MotionUpsampling::xSetPredMbData()
 {
   //=== get MbData reference ===
   Int           iFieldPic     = ( m_rcResizeParameters.m_bFieldPicFlag ? 1 : 0 );
+  Int           iBotField     = ( m_rcResizeParameters.m_bBotFieldFlag ? 1 : 0 );
   Int           iMbStride     = ( m_rcResizeParameters.m_iFrameWidth >> 4 ) << iFieldPic;
-  Int           iMbOffset     = ( m_rcResizeParameters.m_iFrameWidth >> 4 )  * iFieldPic;
+  Int           iMbOffset     = ( m_rcResizeParameters.m_iFrameWidth >> 4 )  * iBotField;
   Int           iMbIdx        = iMbOffset + m_iMbYCurr * iMbStride + m_iMbXCurr;
   MbData&       rcMbData      = m_rcMbDataCtrlCurr.getMbDataByIndex( (UInt)iMbIdx );
   MbMotionData* apcMotion[2]  = { &rcMbData.getMbMotionData( LIST_0 ), &rcMbData.getMbMotionData( LIST_1 ) };
@@ -905,9 +929,9 @@ MotionUpsampling::xSetPredMbData()
   if( ( m_bSCoeffPred || m_bTCoeffPred ) && m_bInCropWindow )
   {
     Int     iMbXBase      = m_iMbXCurr -   ( m_rcResizeParameters.m_iLeftFrmOffset >> 4 );
-    Int     iMbYBase      = m_iMbYCurr - ( ( m_rcResizeParameters.m_iTopFrmOffset >> 4 ) >> iFieldPic );
+    Int     iMbYBase      = m_iMbYCurr - ( ( m_rcResizeParameters.m_iTopFrmOffset  >> 4 ) >> iFieldPic );
     Int     iMbStrideBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 ) << iFieldPic;
-    Int     iMbOffsetBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 )  * iFieldPic;
+    Int     iMbOffsetBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 )  * iBotField;
     Int     iMbIdxBase    = iMbOffsetBase + iMbYBase * iMbStrideBase + iMbXBase;
     MbData& rcMbDataBase  = m_rcMbDataCtrlBase.getMbDataByIndex( (UInt)iMbIdxBase );
 
@@ -1213,11 +1237,6 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
       Int iTopDiffPoc   = iCurrPoc - pcFrame0L1->getTopFieldPoc();
       Int iBotDiffPoc   = iCurrPoc - pcFrame0L1->getBotFieldPoc();
       m_bUseTopField    = ( abs( iTopDiffPoc ) < abs( iBotDiffPoc ) );
-
-      if( pcMbDataCtrl )
-      {
-        m_pcMbDataCtrl0L1 = pcMbDataCtrl;
-      }
 
       if( FRAME != rcSH.getPicType() )
       {

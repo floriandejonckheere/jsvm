@@ -178,7 +178,7 @@ ErrVal SIPAnalyser::xProcessKnapsack(int iNumber, int *piWeight, int *piPrice, i
     ROF(ppiM[i]);
   }
 
-  int iMax=min(piWeight[iNumber-1]-1,iBagCubage);
+  int iMax=gMin(piWeight[iNumber-1]-1,iBagCubage);
 
   for(i=0;i<=iMax;i++)
     ppiM[iNumber-1][i]=0;
@@ -187,17 +187,17 @@ ErrVal SIPAnalyser::xProcessKnapsack(int iNumber, int *piWeight, int *piPrice, i
 
   for(i=iNumber-2;i>0;i--)
   {
-    iMax=min(piWeight[i]-1,iBagCubage);
+    iMax=gMin(piWeight[i]-1,iBagCubage);
     int j;
     for(j=0;j<=iMax;j++)
       ppiM[i][j]=ppiM[i+1][j];
     for(j=piWeight[i];j<=iBagCubage;j++)
-      ppiM[i][j]=max(ppiM[i+1][j],ppiM[i+1][j-piWeight[i]]+piPrice[i]);
+      ppiM[i][j]=gMax(ppiM[i+1][j],ppiM[i+1][j-piWeight[i]]+piPrice[i]);
   }
 
   ppiM[0][iBagCubage]=ppiM[1][iBagCubage];
   if(iBagCubage>=piWeight[0])
-    ppiM[0][iBagCubage]=max(ppiM[0][iBagCubage],ppiM[1][iBagCubage-piWeight[0]]+piPrice[0]);
+    ppiM[0][iBagCubage]=gMax(ppiM[0][iBagCubage],ppiM[1][iBagCubage-piWeight[0]]+piPrice[0]);
 
   for(i=0;i<iNumber-1;i++)
   {

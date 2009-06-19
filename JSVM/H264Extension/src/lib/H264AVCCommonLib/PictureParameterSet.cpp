@@ -33,6 +33,8 @@ PictureParameterSet::PictureParameterSet()
 , m_bSliceGroupChangeDirection_flag         ( false )
 , m_uiSliceGroupChangeRateMinus1            ( 0 )
 , m_uiNumSliceGroupMapUnitsMinus1           ( 0 )
+, m_uiSliceGroupIdArraySize                 ( 0 )
+, m_pauiSliceGroupId                        ( 0 )
 , m_bReferencesSubsetSPS                    ( false )
 {
   m_auiNumRefIdxActive[LIST_0] = 0;
@@ -46,6 +48,7 @@ PictureParameterSet::PictureParameterSet()
 
 PictureParameterSet::~PictureParameterSet()
 {
+  delete [] m_pauiSliceGroupId;
 }
 
 
@@ -71,9 +74,8 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
-  g_nLayer = 0;
-  ETRACE_LAYER(0);
-  ETRACE_HEADER( "PICTURE PARAMETER SET" );
+  ETRACE_LAYER  ( 0 );
+  ETRACE_HEADER ( "PICTURE PARAMETER SET" );
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NAL unit header: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NAL unit header: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NAL unit header: nal_unit_type" ) );
@@ -117,12 +119,13 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     {
       if (getNumSliceGroupsMinus1()+1 >4)
         iNumberBitsPerSliceGroupId = 3;
-      else if (getNumSliceGroupsMinus1() > 2)
+      else if (getNumSliceGroupsMinus1()+1 > 2)
         iNumberBitsPerSliceGroupId = 2;
       else
         iNumberBitsPerSliceGroupId = 1;
       //! JVT-F078, exlicitly signal number of MBs in the map
       RNOK( pcWriteIf->writeUvlc( getNumSliceGroupMapUnitsMinus1(),                             "PPS: num_slice_group_map_units_minus1" ) );
+      ROF ( getNumSliceGroupMapUnitsMinus1() < m_uiSliceGroupIdArraySize );
       for (UInt iSliceGroup=0; iSliceGroup<=getNumSliceGroupMapUnitsMinus1(); iSliceGroup++)
         RNOK( pcWriteIf->writeCode( getSliceGroupId(iSliceGroup), iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[iSliceGroup]" ) );
     }
@@ -202,16 +205,21 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
     }
     else if (m_uiSliceGroupMapType ==6)
     {
-      if (m_uiNumSliceGroupsMinus1+1 >4)
-        iNumberBitsPerSliceGroupId = 3;
-      else if (m_uiNumSliceGroupsMinus1+1 > 2)
-        iNumberBitsPerSliceGroupId = 2;
-      else
-        iNumberBitsPerSliceGroupId = 1;
+      if( m_uiNumSliceGroupsMinus1+1 > 4 )      iNumberBitsPerSliceGroupId = 3;
+      else if(m_uiNumSliceGroupsMinus1+1 > 2)   iNumberBitsPerSliceGroupId = 2;
+      else                                      iNumberBitsPerSliceGroupId = 1;
       //! JVT-F078, exlicitly signal number of MBs in the map
       RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupMapUnitsMinus1,                             "PPS: num_slice_group_map_units_minus1" ) );
-      for (UInt i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++)
-        RNOK( pcReadIf->getCode( m_uiSliceGroupId[i], iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[i]" ) );
+      if( m_uiSliceGroupIdArraySize <= m_uiNumSliceGroupMapUnitsMinus1 )
+      {
+        delete [] m_pauiSliceGroupId;
+        m_uiSliceGroupIdArraySize = m_uiNumSliceGroupMapUnitsMinus1 + 1;
+        m_pauiSliceGroupId        = new UInt [m_uiSliceGroupIdArraySize];
+      }
+      for( UInt i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++ )
+      {
+        RNOK( pcReadIf->getCode( m_pauiSliceGroupId[i], iNumberBitsPerSliceGroupId ,       "PPS: slice_group_id[i]" ) );
+      }
     }
 
   }

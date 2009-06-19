@@ -318,15 +318,15 @@ public:
   Void          setScalingFactor    ( Double  d ) { m_dScalingFactor      = d; }
   Double        getScalingFactor    ()  const     { return m_dScalingFactor;      }
 
-  Void          setBaseLayer        ( UInt  uiBaseLayerId, UInt  uiBaseLayerIdMotion )
+  Void          setBaseLayer        ( UInt  uiBaseLayerId )
   {
-    m_uiBaseLayerId = uiBaseLayerId; m_uiBaseLayerIdMotion = uiBaseLayerIdMotion;
+    m_uiBaseLayerId = uiBaseLayerId;
   }
 
   UInt          getBaseLayerId    () { return m_uiBaseLayerId; }
-  UInt          getBaseLayerIdMotion()  { return m_uiBaseLayerIdMotion; }
 
-  RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
+  RefFrameList&   getPrdFrameList   ( UInt ui )     { return m_cRefListStruct.acRefFrameListRC[ui]; }
+  RefListStruct&  getRefListStruct  ()              { return m_cRefListStruct; }
 
   Void          setSpatialScalability ( Bool b )  { m_bSpatialScalability = b; }
   Bool          getSpatialScalability ()  const   { return m_bSpatialScalability; }
@@ -348,10 +348,9 @@ private:
   Double        m_dScalingFactor;
 
   UInt          m_uiBaseLayerId;
-  UInt          m_uiBaseLayerIdMotion;
   Bool          m_bSpatialScalability;     // TMM_ESS
 
-  RefFrameList  m_acPrdFrameList[2];
+  RefListStruct m_cRefListStruct;
 	//JVT-X046 {
 public:
 	UInt m_uiCurrentFirstMB;

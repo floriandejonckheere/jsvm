@@ -38,7 +38,7 @@ ErrVal XDistortion::destroy()
 }
 
 
-Void XDistortion::loadOrgMbPelData( YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer )
+Void XDistortion::loadOrgMbPelData( const YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer )
 {
   m_cOrgData.loadBuffer( pcOrgYuvBuffer );
   rpcOrgMbBuffer = &m_cOrgData;

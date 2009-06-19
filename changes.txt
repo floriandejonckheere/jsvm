@@ -1,9 +1,77 @@
-﻿[Currently, all validation scripts work except for those that use error concealment features and QLSEI]
+﻿[Currently, all validation scripts work except for those that use error concealment features]
 
 
 JSVM_9_17 -> JSVM_9_18
 ======================
-***** under development *****
+Decoder (and encoder) corrections
+- added clipping after residual accumulation (G.8.5.3)
+- corrections of CAVLC coding/parsing for "coefficient slices" with nC>7
+- corrections of CAVLC coding/parsing for "coefficient slices" for DC coeff. arrays
+- corrected inference of residual_prediction_flag for skipped macroblocks
+- corrected coding/parsing of reference indices
+  (when adaptive_base_mode_flag is not equal to adaptive_motion_prediction_flag)
+- corrected NAL unit parsing when last byte in stream is an emulation prevention byte
+- corrected FMO mode 6 (for single-layer coding)
+- some fixes related to SEI messages
+- adding/correcting SNR scalability for MbAff frames
+  (with and without inter-layer cropping rectangle)
+
+Encoder only corrections and additions
+- adaptation of adaptive_base_mode_flag in SNR scalable coding,
+  when selected levels can violate the constraint
+  on the maximum number of motion vectors
+- added support for slices with MbAff coding 
+- new config file parameters for independently selecting
+  inter-layer mode, motion, and residual prediction
+- new config file parameter for specifying minimum level
+- corrected NAL unit order (all SEI messages at beginning of an access unit)
+- corrected order of SEI message (buffering period must be sent at the beginning of an AU)
+- corrected writing of Integrity check SEI (when layers with different frames rates are present)
+- corrected writing of nested PicTiming SEIs (only when the corresponding temporal layer is present)
+- corrected setting of dpb_output_delay (for hierarchical prediction structures,
+  including low-delay configurations)
+- option for disabling MMCO commands
+
+General improvements / added features
+- support of gcc 4.3.3
+- support of 64 bit operating systems
+- workspace for VC9 (including 64 bit configurations)
+- bit stream extractor fix (allows gap in layer_id values in scalable SEI)
+- software manual update/correction
+- restructuring of encoding process (significant simplification), including
+  - motion estimation, motion compensation, and coding are done in one stage
+    (former multi-stage processing for non-key picture was removed)
+  - no subsequent estimation of prediction mode and residual
+  - only one function for encoding a macroblock
+  - using same functions for "key" and "non-key" pictures (and all slice types)
+  - using same functions for coding with and without "slices"
+- improvement/correction of encoder/decoder trace files
+  (trace files can now be compared and should be identical)
+- resoliving of some memory issues (e.g. memory leaks)
+
+Known bugs: (currently all known/reported bugs have been fixed,
+             but the missing features below need to be implemented)
+
+Missing features:
+- support of field pictures in scalable configurations in encoder
+  (currently only correctly supported in single-layer coding)
+- adding of remaining profile/level constraints in encoder
+  (add checks in decoder?)
+- decoder support for AVC rewrite mode in connection 
+  with incomplete layer representations
+  (as adopted at the Geneva meeting in April 2008) 
+- error detection & concealment 
+  (without the restriction to two layers and 
+  fixed prediction structures that was found
+  in the previously implemented version)
+
+Further desirable improvements: support of more flexible encoder configurations, including
+- GOP structures with non-dyadic prediction structures
+- combination of MGS and CGS coding
+- higher flexibility of "MGS vector mode"
+- if feasible, support of slice data partitioning
+- support of large file sizes (>4GB)
+
 
 
 JSVM_9_16 -> JSVM_9_17

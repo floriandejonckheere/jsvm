@@ -6,6 +6,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <vector>
+
 #include "H264AVCCommonLib/SliceHeader.h"
 #include "H264AVCCommonLib/MbData.h"
 #include "H264AVCCommonLib/Tables.h"
@@ -201,14 +203,6 @@ public:
     return true;
   }
 
-  Bool getDisableCoeffResidualPredFlag()
-  {
-    ROFRS( m_pcMbDataAccessBase,                                  false );
-    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),           false );
-    ROTRS( m_pcMbDataAccessBase->getMbData().isIntra(),           true  );
-    return false;
-  }
-
   Bool  isSCoeffPred()
   {
     ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),                                                                 false );
@@ -236,9 +230,8 @@ public:
     ROTRS( m_rcSliceHeader.isIntraSlice(), false );
     if( m_rcSliceHeader.isBSlice() )
     {
-      return (m_rcMbCurr.getMbMode() == MODE_SKIP) &&
-             (m_rcMbCurr.getMbCbp () == 0)         &&
-            !(m_rcMbCurr.getResidualPredFlag());
+      return ( m_rcMbCurr.getMbMode() == MODE_SKIP && m_rcMbCurr.getMbCbp() == 0 &&
+               m_rcMbCurr.getResidualPredFlag() == m_rcSliceHeader.getDefaultResidualPredictionFlag() );
     }
     return m_rcMbCurr.getMbMode() == MODE_SKIP;
   }
@@ -310,7 +303,7 @@ public:
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
 
 
-  Void  getMvPredictors       ( Mv* pcMv     ) const;
+  Void  addMvPredictors       ( std::vector<Mv>& rcMvPredList ) const;
   Void  getMvPredictorSkipMode();
   Void  getMvPredictorSkipMode( Mv& cMvPred  );
   Bool  getMvPredictorDirect( ParIdx8x8 eParIdx,
@@ -690,7 +683,7 @@ __inline Int MbDataAccess::mostProbableIntraPredMode( LumaIdx cIdx )
 
   const MbData& rcMbDataAbove = xGetBlockAbove( cIdxA );
   Int iAbovePredMode = ( xIsAvailableIntra( rcMbDataAbove ) ? rcMbDataAbove.intraPredMode( cIdxA ) : OUTSIDE);
-  Int iMostProbable  = min( iLeftPredMode, iAbovePredMode );
+  Int iMostProbable  = gMin( iLeftPredMode, iAbovePredMode );
 
   return ( OUTSIDE == iMostProbable ) ? DC_PRED : iMostProbable;
 }

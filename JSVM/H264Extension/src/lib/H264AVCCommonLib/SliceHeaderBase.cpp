@@ -1294,6 +1294,10 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
 {
   ROF( parameterSetsInitialized() );
 
+  ETRACE_DECLARE( Bool m_bTraceEnable = true );
+  ETRACE_LAYER  ( Int( 16 * getDependencyId() + getQualityId() ) );
+  ETRACE_NEWSLICE;
+
   if( bInclusiveNalUnitHeader )
   {
     NalUnitHeader::write( rcWriteIf );

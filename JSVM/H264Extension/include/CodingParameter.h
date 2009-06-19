@@ -137,14 +137,15 @@ public:
     , m_uiMaxAbsDeltaQP                   (1)
     , m_dBaseQpResidual                   (26.0)
     , m_uiInterLayerPredictionMode        (0)
-    , m_uiMotionInfoMode                  (0)
-    , m_cMotionInfoFilename               ("none")
+    , m_uiILPredMode                      (MSYS_UINT_MAX)
+    , m_uiILPredMotion                    (MSYS_UINT_MAX)
+    , m_uiILPredResidual                  (MSYS_UINT_MAX)
     , m_uiDecompositionStages             (0)
     , m_uiNotCodedStages                  (0)
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
     , m_uiBaseQualityLevel                (15)
-    , m_bConstrainedIntraPredForLP        (false)
+    , m_bConstrainedIntraPred             (false)
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
     , m_uiMbAff                           ( 0 )
@@ -169,6 +170,8 @@ public:
     , m_puiLastMbInSlice (0)
     , m_puiSliceId (0)
     // JVT-S054 (ADD) <-
+    , m_uiSliceGroupIdArraySize(0)
+    , m_pauiSliceGroupId(0)
     , m_bAVCRewriteFlag                  ( 0 )   // JVT-V035
     , m_bAVCAdaptiveRewriteFlag          ( 0 )   // JVT-V035
     , m_uiSliceSkip                      ( 0 )
@@ -206,6 +209,8 @@ public:
     , m_bConstrainedSetFlag1  ( false )
     , m_bConstrainedSetFlag2  ( false )
     , m_bConstrainedSetFlag3  ( false )
+    , m_uiMMCOBaseEnable      ( 0 )  //JVT-S036 lsj
+    , m_uiMMCOEnable          ( 0 )
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiMGSVect, 0x00, 16*sizeof(UInt) );
@@ -249,6 +254,7 @@ public:
       m_puiSliceId = NULL;
     }
     // JVT-S054 (ADD) <-
+    delete [] m_pauiSliceGroupId;
   }
 
   ErrVal  setAndCheckProfile( CodingParameter* pcCodingParameter );
@@ -277,9 +283,10 @@ public:
   Double                          getQpModeDecision          (UInt ui) const {return m_adQpModeDecision[ui]; }
   Double                          getQpModeDecisionLP               () const {return m_dQpModeDecisionLP; }
   UInt                            getInterLayerPredictionMode       () const {return m_uiInterLayerPredictionMode; }
+  UInt                            getILPredMode                     () const {return m_uiILPredMode; }
+  UInt                            getILPredMotion                   () const {return m_uiILPredMotion; }
+  UInt                            getILPredResidual                 () const {return m_uiILPredResidual; }
   UInt                            getBaseQualityLevel               () const {return m_uiBaseQualityLevel; }
-  UInt                            getMotionInfoMode                 () const {return m_uiMotionInfoMode; }
-  const std::string&              getMotionInfoFilename             () const {return m_cMotionInfoFilename; }
 
 //JVT-V079 Low-complexity MB mode decision {
   UInt                            getLowComplexMbEnable             () const   { return m_uiLowComplexMbEnable; }
@@ -292,7 +299,7 @@ public:
 
   UInt                            getBaseLayerSpatRes               () const {return m_uiBaseLayerSpatRes; }
   UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
-  Bool                            getContrainedIntraForLP           () const {return m_bConstrainedIntraPredForLP; }
+  Bool                            getContrainedIntraPred            () const {return m_bConstrainedIntraPred; }
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
   UInt                            getMbAff                          () const {return m_uiMbAff;}
@@ -305,7 +312,7 @@ public:
   Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
   UInt          getSliceGroupChangeRateMinus1 () const {return m_uiSliceGroupChangeRateMinus1;}
   UInt          getNumSliceGroupMapUnitsMinus1() const {return m_uiNumSliceGroupMapUnitsMinus1;}
-  UInt          getSliceGroupId(Int i) const {return m_uiSliceGroupId[i];}
+  UInt          getSliceGroupId(Int i) const { AOF(i<(Int)m_uiSliceGroupIdArraySize); return m_pauiSliceGroupId[i];}
   UInt          getSliceMode() const {return m_uiSliceMode;}
   UInt          getSliceArgument() const { return m_uiSliceArgument ;}
   const std::string&   getSliceGroupConfigFileName() const{ return m_cSliceGroupConfigFileName;}
@@ -313,7 +320,7 @@ public:
   UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
-  UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
+  UInt*         getArraySliceGroupId() const {return m_pauiSliceGroupId;}
   //--ICU/ETRI FMO Implementation : FMO end
 
   //<-- consider ROI Extraction ICU/ETRI DS
@@ -324,6 +331,9 @@ public:
   UInt*         getSGID () const {return (UInt*)m_uiSGID;}
   UInt*         getSLID () const {return (UInt*)m_uiSLID;}
   //--> consider ROI Extraction ICU/ETRI DS
+
+  UInt  getMMCOBaseEnable ()  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt  getMMCOEnable     ()  const   { return m_uiMMCOEnable; }
 
   UInt getMGSVect                        (UInt uiNum) const { return m_uiMGSVectorMode ? m_uiMGSVect[uiNum] : (uiNum == 0 ? 16 : 0); }
   Bool getTCoeffLevelPredictionFlag ()               const { return m_bAVCRewriteFlag==1; }
@@ -353,8 +363,9 @@ public:
                                            Double p) { m_adQpModeDecision             [n] = p; }
   Void setQpModeDecisionLP                (Double p) { m_dQpModeDecisionLP                = p; }
   Void setInterLayerPredictionMode        (UInt   p) { m_uiInterLayerPredictionMode       = p; }
-  Void setMotionInfoMode                  (UInt   p) { m_uiMotionInfoMode                 = p; }
-  Void setMotionInfoFilename              (Char*  p) { m_cMotionInfoFilename              = p; }
+  Void setILPredMode                      (UInt   p) { m_uiILPredMode                     = p; }
+  Void setILPredMotion                    (UInt   p) { m_uiILPredMotion                   = p; }
+  Void setILPredResidual                  (UInt   p) { m_uiILPredResidual                 = p; }
 
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
   Void setNotCodedStages                  (UInt   p) { m_uiNotCodedStages                 = p; }
@@ -364,7 +375,7 @@ public:
   Void setBaseLayerSpatRes                (UInt   p) { m_uiBaseLayerSpatRes               = p; }
   Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
   Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
-  Void setContrainedIntraForLP            ()         { m_bConstrainedIntraPredForLP       = true; }
+  Void setContrainedIntraPred             ()         { m_bConstrainedIntraPred            = true; }
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
   Void setMbAff                           (UInt   p) { m_uiMbAff                          = p; }
@@ -384,7 +395,17 @@ public:
   ErrVal  check();
 
 //--ICU/ETRI FMO Implementation
-  Void setSliceGroupId(int i, UInt value) { m_uiSliceGroupId[i] = value;}
+  Void  setSliceGroupId(int i, UInt value) { AOF(i<(Int)m_uiSliceGroupIdArraySize); m_pauiSliceGroupId[i] = value;}
+  Void  initSliceGroupIdArray( UInt uiNumMapUnits )
+  {
+    if( m_uiSliceGroupIdArraySize < uiNumMapUnits )
+    {
+      delete [] m_pauiSliceGroupId;
+      m_uiSliceGroupIdArraySize     = uiNumMapUnits;
+      m_pauiSliceGroupId            = new UInt [m_uiSliceGroupIdArraySize];
+    }
+    m_uiNumSliceGroupMapUnitsMinus1 = uiNumMapUnits - 1;
+  }
 
   Void                            setUseRedundantSliceFlag(Bool   b) { m_uiUseRedundantSlice = b; }  // JVT-Q054 Red. Picture
   Void                            setUseRedundantKeySliceFlag(UInt   b) { m_uiUseRedundantKeySlice = b; }  //JVT-W049
@@ -485,14 +506,13 @@ public:
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   Double                    m_dQpModeDecisionLP;
   UInt                      m_uiInterLayerPredictionMode;
-  Bool                      m_bConstrainedIntraPredForLP;
+  UInt                      m_uiILPredMode;
+  UInt                      m_uiILPredMotion;
+  UInt                      m_uiILPredResidual;
+  Bool                      m_bConstrainedIntraPred;
   UInt                      m_uiForceReorderingCommands;
   UInt                      m_uiBaseLayerId;
-
   UInt                      m_uiBaseQualityLevel;
-
-  UInt                      m_uiMotionInfoMode;
-  std::string               m_cMotionInfoFilename;
 
   //JVT-V079 Low-complexity MB mode decision {
   Int                     m_uiLowComplexMbEnable;
@@ -524,7 +544,8 @@ public:
   Bool         m_bSliceGroupChangeDirection_flag;
   UInt         m_uiSliceGroupChangeRateMinus1;
   UInt         m_uiNumSliceGroupMapUnitsMinus1;
-  UInt         m_uiSliceGroupId[CodParMAXNumSliceGroupsMinus1];
+  UInt         m_uiSliceGroupIdArraySize;
+  UInt*        m_pauiSliceGroupId;
   UInt         m_uiSliceMode;
   UInt         m_uiSliceArgument;
   std::string  m_cSliceGroupConfigFileName;
@@ -600,6 +621,9 @@ public:
   Bool  m_bConstrainedSetFlag1;
   Bool  m_bConstrainedSetFlag2;
   Bool  m_bConstrainedSetFlag3;
+
+  UInt	m_uiMMCOBaseEnable;  //JVT-S036 lsj
+  UInt  m_uiMMCOEnable;
 };
 
 
@@ -678,7 +702,6 @@ public:
 		, m_uiEssRPChkEnable									( 0 )
 		, m_uiMVThres													( 20 )
 	  , m_uiPreAndSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj
-	  , m_uiMMCOBaseEnable			      ( 0 ) //JVT-S036 lsj
 //JVT-T073 {
 	  , m_uiNestingSEIEnable              ( 0 )
 	  , m_uiSceneInfoEnable               ( 0 )
@@ -785,7 +808,6 @@ public:
   UInt														getMVThres							  ()							const		{	return m_uiMVThres;}
 
   UInt							              getPreAndSuffixUnitEnable	()		          const	  { return m_uiPreAndSuffixUnitEnable;} //prefix unit
-	UInt							              getMMCOBaseEnable		      ()			        const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
   // JVT-T073 {
   UInt                            getNestingSEIEnable       ()              const   { return m_uiNestingSEIEnable; }
   UInt                            getSceneInfoEnable        ()              const   { return m_uiSceneInfoEnable; }
@@ -941,7 +963,6 @@ protected:
 	UInt						m_uiMVThres;
 
   UInt						m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj
-  UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
 //JVT-T054{
   UInt                      m_uiCGSSNRRefinementFlag;

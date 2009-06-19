@@ -20,7 +20,6 @@ Scheduler::Scheduler():
   m_dActualOutTime      ( 0 ),
   m_dActualInTime       ( 0 ),
   m_dLastBPTime         ( 0),
-  m_uiInitialOutputDelay( 1 ),
   m_pcCodingParameter   ( NULL ),
   m_pfFileDebug         ( NULL ),
   m_bInitDone           ( false )
@@ -146,7 +145,7 @@ ErrVal Scheduler::createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod,
 {
   ROF ( m_bInitDone );
 
-  RNOK( SEI::BufferingPeriod::create( rpcBufferingPeriod, pcParameterSetMng ) );
+  RNOK( SEI::BufferingPeriod::create( rpcBufferingPeriod, pcParameterSetMng, uiDQId > 0 ) );
 
   SequenceParameterSet *pcSPS;
   RNOK( pcParameterSetMng->getActiveSPS( pcSPS, uiDQId ) );
@@ -204,7 +203,7 @@ ErrVal Scheduler::createTimingSei( SEI::PicTiming*& rpcPicTiming, const VUI* pcV
   UInt uiTopAdd = (uiInputFormat==2)?1:0;
   UInt uiBotAdd = (uiInputFormat==1)?1:0;
 
-  UInt uiDpbOutputDelay = m_uiInitialOutputDelay + 2*(uiPicNumOffset) + (rcSH.getFieldPicFlag() ? (rcSH.getBottomFieldFlag()?uiBotAdd:uiTopAdd):0);
+  UInt uiDpbOutputDelay = 2*(uiPicNumOffset) + (rcSH.getFieldPicFlag() ? (rcSH.getBottomFieldFlag()?uiBotAdd:uiTopAdd):0);
   rpcPicTiming->setDpbOutputDelay(m_uiOutputTicks*uiDpbOutputDelay);
 
   PicStruct ePictstruct;
@@ -328,7 +327,7 @@ ErrVal Scheduler::TimingUnit::calcTiming( UInt uiSize, Double dTime, Bool bIsIdr
     m_dInitialArrivalEarliest = (m_bCbr) ? 0 : m_dRemoval - Double(m_uiIrd + m_uiIrdOffset)/(Double)90000;
   }
 
-  m_dInitialArrival = max(m_dFinalArrival, m_dInitialArrivalEarliest);
+  m_dInitialArrival = gMax(m_dFinalArrival, m_dInitialArrivalEarliest);
   m_dFinalArrival = m_dInitialArrival + (Double)m_iDataLength / (Double)(m_iBitRate);
 
   return Err::m_nOK;

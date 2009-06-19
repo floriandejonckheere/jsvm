@@ -101,15 +101,6 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
 }
 
 
-// JVT-T073 {
-ErrVal CreaterH264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor )
-{
-  RNOK( m_pcH264AVCEncoder->writeNestingSEIMessage( pcExtBinDataAccessor ) );
-  return Err::m_nOK;
-
-}
-// JVT-T073 }
-
 ErrVal
 CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                                 PicBuffer*               apcOriginalPicBuffer     [MAX_LAYERS],
@@ -264,7 +255,7 @@ ErrVal
 CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
 {
   INIT_ETRACE;
-  OPEN_ETRACE;
+
   ROT( NULL == pcCodingParameter);
 
   m_pcCodingParameter = pcCodingParameter;
@@ -428,7 +419,7 @@ CreaterH264AVCEncoder::uninit()
     RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer] ->uninit() );
   }
 
-  CLOSE_ETRACE;
+  UNINIT_ETRACE;
 
   return Err::m_nOK;
 }
@@ -446,16 +437,5 @@ ErrVal CreaterH264AVCEncoder::writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcEx
   return Err::m_nOK;
 }
 // JVT-V068 }
-// JVT-W062 {
-ErrVal CreaterH264AVCEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId )
-{
-  RNOK( m_pcH264AVCEncoder->writeNestingTl0DepRepIdxSEIMessage( pcExtBinDataAccessor, uiTid, uiTl0DepRepIdx, uiEfIdrPicId));
-  return Err::m_nOK;
 
-}
-UInt CreaterH264AVCEncoder::getIdrPicId ( void )
-{
-  return m_apcLayerEncoder[0]->getIdrPicId();
-}
-// JVT-W062 }
 H264AVC_NAMESPACE_END

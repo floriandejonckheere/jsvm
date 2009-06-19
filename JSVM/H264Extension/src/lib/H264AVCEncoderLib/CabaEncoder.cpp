@@ -235,14 +235,14 @@ ErrVal CabaEncoder::finish()
 
 ErrVal CabaEncoder::writeSymbol( UInt uiSymbol, CabacContextModel& rcCCModel )
 {
-  ETRACE_V (g_nSymbolCounter[g_nLayer]++);
-  ETRACE_T ("  ");
+  ETRACE_SC;
+  ETRACE_TH ("  ");
   ETRACE_X (m_uiRange);
-  ETRACE_T ("  ");
+  ETRACE_TH ("  ");
   ETRACE_V (rcCCModel.getState());
-  ETRACE_T ("  ");
+  ETRACE_TH ("  ");
   ETRACE_V (rcCCModel.getMps());
-  ETRACE_T ("  -  ");
+  ETRACE_TH ("  -  ");
   ETRACE_V (uiSymbol);
   ETRACE_N;
 
@@ -300,10 +300,10 @@ ErrVal CabaEncoder::writeSymbol( UInt uiSymbol, CabacContextModel& rcCCModel )
 
 ErrVal CabaEncoder::writeEPSymbol( UInt uiSymbol )
 {
-  ETRACE_V(g_nSymbolCounter[g_nLayer]++);
-  ETRACE_T ("  ");
+  ETRACE_SC;
+  ETRACE_TH ("  ");
   ETRACE_X(m_uiRange);
-  ETRACE_T ("  -  ");
+  ETRACE_TH ("  -  ");
   ETRACE_V (uiSymbol);
   ETRACE_N;
 
@@ -337,10 +337,10 @@ ErrVal CabaEncoder::writeEPSymbol( UInt uiSymbol )
 
 ErrVal CabaEncoder::writeTerminatingBit( UInt uiBit )
 {
-  ETRACE_V(g_nSymbolCounter[g_nLayer]++);
-  ETRACE_T ("  ");
+  ETRACE_SC;
+  ETRACE_TH ("  ");
   ETRACE_X(m_uiRange);
-  ETRACE_T ("  -  ");
+  ETRACE_TH ("  -  ");
   ETRACE_V (uiBit);
   ETRACE_N;
 

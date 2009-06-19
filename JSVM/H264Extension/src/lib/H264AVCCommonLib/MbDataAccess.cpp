@@ -208,7 +208,7 @@ UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx, UInt uiStart, UInt uiStop )  
       {
         uiCoeffCount = rcMbDataLeft.getMbTCoeffs().calcCoeffCount( cIdxL, rcMbDataLeft.isTransformSize8x8(),
                                                                   rcMbDataLeft.getFieldFlag(),
-                                                                  rcMbDataLeft.isIntra16x16() ? max( 1, uiStart) : uiStart,
+                                                                  rcMbDataLeft.isIntra16x16() ? gMax( 1, uiStart) : uiStart,
                                                                   uiStop );
       }
     }
@@ -225,7 +225,7 @@ UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx, UInt uiStart, UInt uiStop )  
     {
       uiCoeffCount += rcMbDataAbove.getMbTCoeffs().calcCoeffCount( cIdx, rcMbDataAbove.isTransformSize8x8(),
                                                                    rcMbDataAbove.getFieldFlag(),
-                                                                   rcMbDataAbove.isIntra16x16() ? max( 1, uiStart) : uiStart,
+                                                                   rcMbDataAbove.isIntra16x16() ? gMax( 1, uiStart) : uiStart,
                                                                    uiStop );
     }
     if( bLeftAvailable )
@@ -420,11 +420,11 @@ Void MbDataAccess::getMvPredictorSkipMode( Mv& rcMvPred )
 
 
 
-Void MbDataAccess::getMvPredictors( Mv* pcMv ) const
+Void MbDataAccess::addMvPredictors( std::vector<Mv>& rcMvPredList ) const
 {
-  pcMv[ 0 ] = m_cMv3D_A;
-  pcMv[ 1 ] = m_cMv3D_B;
-  pcMv[ 2 ] = m_cMv3D_C;
+  rcMvPredList.push_back( m_cMv3D_A );
+  rcMvPredList.push_back( m_cMv3D_B );
+  rcMvPredList.push_back( m_cMv3D_C );
 }
 
 

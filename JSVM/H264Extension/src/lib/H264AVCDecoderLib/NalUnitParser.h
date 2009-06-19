@@ -27,7 +27,8 @@ public:
                                     HeaderSymbolReadIf* pcHeaderSymbolReadIf );
   ErrVal          uninit          ();
 
-  ErrVal          initNalUnit     ( BinDataAccessor&    rcBinDataAccessor );
+  ErrVal          initNalUnit     ( BinDataAccessor&    rcBinDataAccessor,
+                                    Int                 iDQId = MSYS_INT_MIN );
   ErrVal          closeNalUnit    ( Bool                bCheckEndOfNalUnit = true );
 
 private:

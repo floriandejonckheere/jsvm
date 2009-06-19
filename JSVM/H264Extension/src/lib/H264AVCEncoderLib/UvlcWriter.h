@@ -83,7 +83,7 @@ public:
   ErrVal  intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
   ErrVal  intraPredModeChroma( MbDataAccess& rcMbDataAccess );
   ErrVal  samplesPCM( MbDataAccess& rcMbDataAccess );
-  ErrVal  skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed );
+  ErrVal  skipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast ) { return Err::m_nOK;}
 
@@ -102,7 +102,7 @@ protected:
   UInt xGetCoeffCost() { return m_uiCoeffCost; }
   Void xSetCoeffCost(UInt uiCost) { m_uiCoeffCost = uiCost; }
 
-  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt uiCoeffCount, UInt uiTrailingOnes, UInt uiStart, UInt uiStop );
+  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt uiCoeffCount, UInt uiTrailingOnes, UInt uiStart, UInt uiStop, Bool bDC );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt uiCoeffCount, UInt uiTrailingOnes, UInt uiStart, UInt uiStop );
 
   ErrVal xWriteMvd( Mv cMv );
@@ -142,8 +142,9 @@ protected:
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
 
 private:
-  __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
-  __inline ErrVal xWriteFlag( UInt uiCode );
+  __inline ErrVal xWriteCodeNT( UInt uiCode, UInt uiLength );
+  __inline ErrVal xWriteCode  ( UInt uiCode, UInt uiLength );
+  __inline ErrVal xWriteFlag  ( UInt uiCode );
 
 protected:
   BitWriteBufferIf* m_pcBitWriteBufferIf;

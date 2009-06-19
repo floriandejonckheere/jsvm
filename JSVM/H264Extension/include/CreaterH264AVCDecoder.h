@@ -64,18 +64,24 @@ private:
 class H264AVCDECODERLIB_API NonVCLNALUnit : public NALUnit
 {
 public:
-  NonVCLNALUnit( BinData* pcBinData );
+  NonVCLNALUnit( BinData* pcBinData, Bool bSEI, Bool bScalableSEI, Bool bBufferingPeriod );
   virtual ~NonVCLNALUnit();
 
-  Void        destroyNALOnly  ();
+  Void        destroyNALOnly    ();
 
-  Bool        isVCLNALUnit    ()  const { return false; }
-  BinData*    getBinData      ()        { return m_pcBinData; }
-  NalUnitType getNalUnitType  ()  const { return m_eNalUnitType; }
+  Bool        isVCLNALUnit      ()  const { return false; }
+  BinData*    getBinData        ()        { return m_pcBinData; }
+  NalUnitType getNalUnitType    ()  const { return m_eNalUnitType; }
+  Bool        isSEI             ()  const { return m_bIsSEI; }
+  Bool        isScalableSEI     ()  const { return m_bScalableSEI; }
+  Bool        isBufferingPeriod ()  const { return m_bBufferingPeriod; }
 
 private:
   BinData*    m_pcBinData;
   NalUnitType m_eNalUnitType;
+  Bool        m_bIsSEI;
+  Bool        m_bScalableSEI;
+  Bool        m_bBufferingPeriod;
 };
 
 
@@ -174,7 +180,7 @@ public:
 
   ErrVal  update( BinData* pcBinData, PrefixHeader& rcPrefixHeader );
   ErrVal  update( BinData* pcBinData, SliceHeader&  rcSliceHeader );
-  ErrVal  update( BinData* pcBinData = 0 );
+  ErrVal  update( BinData* pcBinData, Bool bSEI, Bool bScalableSEI, Bool bBufferingPeriod );
 
   ErrVal  getAndRemoveNextNalUnit( NALUnit*& rpcNalUnit );
 

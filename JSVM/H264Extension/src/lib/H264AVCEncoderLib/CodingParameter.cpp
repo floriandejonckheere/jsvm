@@ -84,8 +84,19 @@ ErrVal LayerParameters::check()
   ROTREPORT( getMCBlks8x8Disable        () > 1,         "The value for MCBlocksLT8x8Disable is not supported" );
   ROTREPORT( getPicCodingType           () > 1,         "The value for DisableBSlices is not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
-  ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
-  ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
+  
+  //----- check inter-layer prediction modes -----
+  ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported value for InterLayerPred" );
+  if( m_uiILPredMode     == MSYS_UINT_MAX )   m_uiILPredMode      = m_uiInterLayerPredictionMode;
+  if( m_uiILPredMotion   == MSYS_UINT_MAX )   m_uiILPredMotion    = m_uiInterLayerPredictionMode;
+  if( m_uiILPredResidual == MSYS_UINT_MAX )   m_uiILPredResidual  = m_uiInterLayerPredictionMode;
+  ROTREPORT( m_uiILPredMode                > 2,         "Unsupported value for ILModePred" );
+  ROTREPORT( m_uiILPredMotion              > 2,         "Unsupported value for ILMotionPred" );
+  ROTREPORT( m_uiILPredResidual            > 2,         "Unsupported value for ILResidualPred" );
+  m_uiInterLayerPredictionMode = ( m_uiInterLayerPredictionMode != 0 ||
+                                   m_uiILPredMode               != 0 || 
+                                   m_uiILPredMotion             != 0 ||
+                                   m_uiILPredResidual           != 0  ? 1 : 0 );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getDependencyId(), "BaseLayerId is not possible" );
 
@@ -372,7 +383,7 @@ ErrVal CodingParameter::check()
   ROTREPORT(  getMultiLayerLambda() > MULTILAYER_LAMBDA_C08 , "Multi-Layer lambda selection mode not supported" );
   // JVT-AD021 }
 
-  Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
+  Double  dMaxFrameDelay  = gMax( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
   UInt    uiMaxFrameDelay = (UInt)floor( dMaxFrameDelay );
   Double  dMinUnrstrDelay = Double( ( 1 << m_uiDecompositionStages ) - 1 ) / m_dMaximumFrameRate * 1000.0;
 
@@ -417,18 +428,22 @@ ErrVal CodingParameter::check()
     }
     if( uiBaseLayerId != MSYS_UINT_MAX )
     {
-      ROTREPORT( pcLayer->getPicCodingType() == 1 && pcBaseLayer->getPicCodingType() != 1, "DisableBSlices must be equal to 0 when it is equal to 0 for the bse layer" );
+      ROTREPORT( pcLayer->getPicCodingType() == 1 && pcBaseLayer->getPicCodingType() != 1, "DisableBSlices must be equal to 0 when it is equal to 0 for the base layer" );
     }
 
     Bool bMGSVectorUsed = pcLayer->getMGSVect( 0 ) != 16;
     if( bMGSVectorUsed )
     {
-      ROTREPORT( !getCGSSNRRefinement(), "MGS vectors are only supported in MGS." );
-      ROTREPORT( !pcBaseLayer,           "MGS vectors are not allowed in the base layer." );
-      ROTREPORT( !pcLayer->getInterLayerPredictionMode(), "MGS vectors cannot be used with InterLayerPred = 0" );
+      ROTREPORT( !getCGSSNRRefinement(),    "MGS vectors are only supported in MGS." );
+      ROTREPORT( !pcBaseLayer,              "MGS vectors are not allowed in the base layer." );
+      ROTREPORT( !pcLayer->getILPredMode(), "MGS vectors cannot be used with ILModePred = 0." );
+      pcLayer->setContrainedIntraPred();
     }
 
     ROTREPORT( ! pcBaseLayer && pcLayer->getSliceSkip(), "Slice skip only supported in enhancement layers" );
+
+    ROTREPORT( pcLayer->getUseLongTerm() && ! pcLayer->getMMCOEnable(),
+      "UseLongTerm cannot be equal to 1 when MMCOEnable is equal to 0" );
 
     if( pcBaseLayer )
     {
@@ -446,12 +461,18 @@ ErrVal CodingParameter::check()
       ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getUseLongTerm() != pcBaseLayer->getUseLongTerm(),
         "UseLongTerm shall be the same in successive MGS layers" );
 
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getMMCOEnable() != pcBaseLayer->getMMCOEnable(),
+        "MMCOEnable shall be the same in successive MGS layers" );
+
+      ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getMMCOBaseEnable() != pcBaseLayer->getMMCOBaseEnable(),
+        "MMCOBaseEnable shall be the same in successive MGS layers" );
+
       ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && !pcLayer->getInterLayerPredictionMode(), "InterLayerPred must not be 0 in MGS enhancement layers" );
 
-      if( pcLayer->getInterLayerPredictionMode() == 1 )
+      if( pcLayer->getILPredMode() == 1 )
       {
-        ROTREPORT( pcLayer->getLayerIntraPeriod () != pcBaseLayer->getLayerIntraPeriod(), "InterLayerPred must not be 1 when layers have different intra periods" );
-        ROTREPORT( pcLayer->getIDRPeriod        () != pcBaseLayer->getIDRPeriod       (), "InterLayerPred must not be 1 when layers have different IDR periods" );
+        ROTREPORT( pcLayer->getLayerIntraPeriod () != pcBaseLayer->getLayerIntraPeriod(), "ILModePred must not be 1 when layers have different intra periods" );
+        ROTREPORT( pcLayer->getIDRPeriod        () != pcBaseLayer->getIDRPeriod       (), "ILModePred must not be 1 when layers have different IDR periods" );
       }
       if( getCGSSNRRefinement() && !bResolutionChange )
       {
@@ -481,15 +502,12 @@ ErrVal CodingParameter::check()
         ROTREPORT( bVer &&  bI, "Cropping window must be vertically aligned on a 4 pixel grid for interlaced configurations" );
       }
 
-      pcBaseLayer->setContrainedIntraForLP();
+      pcBaseLayer->setContrainedIntraPred();
 
       if( pcLayer->getSliceSkip() )
       {
         pcLayer->setSliceSkipTLevelStart( pcLayer->getSliceSkip() - 1 );
-        if( pcLayer->getSliceSkipTLevelStart() == 0 )
-        {
-          pcLayer->setContrainedIntraForLP();
-        }
+        pcLayer->setContrainedIntraPred ();
       }
 
       if( pcLayer->getTCoeffLevelPredictionFlag() )
@@ -501,8 +519,8 @@ ErrVal CodingParameter::check()
     }
     if( pcLayer->getTCoeffLevelPredictionFlag() )
     {
-      pcLayer->setContrainedIntraForLP();
-      pcLayer->setInterLayerPredictionMode( pcLayer->getInterLayerPredictionMode() > 0 ? 2 : 0 );
+      pcLayer->setContrainedIntraPred();
+      pcLayer->setILPredMode( pcLayer->getILPredMode() > 0 ? 2 : 0 );
     }
 
     ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level shall not exceed 15." );
@@ -588,7 +606,6 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
     m_bConstrainedSetFlag2  = bExtended;
     m_bConstrainedSetFlag3  = ( bHigh && bIntraOnly );
     m_uiNumDependentDId     = 1;
-    m_uiLevelIdc            = 0;
     //----- update IDR period -----
     if( bIntraOnly )
     {
@@ -625,7 +642,6 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
   m_bConstrainedSetFlag2  = false;
   m_bConstrainedSetFlag3  = ( bScalHigh && bIntraOnly );
   m_uiNumDependentDId     = 1;
-  m_uiLevelIdc            = 0;
   if( m_uiBaseLayerId != MSYS_UINT_MAX )
   {
     if( pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).m_uiLayerCGSSNR == m_uiLayerCGSSNR )
@@ -649,14 +665,50 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
   return Err::m_nOK;
 }
 
+UInt getMaxLevel( UInt uiLevel1, UInt uiLevel2 )
+{
+  if( ( uiLevel1 == 9 && uiLevel2 == 10 ) || ( uiLevel1 == 10 && uiLevel2 == 9 ) )
+  {
+    return 10;
+  }
+  return gMax( uiLevel1, uiLevel2 );
+}
+
 ErrVal
 LayerParameters::updateWithLevel( CodingParameter* pcCodingParameter, UInt& ruiLevelIdc )
 {
+  if( m_uiLevelIdc )
+  {
+    switch( m_uiLevelIdc )
+    {
+    case  9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 20:
+    case 21:
+    case 22:
+    case 30:
+    case 31:
+    case 32:
+    case 40:
+    case 41:
+    case 42:
+    case 50:
+    case 51:
+      break;
+    default:
+      ROTREPORT( true, "Unknown value for MinLevelIdc" );
+      break;
+    }
+    ruiLevelIdc = getMaxLevel( ruiLevelIdc, m_uiLevelIdc );
+  }
   if( m_uiBaseLayerId != MSYS_UINT_MAX )
   {
     UInt uiBaseLevel  = pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getLevelIdc();
     ROF( uiBaseLevel );
-    ruiLevelIdc       = max( ruiLevelIdc, uiBaseLevel );
+    ruiLevelIdc       = getMaxLevel( ruiLevelIdc, uiBaseLevel );
   }
   switch( m_uiProfileIdc )
   {
@@ -850,6 +902,7 @@ LayerParameters::xIsScalableBaselineProfile( CodingParameter* pcCodingParameter 
   ROTRS( rcBase.m_bConstrainedSetFlag0,                       true  );
   return false;
 }
+
 ErrVal
 LayerParameters::xForceScalableBaselineProfile( CodingParameter* pcCodingParameter )
 {

@@ -62,8 +62,8 @@ tests              => [
                         width       => 464,
                         height      => 384,
                         framerate   => 15,
-                  	bitrate     => 415,
-                  	psnr        => 37.97,
+                  	bitrate     => 390,
+                  	psnr        => 37.67,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -75,8 +75,8 @@ tests              => [
                         width       => 704,
                         height      => 576,
                         framerate   => 15,
-                  	bitrate     => 687,
-                  	psnr        => 36.03,
+                  	bitrate     => 670,
+                  	psnr        => 35.96,
                        },
                        #----------#
                        # Test   2 #
@@ -87,8 +87,8 @@ tests              => [
                         width       => 704,
                         height      => 576,
                         framerate   => 15,
-                  	bitrate     => 785,
-                  	psnr        => 36.29,
+                  	bitrate     => 767,
+                  	psnr        => 36.21,
                         encdecmatch => 1,
                        },
                       ],

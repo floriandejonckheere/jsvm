@@ -19,9 +19,6 @@
   #define H264AVCCOMMONLIB_API
 #endif
 
-H264AVCCOMMONLIB_API extern UInt g_nSymbolCounter[16];
-H264AVCCOMMONLIB_API extern UInt g_nLayer;
-
 
 #define H264AVC_NAMESPACE_BEGIN      namespace h264 {
 #define H264AVC_NAMESPACE_END        }

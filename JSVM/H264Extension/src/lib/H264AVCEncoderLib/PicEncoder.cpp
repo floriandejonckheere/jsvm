@@ -355,7 +355,7 @@ PicEncoder::xInitPPS()
   m_pcPPS->setPicOrderPresentFlag                   ( true );
   m_pcPPS->setNumRefIdxActive                       ( LIST_0, m_pcCodingParameter->getMaxRefIdxActiveBL0() );
   m_pcPPS->setNumRefIdxActive                       ( LIST_1, m_pcCodingParameter->getMaxRefIdxActiveBL1() );
-  m_pcPPS->setPicInitQp                             ( min( 51, max( 0, (Int)m_pcCodingParameter->getBasisQp() ) ) );
+  m_pcPPS->setPicInitQp                             ( gMin( 51, gMax( 0, (Int)m_pcCodingParameter->getBasisQp() ) ) );
   m_pcPPS->setChomaQpIndexOffset                    ( 0 );
   m_pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
   m_pcPPS->setConstrainedIntraPredFlag              ( false );
@@ -382,7 +382,7 @@ ErrVal
 PicEncoder::xInitParameterSets()
 {
   //===== init control manager =====
-  RNOK( m_pcControlMng->initParameterSets( *m_pcSPS, *m_pcPPS, *m_pcPPS ) );
+  RNOK( m_pcControlMng->initParameterSets( *m_pcSPS, *m_pcPPS ) );
 
   //===== set fixed parameters =====
   m_uiFrameWidthInMb      = m_pcSPS->getFrameWidthInMbs  ();
@@ -444,8 +444,8 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
 
   //===== determine parameters =====
   Double dQp      = m_pcCodingParameter->getBasisQp() + m_pcCodingParameter->getDeltaQpLayer( rcFrameSpec.getTemporalLayer() );
-  Int    iQp      = min( 51, max( 0, (Int)dQp ) );
-  rdLambda        = 0.85 * pow( 2.0, min( 52.0, dQp ) / 3.0 - 4.0 );
+  Int    iQp      = gMin( 51, gMax( 0, (Int)dQp ) );
+  rdLambda        = 0.85 * pow( 2.0, gMin( 52.0, dQp ) / 3.0 - 4.0 );
   UInt   uiSizeL0 = ( rcFrameSpec.getSliceType() == I_SLICE ? 0 :
                       rcFrameSpec.getSliceType() == P_SLICE ? m_pcCodingParameter->getMaxRefIdxActiveP  () :
                       rcFrameSpec.getSliceType() == B_SLICE ? m_pcCodingParameter->getMaxRefIdxActiveBL0() : MSYS_UINT_MAX );
@@ -476,7 +476,6 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setDirectSpatialMvPredFlag            ( true );
   rpcSliceHeader->setRefLayer                           ( MSYS_UINT_MAX, 15 );
   rpcSliceHeader->setNoInterLayerPredFlag               ( true );
-  rpcSliceHeader->setAdaptiveBaseModeFlag               ( false );
   rpcSliceHeader->setNoOutputOfPriorPicsFlag            ( false );
   rpcSliceHeader->setCabacInitIdc                       ( 0 );
   rpcSliceHeader->setSliceHeaderQp                      ( iQp );
@@ -513,11 +512,6 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   {
     rpcSliceHeader->getRefPicListReordering( LIST_1 ).copy( *rcFrameSpec.getRplrBuf( LIST_1 ) );
   }
-
-#if 0
-  //===== initialize prediction weights =====
-  RNOK( xInitPredWeights( *rpcSliceHeader ) );
-#endif
 
   //===== flexible macroblock ordering =====
   rpcSliceHeader->setSliceGroupChangeCycle( 1 );
@@ -619,18 +613,25 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
   //===== start picture =====
   RefFrameList  cList0, cList1;
   RNOK( xStartPicture( rcRecPicBufUnit, rcSliceHeader, cList0, cList1 ) );
+  RefListStruct cRefListStruct;
+  cRefListStruct.acRefFrameListME[0].copy( cList0 );
+  cRefListStruct.acRefFrameListMC[0].copy( cList0 );
+  cRefListStruct.acRefFrameListRC[0].copy( cList0 );
+  cRefListStruct.acRefFrameListME[1].copy( cList1 );
+  cRefListStruct.acRefFrameListMC[1].copy( cList1 );
+  cRefListStruct.acRefFrameListRC[1].copy( cList1 );
+  cRefListStruct.bMCandRClistsDiffer = false;
+  cRefListStruct.uiFrameIdCol        = MSYS_UINT_MAX;
 
 //TMM_WP
   if(rcSliceHeader.getSliceType() == P_SLICE)
       m_pcSliceEncoder->xSetPredWeights( rcSliceHeader,
                                          rcRecPicBufUnit.getRecFrame(),
-                                         cList0,
-                                         cList1);
+                                         cRefListStruct );
   else if(rcSliceHeader.getSliceType() == B_SLICE)
       m_pcSliceEncoder->xSetPredWeights( rcSliceHeader,
                                          rcRecPicBufUnit.getRecFrame(),
-                                         cList0,
-                                         cList1);
+                                         cRefListStruct );
 
 //TMM_WP
 
@@ -648,15 +649,13 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
     RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
 
     //----- write slice header -----
-    ETRACE_NEWSLICE;
     RNOK( m_pcNalUnitEncoder->write ( rcSliceHeader ) );
 
     //----- real coding -----
     RNOK( m_pcSliceEncoder->encodeSlice( rcSliceHeader,
                                          rcRecPicBufUnit.getRecFrame  (),
                                          rcRecPicBufUnit.getMbDataCtrl(),
-                                         cList0,
-                                         cList1,
+                                         cRefListStruct,
                                          m_pcCodingParameter->getMCBlks8x8Disable() > 0,
                                          m_uiFrameWidthInMb,
                                          dLambda ) );
@@ -783,7 +782,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
 
   //===== update parameters =====
   m_uiCodedFrames++;
-  ETRACE_NEWFRAME;
+  ETRACE_NEWPIC;
 
   return Err::m_nOK;
 }

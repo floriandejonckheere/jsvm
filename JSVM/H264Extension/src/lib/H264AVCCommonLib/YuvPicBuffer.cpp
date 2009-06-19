@@ -158,7 +158,7 @@ ErrVal YuvPicBuffer::getSSD( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuf
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      dDiff  = (Double)( pOrg[x] - min( 255, max( 0, pSrc[x] ) ) );
+      dDiff  = (Double)( pOrg[x] - gMin( 255, gMax( 0, pSrc[x] ) ) );
       dSSDY += dDiff * dDiff;
     }
     pSrc += iStride;
@@ -175,7 +175,7 @@ ErrVal YuvPicBuffer::getSSD( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuf
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      dDiff  = (Double)( pOrg[x] - min( 255, max( 0, pSrc[x] ) ) );
+      dDiff  = (Double)( pOrg[x] - gMin( 255, gMax( 0, pSrc[x] ) ) );
       dSSDU += dDiff * dDiff;
     }
     pSrc += iStride;
@@ -189,7 +189,7 @@ ErrVal YuvPicBuffer::getSSD( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuf
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      dDiff  = (Double)( pOrg[x] - min( 255, max( 0, pSrc[x] ) ) );
+      dDiff  = (Double)( pOrg[x] - gMin( 255, gMax( 0, pSrc[x] ) ) );
       dSSDV += dDiff * dDiff;
     }
     pSrc += iStride;
@@ -220,7 +220,7 @@ ErrVal YuvPicBuffer::storeToPicBuffer( PicBuffer* pcPicBuffer )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pDes[x] = (UChar)( min( 255, max( 0, pSrc[x] ) ) );
+      pDes[x] = (UChar)( gMin( 255, gMax( 0, pSrc[x] ) ) );
     }
     pSrc += iStride;
     pDes += iStride;
@@ -236,7 +236,7 @@ ErrVal YuvPicBuffer::storeToPicBuffer( PicBuffer* pcPicBuffer )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pDes[x] = (UChar)( min( 255, max( 0, pSrc[x] ) ) );
+      pDes[x] = (UChar)( gMin( 255, gMax( 0, pSrc[x] ) ) );
     }
     pSrc += iStride;
     pDes += iStride;
@@ -249,7 +249,7 @@ ErrVal YuvPicBuffer::storeToPicBuffer( PicBuffer* pcPicBuffer )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pDes[x] = (UChar)( min( 255, max( 0, pSrc[x] ) ) );
+      pDes[x] = (UChar)( gMin( 255, gMax( 0, pSrc[x] ) ) );
     }
     pSrc += iStride;
     pDes += iStride;
@@ -1280,7 +1280,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
+      pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
@@ -1296,7 +1296,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
+      pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
@@ -1309,7 +1309,7 @@ ErrVal YuvPicBuffer::dumpLPS( FILE* pFile )
   {
     for( x = 0; x < uiWidth; x++ )
     {
-      pChar[x] = (UChar)( max( (Int)0, min( (Int)255, pPel[x] ) ) );
+      pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
@@ -1360,9 +1360,9 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
     for( x = 0; x < uiWidth; x++ )
     {
       if( pucIntra[(y>>4)*iNumMbX+(x>>4)] )
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255,       pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255,       pPel[x] ) ) );
       else
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
@@ -1379,9 +1379,9 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
     for( x = 0; x < uiWidth; x++ )
     {
       if( pucIntra[(y>>3)*iNumMbX+(x>>3)] )
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255,       pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255,       pPel[x] ) ) );
       else
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );
@@ -1395,9 +1395,9 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
     for( x = 0; x < uiWidth; x++ )
     {
       if( pucIntra[(y>>3)*iNumMbX+(x>>3)] )
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255,       pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255,       pPel[x] ) ) );
       else
-        pChar[x] = (UChar)( max( (Int)0, min( (Int)255, 127 + pPel[x] ) ) );
+        pChar[x] = (UChar)( gMax( (Int)0, gMin( (Int)255, 127 + pPel[x] ) ) );
     }
     pPel += iStride;
     ROF( uiWidth == ::fwrite( pChar, sizeof(UChar), uiWidth, pFile ) );

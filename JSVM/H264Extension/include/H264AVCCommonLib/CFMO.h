@@ -34,14 +34,24 @@ public:
 	unsigned bottom_right[Max_Num_Slice_Groups];
 	bool slice_group_change_direction_flag;
 	unsigned slice_group_change_rate_minus1;
-	unsigned int slice_group_id[Max_Num_Slice_Groups];
+  unsigned int  slice_group_id_map_size;
+	unsigned int* slice_group_id_map;
 
 public:
-	FMO_PPS():num_slice_group_map_units_minus1(0)
+	FMO_PPS()
+    :num_slice_group_map_units_minus1(0)
 		,num_slice_groups_minus1(0)
 		,slice_group_map_type(0)
 		,slice_group_change_direction_flag(0)
-		,slice_group_change_rate_minus1(0){};
+		,slice_group_change_rate_minus1(0)
+    ,slice_group_id_map_size(0)
+    ,slice_group_id_map(0)
+  {};
+
+  ~FMO_PPS()
+  {
+    delete [] slice_group_id_map;
+  }
 
 
 	void copy_run_length_minus1(unsigned* Run_length_minus1)
@@ -73,9 +83,18 @@ public:
 
 	void copy_slice_group_id(unsigned int* Slice_group_id)
 	{
+    ROFVS( Slice_group_id );
 		assert(Max_Num_Slice_Groups>0);
-		for(UInt i=0;i<num_slice_groups_minus1;i++)
-			slice_group_id[i] = Slice_group_id[i];
+    if( slice_group_id_map_size <= num_slice_group_map_units_minus1 )
+    {
+      delete [] slice_group_id_map;
+      slice_group_id_map_size = num_slice_group_map_units_minus1 + 1;
+      slice_group_id_map      = new unsigned int [ slice_group_id_map_size ];
+    }
+		for( UInt i = 0; i <= num_slice_group_map_units_minus1; i++ )
+    {
+      slice_group_id_map[i] = Slice_group_id[i];
+    }
 	}
 
   FMO_PPS& operator = ( const FMO_PPS& rcFmoPPS )

@@ -226,6 +226,7 @@ public:
   ~XDataList ();
 
   Void    reset       ();
+  Void    copy        ( XDataList<T>& rcSrc );
   ErrVal  add         ( T*    pT );
   Void    setActive   ( UInt  ui = MSYS_UINT_MAX );
   Void    incActive   ();
@@ -270,6 +271,16 @@ XDataList<T>::reset()
 }
 
 template< class T >
+Void
+XDataList<T>::copy( XDataList<T>& rcSrc )
+{
+  memcpy( m_apT, rcSrc.m_apT, sizeof(rcSrc.m_apT) );
+  m_uiSize    = rcSrc.m_uiSize;
+  m_uiActive  = rcSrc.m_uiActive;
+}
+
+
+template< class T >
 ErrVal
 XDataList<T>::add( T* pT )
 {
@@ -287,7 +298,7 @@ template< class T >
 Void
 XDataList<T>::setActive( UInt ui )
 {
-  m_uiActive = min( ui, m_uiSize );
+  m_uiActive = gMin( ui, m_uiSize );
 }
 
 template< class T >
@@ -386,7 +397,7 @@ XDataList<T>::setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry )
     {
       m_uiSize++;
     }
-    ::memmove( &(m_apT[uiIPos+1]), &(m_apT[uiIPos]), (min(uiRPos,m_uiSize-1)-uiIPos)*sizeof(T*) );
+    ::memmove( &(m_apT[uiIPos+1]), &(m_apT[uiIPos]), (gMin(uiRPos,m_uiSize-1)-uiIPos)*sizeof(T*) );
   }
   m_apT[uiIPos] = pEntry;
   return Err::m_nOK;
@@ -399,6 +410,15 @@ class ControlData;
 typedef XDataList<Frame>        RefFrameList;
 typedef XDataList<ControlData>  CtrlDataList;
 
+class RefListStruct
+{
+public:
+  Bool          bMCandRClistsDiffer;
+  UInt          uiFrameIdCol;
+  RefFrameList  acRefFrameListME[2];  
+  RefFrameList  acRefFrameListMC[2];  
+  RefFrameList  acRefFrameListRC[2];  
+};
 
 
 H264AVC_NAMESPACE_END

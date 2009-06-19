@@ -36,9 +36,12 @@
 H264AVC_NAMESPACE_BEGIN
 
 
-NonVCLNALUnit::NonVCLNALUnit( BinData* pcBinData )
+NonVCLNALUnit::NonVCLNALUnit( BinData* pcBinData, Bool bSEI, Bool bScalableSEI, Bool bBufferingPeriod )
 : m_pcBinData       ( pcBinData )
 , m_eNalUnitType    ( NalUnitType( pcBinData->data()[ 0 ] & 0x1F ) )
+, m_bIsSEI          ( bSEI )
+, m_bScalableSEI    ( bScalableSEI )
+, m_bBufferingPeriod( bBufferingPeriod )
 {
   setInstance( this );
 }
@@ -189,7 +192,7 @@ AccessUnit::update( BinData* pcBinData, PrefixHeader& rcPrefixHeader )
   ROF( pcBinData );
 
   //===== create or extract and update slice data NAL unit =====
-  NonVCLNALUnit* pcNonVCLNalUnit = new NonVCLNALUnit( pcBinData );
+  NonVCLNALUnit* pcNonVCLNalUnit = new NonVCLNALUnit( pcBinData, false, false, false );
   ROF( pcNonVCLNalUnit );
 
   //===== update slice data NAL unit list and header references =====
@@ -241,7 +244,7 @@ AccessUnit::update( BinData* pcBinData, SliceHeader& rcSliceHeader )
 
 
 ErrVal
-AccessUnit::update( BinData* pcBinData )
+AccessUnit::update( BinData* pcBinData, Bool bSEI, Bool bScalableSEI, Bool bBufferingPeriod )
 {
   ROT( m_bComplete );
   ROT( m_bEndOfStream );
@@ -250,7 +253,7 @@ AccessUnit::update( BinData* pcBinData )
 
   if( pcBinData )
   {
-    NonVCLNALUnit* pcNonVCLNALUnit = new NonVCLNALUnit( pcBinData );
+    NonVCLNALUnit* pcNonVCLNALUnit = new NonVCLNALUnit( pcBinData, bSEI, bScalableSEI, bBufferingPeriod );
     ROF( pcNonVCLNALUnit );
     m_cNalUnitList.push_back( pcNonVCLNALUnit );
     bEOS = ( pcNonVCLNALUnit->getNalUnitType() == NAL_UNIT_END_OF_STREAM );
@@ -657,7 +660,6 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
   if( bOpenTrace )
   {
     INIT_DTRACE;
-    OPEN_DTRACE;
   }
 
   RNOK( m_pcBitReadBuffer         ->init() );
@@ -767,7 +769,7 @@ CreaterH264AVCDecoder::uninit( Bool bCloseTrace )
 
   if( bCloseTrace )
   {
-    CLOSE_DTRACE;
+    UNINIT_DTRACE;
   }
 
   return Err::m_nOK;
@@ -817,6 +819,10 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 
 H264AVCPacketAnalyzer::~H264AVCPacketAnalyzer()
 {
+  if( m_pcNonRequiredSEI )
+  {
+    m_pcNonRequiredSEI->destroy();
+  }
 }
 
 
@@ -978,6 +984,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         {
           SEI::MotionSEI* pcSEI               = (SEI::MotionSEI*)pcSEIMessage;
           m_silceIDOfSubPicLayer[m_layer_id]  = pcSEI->m_slice_group_id[0];
+          delete pcSEIMessage;
           break;
         }
 
@@ -993,6 +1000,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           SEI::SubPicSei* pcSEI    = (SEI::SubPicSei*)pcSEIMessage;
           m_layer_id          = pcSEI->getDependencyId();
           bApplyToNext  = true;
+          delete pcSEIMessage;
           break;
         }
 
@@ -1010,6 +1018,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           }
           uiLayer = pcSEI->getPrDependencyId();
           bApplyToNext = true;
+          delete pcSEIMessage;
           break;
         }
 
@@ -1040,11 +1049,12 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               puiQualityLevel[uiIndex] = pcSEI->getQualityId(uiIndex);
             }
             uiTemporalId = pcSEI->getTemporalId();
-            delete puiDependencyId;
-            delete puiQualityLevel;
+            delete [] puiDependencyId;
+            delete [] puiQualityLevel;
           }
           bApplyToNext = true;
           rcPacketDescription.bDiscardableHRDSEI = true;
+          delete pcSEIMessage;
           break;
         }
 
@@ -1052,6 +1062,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         {
           rcPacketDescription.bDiscardableHRDSEI = true;
           rcPacketDescription.bDiscardable = true;
+          delete pcSEIMessage;
           break;
         }
 
@@ -1059,11 +1070,15 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         {
           rcPacketDescription.bDiscardableHRDSEI = true;
           rcPacketDescription.bDiscardable = true;
+          delete pcSEIMessage;
           break;
         }
 
       case SEI::INTEGRITY_CHECK_SEI:
         {
+          rcPacketDescription.bDiscardableHRDSEI = true;
+          rcPacketDescription.bDiscardable = true;
+          delete pcSEIMessage;
           break;
         }
 
@@ -1107,22 +1122,30 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           delete ppuiQualityId;
           delete ppuiNumRedundantPicsMinus1;
           delete pppuiRedundantPicCntMinus1;
-
+          delete pcSEIMessage;
           break;
         }
 
       case SEI::TL_SWITCHING_POINT_SEI:
         {
+          rcPacketDescription.bDiscardableHRDSEI = true;
+          rcPacketDescription.bDiscardable = true;
+          delete pcSEIMessage;
           break;
         }
 
       case SEI::TL0_DEP_REP_IDX_SEI:
         {
+          rcPacketDescription.bDiscardableHRDSEI = true;
+          rcPacketDescription.bDiscardable = true;
+          delete pcSEIMessage;
           break;
         }
 
       default:
         {
+          rcPacketDescription.bDiscardableHRDSEI = true;
+          rcPacketDescription.bDiscardable = true;
           delete pcSEIMessage;
         }
       }

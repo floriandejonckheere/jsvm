@@ -193,6 +193,7 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
   RNOK( gSetFrameFieldArrays( apcBaseLayerResidual, pcBaseLayerResidual ) );
 
   //===== loop over macroblocks =====
+  Bool bSNR             = rcSH.getTCoeffLevelPredictionFlag() || rcSH.getSCoeffResidualPredFlag();
   UInt uiMbAddress      = rcSH.getFirstMbInSlice();
   UInt uiLastMbAddress  = rcSH.getFirstMbInSlice() + rcSH.getNumMbsInSlice() - 1;
   for( ; uiMbAddress <= uiLastMbAddress; uiMbAddress+=2 )
@@ -212,13 +213,18 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
       RNOK( pcMbDataCtrl->      initMb       (  pcMbDataAccess,    uiMbY, uiMbX       ) );
       pcMbDataAccess->setFieldMode( pcMbDataAccess->getMbData().getFieldFlag()          );
 
-      if( pcMbDataAccess->getMbPicType()==FRAME && pcMbDataCtrlBase )
+      if( ( pcMbDataAccess->getMbPicType()==FRAME || bSNR ) && pcMbDataCtrlBase )
       {
         RNOK( pcMbDataCtrlBase->initMb        ( pcMbDataAccessBase, uiMbY, uiMbX  ) );
       }
-      else if( pcMbDataAccess->getMbPicType()<FRAME && pcMbDataCtrlBaseField )
+      else if( pcMbDataAccess->getMbPicType()<FRAME && !bSNR && pcMbDataCtrlBaseField )
       {
         RNOK( pcMbDataCtrlBaseField->initMb   ( pcMbDataAccessBase, uiMbY, uiMbX  ) );
+      }
+
+      if( bSNR && rcSH.getSliceSkipFlag() )
+      {
+        pcMbDataAccess->setFieldMode( pcMbDataAccessBase->getMbData().getFieldFlag() );
       }
 
       RNOK( m_pcControlMng->initMbForDecoding( *pcMbDataAccess,    uiMbY, uiMbX, true ) );

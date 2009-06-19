@@ -83,8 +83,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 147,
-            		        psnr => 31.22,
+				bitrate => 145,
+            		        psnr => 31.54,
             		      },
             		      #----------#
 		                   #----------#
@@ -96,9 +96,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 147,
+				bitrate => 143,
 				useql     => 1,
-            		        psnr => 31.46,            		        
+            		        psnr => 31.93,            		        
             		      },
             		      #----------#
 			 
@@ -112,7 +112,7 @@
             		        height => 144,
             		        framerate => 15,
 				bitrate => 219,
-            		        psnr => 32.76,
+            		        psnr => 32.92,
             		      },
             		      #----------#
 		                   #----------#
@@ -124,9 +124,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 232,
+				bitrate => 228,
 				useql     => 1,
-            		        psnr => 33.10,            		        
+            		        psnr => 33.95,            		        
             		      },
             		      #----------#
                       # Test   4 #
@@ -137,8 +137,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 470,
-            		        psnr => 27.97,
+				bitrate => 394,
+            		        psnr => 27.80,
             		      },
     		              #----------#
 		      # Test   5 #
@@ -149,9 +149,9 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 478,
+				bitrate => 404,
 				useql     => 1,
-            		        psnr => 27.78,
+            		        psnr => 27.62,
             		      },
 		  ],
 }

@@ -23,19 +23,23 @@ MbCoder::MbCoder():
   m_bCabac( false ),
   m_bPrevIsSkipped( false )
 {
-	//JVT-X046 {
-	CabacWriter* pcCabacWrite;
-	UvlcWriter* pcUvlcWrite;
-	CabacWriter::create(pcCabacWrite);
-	UvlcWriter::create(pcUvlcWrite);
-	m_pcCabacSymbolWriteIf = pcCabacWrite;
-	m_pcUvlcSymbolWriteIf = pcUvlcWrite;
-	//JVT-X046 }
+  CabacWriter*  pcCabacWriter = 0;
+  UvlcWriter*   pcUvlcWriter  = 0;
+  ANOK( BitWriteBuffer::create( m_pcBitWriteBufferCabac ) );
+  ANOK( BitWriteBuffer::create( m_pcBitWriteBufferUvlc  ) );
+	ANOK( CabacWriter::create   ( pcCabacWriter  ) );
+	ANOK( UvlcWriter::create    ( pcUvlcWriter   ) );
+  ANOK( pcCabacWriter ->init( m_pcBitWriteBufferCabac ) );
+  ANOK( pcUvlcWriter  ->init( m_pcBitWriteBufferUvlc  ) );
+  m_pcCabacSymbolWriteIf  = pcCabacWriter;
+  m_pcUvlcSymbolWriteIf   = pcUvlcWriter;
 }
 
 
 MbCoder::~MbCoder()
 {
+  ANOK( m_pcBitWriteBufferCabac->destroy() );
+  ANOK( m_pcBitWriteBufferUvlc ->destroy() );
 	//JVT-X046 {
 	delete m_pcCabacSymbolWriteIf;
 	delete m_pcUvlcSymbolWriteIf;
@@ -94,10 +98,15 @@ ErrVal MbCoder::uninit()
 ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
                         MbDataAccess* pcMbDataAccessBase,
                         Bool          bTerminateSlice,
-                        Bool          bSendTerminateSlice)
+                        Bool          bSendTerminateSlice )
 {
   ROF( m_bInitDone );
   ROTRS( rcMbDataAccess.getSH().getSliceSkipFlag(), Err::m_nOK );
+
+  ETRACE_DECLARE( Bool m_bTraceEnable = true );
+  ETRACE_DECLARE( Int  iDQIdBase      = Int( 16 * rcMbDataAccess.getSH().getLayerCGSSNR() + rcMbDataAccess.getSH().getQualityLevelCGSSNR() ) );
+  ETRACE_LAYER  ( iDQIdBase );
+  ETRACE_NEWMB  ( rcMbDataAccess.getMbAddress() );
 
   rcMbDataAccess.getMbData().setBCBP(0);
 
@@ -112,32 +121,24 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
   //===== skip flag =====
   Bool  bIsCoded  = ! rcMbDataAccess.isSkippedMb();
 
-  RNOK( m_pcMbSymbolWriteIf->skipFlag( rcMbDataAccess, false ) );
+  RNOK( m_pcMbSymbolWriteIf->skipFlag( rcMbDataAccess ) );
 
   MbSymbolWriteIf *pcCurrentWriter = m_pcMbSymbolWriteIf;
-  UInt uiSourceLayer = g_nLayer;
   UInt uiMGSFragment = 0;
   for( uiMGSFragment = 0;
        rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16;
        uiMGSFragment++ )
   {
-    g_nLayer++;
-    ETRACE_DECLARE( Bool m_bTraceEnable = true );
-    ETRACE_LAYER( g_nLayer );
+    ETRACE_LAYER( iDQIdBase + Int( uiMGSFragment + 1 ) );
     ETRACE_NEWMB( rcMbDataAccess.getMbAddress() );
     pcCurrentWriter = pcCurrentWriter->getSymbolWriteIfNextSlice();
-    RNOK( pcCurrentWriter->skipFlag( rcMbDataAccess, false ) );
+    RNOK( pcCurrentWriter->skipFlag( rcMbDataAccess ) );
     if( bIsCoded  && rcMbDataAccess.getSH().isMbaffFrame() && ( rcMbDataAccess.isTopMb() || m_bPrevIsSkipped ) )
     {
       RNOK( pcCurrentWriter->fieldFlag( rcMbDataAccess ) );
     }
   }
-
-  {
-    g_nLayer = uiSourceLayer;
-    ETRACE_DECLARE( Bool m_bTraceEnable = true; );
-    ETRACE_LAYER( g_nLayer );
-  }
+  ETRACE_LAYER( iDQIdBase );
 
   if( bIsCoded )
   {
@@ -260,9 +261,9 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
  			//-- JVT-R091
       MbSymbolWriteIf *pcMasterWriter = m_pcMbSymbolWriteIf;
       uiMGSFragment = 0;
-      uiSourceLayer = g_nLayer;
       while( true )
       {
+        ETRACE_LAYER( iDQIdBase + Int( uiMGSFragment ) );
         RNOK( xWriteTextureInfo( rcMbDataAccess,
                                  pcMbDataAccessBase,
                                  rcMbDataAccess.getMbTCoeffs(),
@@ -281,21 +282,9 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
         bTrafo8x8Flag = rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag();
 
         m_pcMbSymbolWriteIf = m_pcMbSymbolWriteIf->getSymbolWriteIfNextSlice();
-
-        {
-          g_nLayer++;
-          ETRACE_DECLARE( Bool m_bTraceEnable = true; );
-          ETRACE_LAYER( g_nLayer );
-        }
-
       }
       m_pcMbSymbolWriteIf = pcMasterWriter;
-
-      {
-        g_nLayer = uiSourceLayer;
-        ETRACE_DECLARE( Bool m_bTraceEnable = true; );
-        ETRACE_LAYER( g_nLayer );
-      }
+      ETRACE_LAYER( iDQIdBase );
     }
 
     // JVT-W043 {
@@ -317,6 +306,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 			if ((getBitsWritten() >= m_uiSliceArgument))
 			{
 				m_pcMbSymbolWriteIf->loadCabacWrite(m_pcCabacSymbolWriteIf);
+        ETRACE_RESET;
 				RNOK( m_pcMbSymbolWriteIf->terminatingBit ( true ? 1:0 ) );
 				RNOK( m_pcMbSymbolWriteIf->finishSlice() );
 				bSliceCodedDone=true;
@@ -329,6 +319,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 			if ((getBitsWritten() >= m_uiSliceArgument))
 			{
 				m_pcMbSymbolWriteIf->loadUvlcWrite(m_pcUvlcSymbolWriteIf);
+        ETRACE_RESET;
 				RNOK( m_pcMbSymbolWriteIf->terminatingBit ( true ? 1:0 ) );
 				RNOK( m_pcMbSymbolWriteIf->finishSlice() );
 				bSliceCodedDone=true;
@@ -336,6 +327,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 			}
 			m_pcUvlcSymbolWriteIf->loadUvlcWrite(m_pcMbSymbolWriteIf);
 		}
+    ETRACE_STORE;
 	}
 	//JVT-X046 }
 
@@ -357,14 +349,9 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
   // JVT-W043 }
 
   MbSymbolWriteIf *pcMasterWriter = m_pcMbSymbolWriteIf;
-  uiSourceLayer = g_nLayer;
   for( uiMGSFragment = 0; rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16; uiMGSFragment++ )
   {
-    {
-      g_nLayer++;
-      ETRACE_DECLARE( Bool m_bTraceEnable = true; );
-      ETRACE_LAYER( g_nLayer );
-    }
+    ETRACE_LAYER( iDQIdBase + Int( uiMGSFragment + 1 ) );
     m_pcMbSymbolWriteIf = m_pcMbSymbolWriteIf->getSymbolWriteIfNextSlice();
     RNOK( m_pcMbSymbolWriteIf->terminatingBit ( bTerminateSlice ? 1:0 ) );
     if( bTerminateSlice )
@@ -373,11 +360,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
     }
   }
   m_pcMbSymbolWriteIf = pcMasterWriter;
-  {
-    g_nLayer = uiSourceLayer;
-    ETRACE_DECLARE( Bool m_bTraceEnable = true; );
-    ETRACE_LAYER( g_nLayer );
-  }
+  ETRACE_LAYER( iDQIdBase );
   return Err::m_nOK;
 }
 
@@ -476,8 +459,8 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
   AOT_DBG( rcMbDataAccess.getMbData().isIntra() );
 
   MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
-  ROFRS  ( pcMbDataAccessBase,                                    Err::m_nOK );
-  ROFRS  ( pcMbDataAccessBase->getMbData().getInCropWindowFlag(), Err::m_nOK );
+  ROFRS ( pcMbDataAccessBase,                                       Err::m_nOK );
+  ROFRS ( pcMbDataAccessBase->getMbData().getInCropWindowFlag(),    Err::m_nOK );
 // JVT-U160 LMI
   ROFRS ( rcMbDataAccess.getSH().getAdaptiveMotionPredictionFlag(), Err::m_nOK );
   switch( eMbMode )
@@ -561,7 +544,6 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
     return Err::m_nOK;
   }
 
-  Bool          bPred = rcMbDataAccess.getSH().getAdaptiveBaseModeFlag();
   MbMotionData& rcMot = rcMbDataAccess.getMbMotionData( eLstIdx );
 
   switch( eMbMode )
@@ -573,7 +555,7 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
 
   case MODE_16x16:
     {
-      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && ( ! bPred || ! rcMot.getMotPredFlag() ) )
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && !rcMot.getMotPredFlag() )
       {
         RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx ) );
       }
@@ -582,12 +564,11 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
 
   case MODE_16x8:
     {
-      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && ( ! bPred || ! rcMot.getMotPredFlag( PART_16x8_0 ) ) )
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && !rcMot.getMotPredFlag( PART_16x8_0 ) )
       {
         RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx, PART_16x8_0 ) );
       }
-
-      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_2, eLstIdx) && ( ! bPred || ! rcMot.getMotPredFlag( PART_16x8_1 ) ) )
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_2, eLstIdx) && !rcMot.getMotPredFlag( PART_16x8_1 ) )
       {
         RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx, PART_16x8_1 ) );
       }
@@ -596,12 +577,11 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
 
   case MODE_8x16:
     {
-      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && ( ! bPred || ! rcMot.getMotPredFlag( PART_8x16_0 ) ) )
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) && !rcMot.getMotPredFlag( PART_8x16_0 ) ) 
       {
         RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx, PART_8x16_0 ) );
       }
-
-      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_1, eLstIdx) && ( ! bPred || ! rcMot.getMotPredFlag( PART_8x16_1 ) ) )
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_1, eLstIdx) && !rcMot.getMotPredFlag( PART_8x16_1 ) )
       {
         RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx, PART_8x16_1 ) );
       }
@@ -614,7 +594,7 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
         if( BLK_SKIP != rcMbDataAccess.getMbData().getBlkMode( c8x8Idx.b8x8Index() ) &&
-            rcMbDataAccess.getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), eLstIdx ) && ( ! bPred || ! rcMot.getMotPredFlag( c8x8Idx.b8x8() ) ) )
+            rcMbDataAccess.getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), eLstIdx ) && !rcMot.getMotPredFlag( c8x8Idx.b8x8() ) )
         {
           RNOK( m_pcMbSymbolWriteIf->refFrame( rcMbDataAccess, eLstIdx, c8x8Idx.b8x8() ) );
         }
@@ -765,10 +745,9 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
 
   if( uiStart != uiStop && rcMbDataAccess.getMbData().isIntra16x16() )
   {
-    ROT( uiStart != 0 || uiStop != 16 );
-    RNOK( xScanLumaIntra16x16( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().isAcCoded() ) );
+    ROT( uiStart != 0 || uiStop != 16 ); // not allowed in this encoder
+    RNOK( xScanLumaIntra16x16( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().isAcCoded(), uiStart, uiStop ) );
     RNOK( xScanChromaBlocks  ( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().getCbpChroma16x16() ) );
-
     return Err::m_nOK;
   }
 
@@ -809,14 +788,17 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
 
 
 
-ErrVal MbCoder::xScanLumaIntra16x16( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, Bool bAC )
+ErrVal MbCoder::xScanLumaIntra16x16( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, Bool bAC, UInt uiStart, UInt uiStop )
 {
-  RNOK( m_pcMbSymbolWriteIf->residualBlock( rcMbDataAccess, B4x4Idx(0), LUMA_I16_DC ) );
-  ROFRS( bAC, Err::m_nOK );
+  if( uiStart == 0 )
+  {
+    RNOK( m_pcMbSymbolWriteIf->residualBlock( rcMbDataAccess, B4x4Idx(0), LUMA_I16_DC, uiStart, uiStop ) );
+  }
+  ROFRS( bAC && uiStop > 1, Err::m_nOK );
 
   for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++)
   {
-    RNOK( m_pcMbSymbolWriteIf->residualBlock( rcMbDataAccess, cIdx, LUMA_I16_AC ) );
+    RNOK( m_pcMbSymbolWriteIf->residualBlock( rcMbDataAccess, cIdx, LUMA_I16_AC, uiStart, uiStop ) );
   }
 
   return Err::m_nOK;

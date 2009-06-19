@@ -42,8 +42,7 @@ ControlMngH264AVCEncoder::~ControlMngH264AVCEncoder()
 
 ErrVal
 ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,
-                                             const PictureParameterSet&   rcPPSLP,
-                                             const PictureParameterSet&   rcPPSHP )
+                                             const PictureParameterSet&   rcPPS )
 {
   UInt  uiLayer             = rcSPS.getDependencyId          ();
   UInt  uiMbX               = rcSPS.getFrameWidthInMbs  ();
@@ -56,7 +55,7 @@ ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,
   RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN, 1 ) );
   if( ! m_bAVCMode )
   {
-  RNOK( m_apcLayerEncoder        [uiLayer]->initParameterSets( rcSPS, rcPPSLP, rcPPSHP ) );
+    RNOK( m_apcLayerEncoder      [uiLayer]->initParameterSets( rcSPS, rcPPS ) );
   }
 
   return Err::m_nOK;

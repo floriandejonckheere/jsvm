@@ -11,7 +11,6 @@
 #include "MotionEstimationCost.h"
 #include "Distortion.h"
 #include "CodingParameter.h"
-
 #include "H264AVCCommonLib/MotionCompensation.h"
 
 
@@ -33,28 +32,27 @@ public:
   class MEBiSearchParameters
   {
   public:
-    YuvMbBuffer* pcAltRefPelData;    // the prediction signal for the opposite list (not weighted)
-    UInt            uiL1Search;         // 1 if current search is L1 search, else false
-    const Frame* pcAltRefFrame;      // the reference frame of the opposite list
-    const PredWeight*       apcWeight[2];       // { list 0 prediction weight, list 1 prediction weight }
+    YuvMbBuffer*      pcAltRefPelData;    // the prediction signal for the opposite list (not weighted)
+    UInt              uiL1Search;         // 1 if current search is L1 search, else false
+    const Frame*      pcAltRefFrame;      // the reference frame of the opposite list
+    const PredWeight* apcWeight[2];       // { list 0 prediction weight, list 1 prediction weight }
   };
 
 protected:
   typedef struct
   {
-    Void init( Short sLimit, Mv& rcMvPel, Mv cMin, Mv cMax)
+    Void init( Short sLimit, Mv& rcMvPel, Mv cMin, Mv cMax )
     {
       cMin >>= 2;
       cMax >>= 2;
-      Short sPosV = cMax.getVer() - rcMvPel.getVer();
-      Short sNegV = rcMvPel.getVer() - cMin.getVer();
-      iNegVerLimit = min( sLimit, sNegV) - rcMvPel.getVer();
-      iPosVerLimit = min( sLimit, sPosV) + rcMvPel.getVer();
-
-      Short sPosH = cMax.getHor() - rcMvPel.getHor();
-      Short sNegH = rcMvPel.getHor() - cMin.getHor();
-      iNegHorLimit = min( sLimit, sNegH) - rcMvPel.getHor();
-      iPosHorLimit = min( sLimit, sPosH) + rcMvPel.getHor();
+      Short sPosV   = cMax.getVer() - rcMvPel.getVer();
+      Short sNegV   = rcMvPel.getVer() - cMin.getVer();
+      iNegVerLimit  = gMin( sLimit, sNegV) - rcMvPel.getVer();
+      iPosVerLimit  = gMin( sLimit, sPosV) + rcMvPel.getVer();
+      Short sPosH   = cMax.getHor() - rcMvPel.getHor();
+      Short sNegH   = rcMvPel.getHor() - cMin.getHor();
+      iNegHorLimit  = gMin( sLimit, sNegH) - rcMvPel.getHor();
+      iPosHorLimit  = gMin( sLimit, sPosH) + rcMvPel.getHor();
     }
     Int iNegVerLimit;
     Int iPosVerLimit;
@@ -91,45 +89,33 @@ public:
 
   ErrVal initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcMbDataAccess );
 
-  virtual ErrVal init(  XDistortion*  pcXDistortion,
-                        CodingParameter* pcCodingParameter,
+  virtual ErrVal init(  XDistortion*      pcXDistortion,
+                        CodingParameter*  pcCodingParameter,
                         RateDistortionIf* pcRateDistortionIf,
                         QuarterPelFilter* pcQuarterPelFilter,
                         Transform*        pcTransform,
-                        SampleWeighting* pcSampleWeighting);
+                        SampleWeighting*  pcSampleWeighting );
 
-  UInt    getRateCost           ( UInt                  uiBits,
-                                  Bool                  bSad  )            { xGetMotionCost( bSad, 0 ); return xGetCost( uiBits ); }
-  Bool getELSearch() const { return m_cParams.getELSearch(); }
-  Void setEL( Bool b) { m_bELWithBLMv = b; }
+  UInt    getRateCost   ( UInt uiBits, Bool bSad  ) { xSetMEPars( 0, bSad ); return xGetCost( uiBits ); }
+  Bool    getELSearch   () const                    { return m_cParams.getELSearch(); }
+  Void    setEL         ( Bool b)                   { m_bELWithBLMv = b; }
 
-  ErrVal  estimateBlockWithStart( const MbDataAccess&   rcMbDataAccess,
-                                  const Frame&       rcRefFrame,
-                                  Mv&                   rcMv,         // <-- MVSTART / --> MV
-                                  Mv&                   rcMvPred,
-                                  UInt&                 ruiBits,
-                                  UInt&                 ruiCost,
-                                  UInt                  uiBlk,
-                                  UInt                  uiMode,
-                                  Bool                  bQPelRefinementOnly,
-                                  UInt                  uiSearchRange,
-                                  const PredWeight*             pcPW,
-                                  MEBiSearchParameters* pcBSP = 0 );
-
+  ErrVal  estimateBlockWithStart( const MbDataAccess&         rcMbDataAccess,
+                                  const Frame&                rcRefFrame,
+                                  Mv&                         rcMv, // start and result
+                                  const Mv&                   rcMvPred,
+                                  UInt&                       ruiBits,
+                                  UInt&                       ruiCost,
+                                  const UInt                  uiBlk,
+                                  const UInt                  uiMode,
+                                  const UInt                  uiSearchRange,
+                                  const PredWeight*           pcPW,
+                                  const MEBiSearchParameters* pcBSP = 0 );
 
   virtual ErrVal compensateBlock( YuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, YuvMbBuffer *pcRefPelData2 = NULL ) = 0;
 
-  DFunc getDistortionFunction() { return m_cParams.getSubPelDFunc(); }
-
-//TMM_WP
-  Void setLstIdx( ListIdx eLstIdx) {m_eLstIdx = eLstIdx;}
-  ListIdx getLstIdx() {return m_eLstIdx;}
-//TMM_WP
-
 protected:
-
-  Void          xTZSearch             ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bEL, Int iSearchRange = 0 );
-  __inline Void xTZSearchHelp         ( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance );
+  __inline Void xTZCheckPoint         ( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance );
   __inline Void xTZ2PointSearch       ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect );
   __inline Void xTZ8PointSquareSearch ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect, const Int iStartX, const Int iStartY, const Int iDist );
   __inline Void xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect, const Int iStartX, const Int iStartY, const Int iDist );
@@ -137,24 +123,19 @@ protected:
   Void          xPelBlockSearch ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
   Void          xPelSpiralSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
   Void          xPelLogSearch   ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme,  UInt uiStep = 4, UInt uiSearchRange = 0 );
-  virtual Void  xSubPelSearch   ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly ) = 0;
+  Void          xTZSearch       ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bEL,                    Int  iSearchRange  = 0 );
+  virtual Void  xSubPelSearch   ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode ) = 0;
 
 protected:
-  QuarterPelFilter* m_pcQuarterPelFilter;
-  MotionVectorSearchParams m_cParams;
-  Int m_iMaxLogStep;
-  Mv *m_pcMvSpiralSearch;
-  UInt m_uiSpiralSearchEntries;
-  Mv m_cLastPelMv;
-  Mv  m_acMvPredictors[3];
-
-  XDistortion*      m_pcXDistortion;
-  XDistSearchStruct m_cXDSS;
-
-//TMM_WP
-  ListIdx m_eLstIdx;
-//TMM_WP
-  Bool  m_bELWithBLMv;
+  QuarterPelFilter*         m_pcQuarterPelFilter;
+  MotionVectorSearchParams  m_cParams;
+  Int                       m_iMaxLogStep;
+  Mv*                       m_pcMvSpiralSearch;
+  UInt                      m_uiSpiralSearchEntries;
+  std::vector<Mv>           m_acMvCandList;
+  XDistortion*              m_pcXDistortion;
+  XDistSearchStruct         m_cXDSS;
+  Bool                      m_bELWithBLMv;
 };
 
 

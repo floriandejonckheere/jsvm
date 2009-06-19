@@ -44,12 +44,6 @@ static const Int g_iQP2quant[40] = {
 };
 //JVT-V079 Low-complexity MB mode decision }
 
-__inline UChar MbEncoder::xGetFrameBits( ListIdx eLstIdx, Int iRefPic )
-{
-  return (m_uiMaxRefPics[eLstIdx] > 1) ? g_aucFrameBits[iRefPic] : 0;
-}
-
-
 
 MbEncoder::MbEncoder():
   m_pcCodingParameter( NULL ),
@@ -58,10 +52,7 @@ MbEncoder::MbEncoder():
   m_pcMotionEstimation( NULL ),
   m_pcRateDistortionIf( NULL ),
   m_pcXDistortion( 0 ),
-  bInitDone( false ),
-  m_bISlice( false ),
-  m_bBSlice( false ),
-  m_bCabac( false ),
+  m_bInitDone( false ),
   m_pcIntMbBestData( NULL ),
   m_pcIntMbTempData( NULL ),
   m_pcIntMbBest8x8Data( NULL ),
@@ -83,8 +74,6 @@ MbEncoder::MbEncoder():
   ,m_bBaseModeAllowedFlag( true )
   , m_uiIPCMRate( 0 )
 {
-  m_uiMaxRefFrames[LIST_0] = m_uiMaxRefFrames[LIST_1] = 0;
-  m_uiMaxRefPics  [LIST_0] = m_uiMaxRefPics  [LIST_1] = 0;
 }
 
 
@@ -119,12 +108,6 @@ MbEncoder::destroy()
 ErrVal
 MbEncoder::initSlice( const SliceHeader& rcSH )
 {
-  m_bISlice                 = rcSH.isIntraSlice ();
-  m_bBSlice                 = rcSH.isBSlice();
-  m_bCabac                  = rcSH.getPPS().getEntropyCodingModeFlag();
-  m_uiMaxRefFrames[LIST_0]  = rcSH.getNumRefIdxActive( LIST_0 );
-  m_uiMaxRefFrames[LIST_1]  = rcSH.getNumRefIdxActive( LIST_1 );
-  m_uiMaxRefPics  [LIST_0]  = m_uiMaxRefPics  [LIST_1] = 0;
   RNOK( MbCoder::initSlice( rcSH, this, MbEncoder::m_pcRateDistortionIf ) );
 
   m_BitCounter            = (BitWriteBufferIf*)this;
@@ -163,7 +146,7 @@ MbEncoder::init( Transform*             pcTransform,
   m_pcTransform           = pcTransform;
   m_pcIntraPrediction     = pcIntraPrediction;
   m_pcMotionEstimation    = pcMotionEstimation;
-  bInitDone               = true;
+  m_bInitDone             = true;
 
   return Err::m_nOK;
 }
@@ -177,177 +160,22 @@ MbEncoder::uninit()
   m_pcTransform = NULL;
   m_pcIntraPrediction = NULL;
   m_pcMotionEstimation = NULL;
-  bInitDone = false;
-  return Err::m_nOK;
-}
-
-
-ErrVal
-MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
-                        MbDataAccess*  pcMbDataAccessBase,
-                        Frame*			pcOrgFrame,
-                        Frame*      pcFrame,
-                        Frame*      pcRecSubband,
-                        Frame*      pcBaseLayer,
-                        Frame*      pcPredSignal,
-                        Double        dLambda,
-                        Double&       rdCost )
-{
-  ROF( bInitDone );
-
-  UInt  uiQp    = rcMbDataAccess.getMbData().getQp();
-
-  if (rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag())
-  {
-    uiQp    = rcMbDataAccess.getLastQp();        // to avoid QP get changed by fixMacroblockQP
-    rcMbDataAccess.getMbData().setQp( uiQp );
-  }
-
-  RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
-
-  m_pcIntMbBestIntraChroma  = NULL;
-  m_pcIntMbBestData   ->init( rcMbDataAccess );
-  m_pcIntMbTempData   ->init( rcMbDataAccess );
-  m_pcIntMbBest8x8Data->init( rcMbDataAccess );
-  m_pcIntMbTemp8x8Data->init( rcMbDataAccess );
-
-  m_pcIntPicBuffer = pcFrame->getFullPelYuvBuffer();
-  m_pcXDistortion->loadOrgMbPelData( pcOrgFrame->getFullPelYuvBuffer(), m_pcIntOrgMbPelData );
-  m_pcTransform->setQp( rcMbDataAccess, true );
-
-  ROT( !rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ! pcMbDataAccessBase );
-  Bool  bIsEnhLayer       = ! rcMbDataAccess.getSH().getNoInterLayerPredFlag();
-  Bool  bInCropWindow     = ( bIsEnhLayer   && pcMbDataAccessBase->getMbData().getInCropWindowFlag() );
-  pcMbDataAccessBase      = ( bInCropWindow  ? pcMbDataAccessBase : 0 );
-
-  //===== INTRA_BL =====
-  if( bInCropWindow && pcMbDataAccessBase->getMbData().isIntra() )
-  {
-    ROF ( pcBaseLayer );
-    RNOK( xEstimateMbIntraBL( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayer, false, pcMbDataAccessBase  ) );
-  }
-
-  //===== spatial intra modes =====
-  if( ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) && rcMbDataAccess.getSH().getSPS().getNumberOfQualityLevelsCGSSNR() == 1 )
-  {
-    //===== check normal intra modes (if base layer or adaptive prediction) =====
-    RNOK( xEstimateMbIntra16( m_pcIntMbTempData, m_pcIntMbBestData,                 false  ) );
-    RNOK( xEstimateMbIntra8 ( m_pcIntMbTempData, m_pcIntMbBestData,                 false  ) );
-    RNOK( xEstimateMbIntra4 ( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData, false  ) );
-    RNOK( xEstimateMbPCM    ( m_pcIntMbTempData, m_pcIntMbBestData,                 false  ) );
-  }
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcGenericRC->update_rc( jsvmCalcMAD( m_pcIntMbBestData, rcMbDataAccess ) );
-  }
-  // JVT-W043 }
-  RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, 0, 0, false, NULL ) );
-
-
-  //JVT-R057 LA-RDO{
-  if(m_bLARDOEnable)
-  {
-	  Int x,y;
-	  MbMode mode=rcMbDataAccess.getMbData().getMbMode();
-	  Bool bInter= !rcMbDataAccess.getSH().getNoInterLayerPredFlag();
-	  Int KBlock = m_pcIntPicBuffer->getLWidth()/4;
-
-	  Int blockX=rcMbDataAccess.getMbX()*4;
-	  Int blockY=rcMbDataAccess.getMbY()*4;
-	  Int ec_rec,ec_ep;
-	  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-
-	  UInt p=1;
-	  UInt q=100;
-	  if(bInter)
-	  {
-		  for(UInt i=0;i<=m_uiLayerID;i++)
-		  {
-			  //Bug_Fix JVT-R057 0806{
-			  p=p*(100-m_auiPLR[i]);
-			  //Bug_Fix JVT-R057 0806}
-		  }
-		  //q=(UInt)pow(100,(m_uiLayerID+1));
-       q=(UInt)pow(100.0,(int)(m_uiLayerID+1));
-	  }
-	  else
-	  {
-		  p=100-m_auiPLR[m_uiLayerID];
-	  }
-
-	  if(mode!=INTRA_BL)
-	  {
-		  for(y=blockY;y<(blockY+4);y++)
-			  for(x=blockX;x<(blockX+4);x++)
-			  {
-				  if(m_pcFrameEcEp)
-					  ec_ep=m_pcFrameEcEp->getChannelDistortion()[y*KBlock+x];
-				  else
-					  ec_ep=0;
-				  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-				  if(m_pcFrameEcEp)
-					  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
-				  else
-					  ec_rec=0;
-				  pcFrame->getChannelDistortion()[y*KBlock+x]=(q-p)*(ec_rec+ec_ep)/q;
-			  }
-	  }
-	  else
-	  {
-		  Int ep_base;
-		  Int blockIndex;
-		  Int xx,yy;
-		  for(y=blockY;y<(blockY+4);y++)
-			  for(x=blockX;x<(blockX+4);x++)
-			  {
-				  if(m_pcFrameEcEp)
-					  ec_ep=m_pcFrameEcEp->getChannelDistortion()[y*KBlock+x];
-				  else
-					  ec_ep=0;
-				  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-				  if(m_pcFrameEcEp)
-					  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
-				  else
-					  ec_rec=0;
-
-				  xx=(Int)(x/m_aadRatio[m_uiLayerID][0]);
-				  yy=(Int)(y/m_aadRatio[m_uiLayerID][1]);
-				  blockIndex=yy*(Int)(KBlock/m_aadRatio[m_uiLayerID][0])+xx;
-
-				  ep_base=pcBaseLayer->getChannelDistortion()[blockIndex];
-				  pcFrame->getChannelDistortion()[y*KBlock+x]=(p*ep_base+(q-p)*(ec_rec+ec_ep))/q;
-			  }
-	  }
-  }
-  //JVT-R057 LA-RDO}
-
-
-  rdCost = m_pcIntMbBestData->rdCost();
-  m_pcIntMbBestData   ->uninit();
-  m_pcIntMbTempData   ->uninit();
-  m_pcIntMbBest8x8Data->uninit();
-  m_pcIntMbTemp8x8Data->uninit();
-
+  m_bInitDone = false;
   return Err::m_nOK;
 }
 
 
 
-
-
-
 ErrVal
-MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
-                                 IntMbTempData*&   rpcMbBestData,
-                                 IntMbTempData*    pcMbRefData,
-                                 RefFrameList&     rcRefFrameList0,
-                                 RefFrameList&     rcRefFrameList1,
+MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&  rpcMbTempData,
+                                 IntMbTempData*&  rpcMbBestData,
+                                 IntMbTempData*   pcMbRefData,
+                                 RefListStruct&   rcRefListStruct,
+                                 UInt             uiMinQP,
+                                 UInt             uiMaxQP,
                                  Bool             bBLSkip,
-                                 MbDataAccess*     pcMbDataAccessBaseMotion,
-                                 Frame*         pcBaseLayerRec
+                                 MbDataAccess*    pcMbDataAccessBaseMotion,
+                                 Frame*           pcBaseLayerRec
                                  )
 {
   ROTRS( ! rpcMbTempData->getSH().getPPS().getTransform8x8ModeFlag(), Err::m_nOK );
@@ -377,8 +205,8 @@ MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
     rpcMbTempData->getMbMvdData   ( LIST_1 ).copyFrom( pcMbRefData->getMbMvdData   ( LIST_1 ) );
   }
 
-  RNOK( xSetRdCost8x8InterMb( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1,
-                              bBLSkip, 0, false, pcBaseLayerRec ) );
+  RNOK( xSetRdCost8x8InterMb( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefListStruct,
+                              uiMinQP, uiMaxQP, bBLSkip, 0, pcBaseLayerRec ) );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -395,8 +223,7 @@ MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
 ErrVal
 MbEncoder::encodeMacroblock( MbDataAccess&  rcMbDataAccess,
                              Frame*         pcFrame,
-                             RefFrameList&  rcList0,
-                             RefFrameList&  rcList1,
+                             RefListStruct& rcRefListStruct,
                              UInt           uiMaxNumMv,
                              Bool           bMCBlks8x8Disable,
                              Bool           bBiPred8x8Disable,
@@ -420,33 +247,33 @@ MbEncoder::encodeMacroblock( MbDataAccess&  rcMbDataAccess,
 
   m_pcIntPicBuffer = pcFrame->getFullPelYuvBuffer();
   m_pcXDistortion->loadOrgMbPelData( m_pcIntPicBuffer, m_pcIntOrgMbPelData );
-  m_pcTransform->setQp( rcMbDataAccess, rcMbDataAccess.getSH().getTemporalId() == 0 );
+  m_pcTransform->setQp( rcMbDataAccess, false );
 
   //====== evaluate macroblock modes ======
   if( rcMbDataAccess.getSH().isPSlice() )
   {
-    RNOK( xEstimateMbSkip     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1 ) );
+    RNOK( xEstimateMbSkip     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, false, true ) );
   }
   if( rcMbDataAccess.getSH().isBSlice() )
   {
-    RNOK( xEstimateMbDirect   ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, NULL, uiMaxNumMv, false,  rcMbDataAccess.getMbData().getQp() ) );
+    RNOK( xEstimateMbDirect   ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, NULL, uiMaxNumMv, false,  rcMbDataAccess.getMbData().getQp() ) );
   }
   if( rcMbDataAccess.getSH().isPSlice() || rcMbDataAccess.getSH().isBSlice() )
   {
-    RNOK( xEstimateMb16x16    ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  false,  NULL, false ) );
-    RNOK( xEstimateMb16x8     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  false,  NULL, false ) );
-    RNOK( xEstimateMb8x16     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  false,  NULL, false ) );
-    RNOK( xEstimateMb8x8      ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, uiMaxNumMv, bMCBlks8x8Disable, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange,  false,  NULL, false ) );
-    RNOK( xEstimateMb8x8Frext ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcList0,  rcList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  false,  NULL, false ) );
+    RNOK( xEstimateMb16x16    ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  NULL, false ) );
+    RNOK( xEstimateMb16x8     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  NULL, false ) );
+    RNOK( xEstimateMb8x16     ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  NULL, false ) );
+    RNOK( xEstimateMb8x8      ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  NULL, false, bMCBlks8x8Disable, bBiPred8x8Disable ) );
+    RNOK( xEstimateMb8x8Frext ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange,  NULL, false ) );
   }
-  RNOK(   xEstimateMbIntra16  ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcMbDataAccess.getSH().isBSlice() ) );
-  RNOK(   xEstimateMbIntra8   ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcMbDataAccess.getSH().isBSlice() ) );
-  RNOK(   xEstimateMbIntra4   ( rcMbDataAccess, m_pcIntMbTempData,  m_pcIntMbBestData,  rcMbDataAccess.getSH().isBSlice() ) );
-  RNOK(   xEstimateMbPCM      ( m_pcIntMbTempData,  m_pcIntMbBestData,  rcMbDataAccess.getSH().isBSlice() ) );
+  RNOK(   xEstimateMbIntra16  ( m_pcIntMbTempData,  m_pcIntMbBestData,  uiQp, rcMbDataAccess.getSH().isBSlice() ) );
+  RNOK(   xEstimateMbIntra8   ( m_pcIntMbTempData,  m_pcIntMbBestData,  uiQp, rcMbDataAccess.getSH().isBSlice() ) );
+  RNOK(   xEstimateMbIntra4   ( m_pcIntMbTempData,  m_pcIntMbBestData,  uiQp, rcMbDataAccess.getSH().isBSlice() ) );
+  RNOK(   xEstimateMbPCM      ( m_pcIntMbTempData,  m_pcIntMbBestData,        rcMbDataAccess.getSH().isBSlice() ) );
 
   //===== fix estimation =====
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, &rcList0, &rcList1, false, NULL ) );
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, rcRefListStruct, NULL ) );
 
   //===== uninit =====
   m_pcIntMbBestData   ->uninit();
@@ -459,747 +286,7 @@ MbEncoder::encodeMacroblock( MbDataAccess&  rcMbDataAccess,
 
 
 
-ErrVal
-MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
-                         MbDataAccess*    pcMbDataAccessBase,
-                         Frame*        pcOrgFrame,
-                         Frame*        pcFrame,
-                         Frame*        pcRecSubband,
-                         Frame*        pcPredSignal,
-                         Frame*        pcBaseLayerRec,
-                         Frame*        pcBaseLayerSbb,
-                         RefFrameList&    rcRefFrameList0,
-                         Bool            bMCBlks8x8Disable,
-                         UInt             uiMaxNumMv,
-                         Double           dLambda,
-                         Double&          rdCost,
-                         Bool             bSkipModeAllowed )
-{
-  ROF( bInitDone );
-  ROF( uiMaxNumMv );
 
-  UInt uiQp  = rcMbDataAccess.getMbData().getQp();
-  if (rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag())
-  {
-    uiQp    = rcMbDataAccess.getLastQp();        // to avoid QP get changed by fixMacroblockQP
-    rcMbDataAccess.getMbData().setQp( uiQp );
-  }
-
-  RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
-
-  rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
-  m_pcIntMbBestIntraChroma  = NULL;
-  m_pcIntMbBestData   ->init( rcMbDataAccess );
-  m_pcIntMbTempData   ->init( rcMbDataAccess );
-  m_pcIntMbBest8x8Data->init( rcMbDataAccess );
-  m_pcIntMbTemp8x8Data->init( rcMbDataAccess );
-
-  m_pcIntPicBuffer = pcFrame->getFullPelYuvBuffer();
-  m_pcXDistortion->loadOrgMbPelData( pcOrgFrame->getFullPelYuvBuffer(), m_pcIntOrgMbPelData );
-  m_pcTransform->setQp      ( rcMbDataAccess, true );
-  m_pcTransform->setClipMode( false );
-
-
-  //JVT-V079 Low-complexity MB mode decision
-  Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rcMbDataAccess.getSH().getDependencyId()];
-
-  RefFrameList   cRefFrameList1;
-  YuvMbBuffer cBaseLayerBuffer;
-
-  ROT( !rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ! pcMbDataAccessBase );
-  Bool  bIsEnhLayer       = ! rcMbDataAccess.getSH().getNoInterLayerPredFlag();
-  Bool  bInCropWindow     = ( bIsEnhLayer   && pcMbDataAccessBase->getMbData().getInCropWindowFlag() );
-  pcMbDataAccessBase      = ( bInCropWindow  ? pcMbDataAccessBase : 0 );
-  Bool  bIntraEnable      = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() ||   rcMbDataAccess.getMbDataComplementary().isIntra();
-  Bool  bInterEnable      = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
-
-  if( rcMbDataAccess.isFieldMbInMbaffFrame() && rcMbDataAccess.getMbPicType() == BOT_FIELD && rcMbDataAccess.getMbDataComplementary().isIntra() && bInCropWindow )
-  {
-    if( ! pcMbDataAccessBase->getMbData().isIntra() || ! pcMbDataAccessBase->getMbDataComplementary().isIntra() )
-    {
-      bInterEnable = true;
-    }
-  }
-
-  Bool bDefaultResPredFlag = false;
-  Bool avcRewriteFlag = rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag();
-  Bool coeffResidualPredFlag = rcMbDataAccess.getCoeffResidualPredFlag();
-
-  if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
-      !rcMbDataAccess.getSH().getNoInterLayerPredFlag() &&
-      rcMbDataAccess.getMbDataAccessBase()->getMbData().getInCropWindowFlag() &&
-      !rcMbDataAccess.getMbDataAccessBase()->getMbData().isIntra() )
-  {
-    ROF( pcBaseLayerSbb );
-    cBaseLayerBuffer.loadBuffer ( const_cast<Frame*>(pcBaseLayerSbb)->getFullPelYuvBuffer() );
-    if (!avcRewriteFlag && !coeffResidualPredFlag)
-      bDefaultResPredFlag = cBaseLayerBuffer.isZero();
-  }
-
-  Bool disableCoeffResidualPred = rcMbDataAccess.getDisableCoeffResidualPredFlag();
-
-  //===== inter modes with residual prediction =====
-  if( bInCropWindow && bInterEnable && ( !disableCoeffResidualPred || avcRewriteFlag ) )
-  {
-    ROF( pcBaseLayerSbb );
-    if( avcRewriteFlag )
-    {
-      cBaseLayerBuffer.setAllSamplesToZero();
-    }
-    else if( coeffResidualPredFlag )
-    {
-      pcMbDataAccessBase->getMbTCoeffs().copyPredictionTo( cBaseLayerBuffer );
-    }
-    else
-    {
-      cBaseLayerBuffer.loadBuffer( pcBaseLayerSbb->getFullPelYuvBuffer() );
-    }
-    m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
-
-    if( !pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() )
-    {
-      if( !cBaseLayerBuffer.isZero() || coeffResidualPredFlag || avcRewriteFlag || !rcMbDataAccess.getSH().getAdaptiveILPred() )
-      {
-        RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, uiMaxNumMv, false, false, pcMbDataAccessBase, rcMbDataAccess, true ) );
-      }
-    }
-
-    if( rcMbDataAccess.getSH().getAdaptiveILPred() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
-    {
-      //--- only if adaptive inter-layer prediction ---
-      RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, true ) );
-      RNOK( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, true ) );
-      RNOK( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, true ) );
-      RNOK( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, bMCBlks8x8Disable, false, 0, 0, false, pcMbDataAccessBase, true ) );
-      RNOK( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, true ) );
-    }
-    else if( !pcMbDataAccessBase->getMbData().isIntra() && m_pcIntMbBestData->getCostData().rdCost() == DOUBLE_MAX )
-    {
-      RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, true ) );
-    }
-
-    m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
-  }
-
-
-  //===== INTRA_BL =====
-  if( bInCropWindow && bIntraEnable && pcMbDataAccessBase->getMbData().isIntra() )
-  {
-    RNOK( xEstimateMbIntraBL( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerRec, false, pcMbDataAccessBase ) );
-  }
-
-
-  //===== inter modes without residual prediction =====
-  if( bInterEnable && ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) )
-  {
-    if( bInCropWindow && !pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() )
-    {
-      RNOK( xEstimateMbBLSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, uiMaxNumMv, false, false, pcMbDataAccessBase, rcMbDataAccess, bDefaultResPredFlag ) );// TMM_INTERLACE
-    }
-
-    // if 2 reference frames are supplied, do not evaluate the skip mode here
-    if( rcRefFrameList0.getActive() )  // JVT-Q065 EIDR
-    {
-      if( bSkipModeAllowed && ( !bLowComplexMbEnable ) )  // JVT-V079
-      {
-        RNOK( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
-      }
-      RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, false ) );
-      RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, false ) );
-      RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, false ) );
-      RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, bMCBlks8x8Disable, false, 0, 0, false, pcMbDataAccessBase, false ) );
-      RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, uiMaxNumMv, 0, 0, false, pcMbDataAccessBase, false ) );
-    }
-  }
-  m_pcTransform->setClipMode( true );
-
-
-  //==== normal intra modes =====
-  if( bIntraEnable && ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) && rcMbDataAccess.getSH().getSPS().getNumberOfQualityLevelsCGSSNR() == 1 )
-  {
-    RNOK  ( xEstimateMbIntra16  ( m_pcIntMbTempData, m_pcIntMbBestData,                 false ) );
-    RNOK  ( xEstimateMbIntra8   ( m_pcIntMbTempData, m_pcIntMbBestData,                 false ) );
-    RNOK  ( xEstimateMbIntra4   ( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData, false ) );
-    RNOK  ( xEstimateMbPCM      ( m_pcIntMbTempData, m_pcIntMbBestData,                 false ) );
-  }
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcGenericRC->update_rc( jsvmCalcMAD( m_pcIntMbBestData, rcMbDataAccess ) );
-  }
-  // JVT-W043 }
-  // JVT-V079 Low-complexity MB mode decision {
-  if ( (bLowComplexMbEnable==true) && (!m_pcIntMbBestData->isIntra()) )
-  {
-   if ( (m_pcIntMbBestData->getMbMode() == MODE_16x16) & (m_pcIntMbBestData->cbp()==0) &
-         (m_pcIntMbBestData->getMbMotionData( LIST_0 ).getRefIdx()==1) )
-    RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
-
-
-   /* Inter mode needs motion compensation */
-   RNOK( xSetRdCostInterMb   ( *m_pcIntMbBestData, pcMbDataAccessBase, rcRefFrameList0, cRefFrameList1 ) );
-  }
-  //JVT-V079 Low-complexity MB mode decision }
-
-  RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, &rcRefFrameList0, 0, false, &cBaseLayerBuffer ) );
-
-  //JVT-R057 LA-RDO{
-  if(m_bLARDOEnable)
-  {
-	  Int x,y;
-	  MbMode mode=rcMbDataAccess.getMbData().getMbMode();
-	  Bool bInter= !rcMbDataAccess.getSH().getNoInterLayerPredFlag();
-	  Int KBlock = m_pcIntPicBuffer->getLWidth()/4;
-
-	  Int blockX=rcMbDataAccess.getMbX()*4;
-	  Int blockY=rcMbDataAccess.getMbY()*4;
-	  Int ep_ref,ec_rec,ec_ep;
-	  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-
-	  UInt p=1;
-	  UInt q=100;
-	  if(bInter)
-	  {
-		  for(UInt i=0;i<=m_uiLayerID;i++)
-		  {
-			  //Bug_Fix JVT-R057 0806{
-			  //p=p*(100-m_auiPLR[m_uiLayerID]);
-			  p=p*(100-m_auiPLR[i]);
-			  //Bug_Fix JVT-R057 0806}
-		  }
-		  //q=(UInt)pow(100,(m_uiLayerID+1));
-	    q=(UInt)pow(100.0,(int)(m_uiLayerID+1));
-    }
-	  else
-	  {
-		  p=100-m_auiPLR[m_uiLayerID];
-	  }
-
-	  if(mode==INTRA_BL)
-	  {
-		  Int ep_base;
-		  Int blockIndex;
-		  Int xx,yy;
-		  for(y=blockY;y<(blockY+4);y++)
-			  for(x=blockX;x<(blockX+4);x++)
-			  {
-				  if(m_pcFrameEcEp)
-					  ec_ep=m_pcFrameEcEp->getChannelDistortion()[y*KBlock+x];
-				  else
-					  ec_ep=0;
-				  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-				  if(m_pcFrameEcEp)
-					  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
-				  else
-					  ec_rec=0;
-				  xx=(Int)(x/m_aadRatio[m_uiLayerID][0]);
-				  yy=(Int)(y/m_aadRatio[m_uiLayerID][1]);
-				  blockIndex=yy*(Int)(KBlock/m_aadRatio[m_uiLayerID][0])+xx;
-				  ep_base=pcBaseLayerRec->getChannelDistortion()[blockIndex];
-				  pcFrame->getChannelDistortion()[y*KBlock+x]=(p*ep_base+(q-p)*(ec_rec+ec_ep))/q;
-			  }
-	  }
-
-	  else if(mode==MODE_SKIP||mode==MODE_16x16||mode==MODE_16x8||mode==MODE_8x16||mode==MODE_8x8||mode==MODE_8x8ref0)
-	  {
-		  for( Int n = 0; n <16; n++)
-		  {
-			  Int iRefIdx[2];
-			  iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
-			  iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-			  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-			  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? cRefFrameList1[ iRefIdx [1] ] : NULL );
-			  Int iMvX;
-			  Int iMvY;
-			  Int iDLIST0=0,iDLIST1=0;
-			  if(pcRefFrame0)
-			  {
-				  iMvX=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getHor();
-				  iMvY=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getVer();
-				  getChannelDistortion(rcMbDataAccess,*pcRefFrame0,&iDLIST0,iMvX,iMvY,n%4,n/4,1,1);
-			  }
-			  if(pcRefFrame1)
-			  {
-				  iMvX=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getHor();
-				  iMvY=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getVer();
-				  getChannelDistortion(rcMbDataAccess,*pcRefFrame1,&iDLIST1,iMvX,iMvY,n%4,n/4,1,1);
-				  iDLIST0=(iDLIST0+iDLIST1)/2;
-			  }
-			  ep_ref=iDLIST0;
-
-			  x=blockX+n%4;
-			  y=blockY+n/4;
-			  if(m_pcFrameEcEp)
-				  ec_ep=m_pcFrameEcEp->getChannelDistortion()[y*KBlock+x];
-			  else
-				  ec_ep=0;
-			  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-			  if(m_pcFrameEcEp)
-				  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
-			  else
-				  ec_rec=0;
-
-			  pcFrame->getChannelDistortion()[y*KBlock+x]=(p*ep_ref+(q-p)*(ec_rec+ec_ep))/q;
-		  }
-	  }
-	  else
-	  {
-		  for(y=blockY;y<(blockY+4);y++)
-			  for(x=blockX;x<(blockX+4);x++)
-			  {
-				  if(m_pcFrameEcEp)
-					  ec_ep=m_pcFrameEcEp->getChannelDistortion()[y*KBlock+x];
-				  else
-					  ec_ep=0;
-				  m_pcIntPicBuffer->getYuvBufferCtrl().initMb();
-				  if(m_pcFrameEcEp)
-					  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
-				  else
-					  ec_rec=0;
-				  pcFrame->getChannelDistortion()[y*KBlock+x]=(q-p)*(ec_rec+ec_ep)/q;
-			  }
-	  }
-  }
-  //JVT-R057 LA-RDO}
-
-  rdCost = m_pcIntMbBestData->rdCost();
-
-  m_pcIntMbBestData   ->uninit();
-  m_pcIntMbTempData   ->uninit();
-  m_pcIntMbBest8x8Data->uninit();
-  m_pcIntMbTemp8x8Data->uninit();
-
-  return Err::m_nOK;
-}
-
-
-
-
-
-ErrVal
-MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
-                           Frame*      pcOrgFrame,
-                           Frame*      pcFrame,
-                           Frame*      pcResidual,
-                           Frame*      pcBaseSubband,
-													 Bool&          rbCoded,
-                           Double         dLambda,
-                           Int            iMaxQpDelta )
-{
-  ROF( bInitDone );
-
-  m_pcIntPicBuffer    = pcFrame->getFullPelYuvBuffer();
-
-  UInt    uiMinTrafo  = 0;
-  UInt    uiMaxTrafo  = ( ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() && rcMbDataAccess.getMbData().is8x8TrafoFlagPresent( rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag() ) ) ? 2 : 1 );
-  UChar   ucMinQp     = (UChar)min( MAX_QP, max( MIN_QP, rcMbDataAccess.getMbData().getQp() - iMaxQpDelta ) );
-  UChar   ucMaxQp     = (UChar)min( MAX_QP, max( MIN_QP, rcMbDataAccess.getMbData().getQp() + iMaxQpDelta ) );
-  Double  dMinCost    = 1e30;
-  UInt    uiDist=0, uiRate;
-  Bool    bCoded      = false;
-  Double  dCost       = 1e30;
-
-  UInt    uiRPred     = ( rcMbDataAccess.getSH().getNoInterLayerPredFlag() ? 0 :
-                          rcMbDataAccess.getSH().getAdaptiveILPred      () ? 2 : 1 );
-  Int     iMinCnt     = ( uiRPred == 0 || uiRPred == 2 ? 0 : 1 );
-  Int     iMaxCnt     = ( uiRPred == 1 || uiRPred == 2 ? 2 : 1 );
-  Bool    bPotentialBSkip = true;
-  Bool avcRewriteFlag = rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag();
-  Bool coeffResidualPredFlag = rcMbDataAccess.getCoeffResidualPredFlag();
-
-  //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
-  Bool    bRemovePSkip= false;
-  //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
-
-  // JVT-W043 {
-  UInt bestuiDist = MSYS_UINT_MAX;
-  // JVT-W043 }
-  if( ! rcMbDataAccess.getMbDataAccessBase() || ! rcMbDataAccess.getMbDataAccessBase()->getMbData().getInCropWindowFlag() )
-  {
-    iMinCnt = 0;
-    iMaxCnt = 1;
-  }
-
-  Bool disableCoeffResidualPred =  rcMbDataAccess.getDisableCoeffResidualPredFlag();
-  if (iMaxCnt > 1 && (!avcRewriteFlag && disableCoeffResidualPred))
-  {
-    iMaxCnt = 1;  // disable residual prediction if it can not be done in transform domain
-  }
-
-  if( (avcRewriteFlag || coeffResidualPredFlag) && (iMaxCnt > 1) )
-  {
-    if( (rcMbDataAccess.getMbDataAccessBase()->getMbData().isTransformSize8x8() == true)
-      && (uiMaxTrafo < 2) )
-    { // if AVC rewrite is enabled, do not allow residual prediction if base layer and enhancement layer transofrm size do not match
-      iMaxCnt = 1;
-    }
-  }
-
-  if( rcMbDataAccess.getSH().getSliceSkipFlag() )
-  {
-    iMinCnt = 1;
-    ROF( iMaxCnt == 2 );
-  }
-
-  Bool  bDefaultResPredFlag = false;
-  if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
-     !rcMbDataAccess.getSH().getNoInterLayerPredFlag() &&
-      rcMbDataAccess.getMbDataAccessBase()->getMbData().getInCropWindowFlag() &&
-     !rcMbDataAccess.getMbDataAccessBase()->getMbData().isIntra() )
-  {
-    ROF( pcBaseSubband );
-    YuvMbBuffer cBaseLayerBuffer;
-    cBaseLayerBuffer.loadBuffer( const_cast<Frame*>(pcBaseSubband)->getFullPelYuvBuffer() );
-
-    if (!avcRewriteFlag && !coeffResidualPredFlag)
-      bDefaultResPredFlag = cBaseLayerBuffer.isZero();
-  }
-
-  m_pcXDistortion->loadOrgMbPelData( m_pcIntPicBuffer, m_pcIntOrgMbPelData );
-  m_pcTransform     ->setStoreCoeffFlag(true);
-
-  Int iCnt;
-  for( iCnt = iMinCnt; iCnt < iMaxCnt; iCnt++ )
-  {
-		//-- JVT-R091
-    YuvMbBuffer cBaseResMbBuffer, cOrgMbBuffer;
-
-		// store original residual
-		cOrgMbBuffer		.loadLuma	 ( *m_pcIntOrgMbPelData										);
-		cOrgMbBuffer		.loadChroma( *m_pcIntOrgMbPelData										);
-
-    for( UChar ucQp = ucMinQp; ucQp <= ucMaxQp; ucQp++ )
-    {
-      for( UInt uiTrafo8x8 = uiMinTrafo; uiTrafo8x8 < uiMaxTrafo; uiTrafo8x8++ )
-      {
-        m_pcIntMbTempData ->init( rcMbDataAccess );
-
-				if( iCnt )
-        {
-          if( avcRewriteFlag )
-          {
-            cBaseResMbBuffer.setAllSamplesToZero();
-          }
-          else if( coeffResidualPredFlag )
-          {
-            m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbTCoeffs().copyPredictionTo( cBaseResMbBuffer );
-          }
-          else
-          {
-            cBaseResMbBuffer.loadBuffer( pcBaseSubband->getFullPelYuvBuffer() );
-          }
-
-          if (avcRewriteFlag || coeffResidualPredFlag)
-          {
-            m_pcIntMbTempData->setResidualPredFlag( true );
-
-            if( m_pcIntMbTempData->getResidualPredFlag() )
-            {
-              Bool bBaseTransSize8x8 = m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8();
-              UInt uiBaseCbp = m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().getMbCbp();
-
-              // Enforce restrictions on transforms size between layers
-              if( uiTrafo8x8==0 && bBaseTransSize8x8 )
-                uiTrafo8x8++;
-
-              if( uiTrafo8x8==1 && !bBaseTransSize8x8 && uiBaseCbp)
-                break;
-            }
-          }
-        }
-        else
-        {
-          cBaseResMbBuffer.setAllSamplesToZero();
-        }
-
-        m_pcIntMbTempData->loadLuma   ( cBaseResMbBuffer );
-        m_pcIntMbTempData->loadChroma ( cBaseResMbBuffer );
-
-        m_pcIntMbTempData ->getTempYuvMbBuffer().loadLuma   ( *m_pcIntMbTempData );
-        m_pcIntMbTempData ->getTempYuvMbBuffer().loadChroma ( *m_pcIntMbTempData );
-        m_pcIntMbTempData ->setQp( ucQp );
-
-  			m_pcTransform   ->setQp( *m_pcIntMbTempData, rcMbDataAccess.getSH().isIntraSlice() );
-
-        //----- encode luminance signal -----
-        UInt  uiExtCbp    = 0;
-        UInt  uiCoeffCost = 0;
-        UInt  uiMbBits    = 0;
-        UInt  uiB8Thres   = 4;
-        UInt  uiMBThres   = 5;
-
-        if( uiTrafo8x8 )
-        {
-          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-          {
-            xSetCoeffCost( 0 );
-            UInt uiBits = 0;
-            UInt uiCbp  = 0;
-
-            RNOK( xEncode8x8InterBlock( *m_pcIntMbTempData, c8x8Idx, uiBits, uiCbp ) );
-            if( uiCbp )
-            {
-							//-- JVT-R091
-							// note: do not use coefficient skip as IntraBL does
-							if( xGetCoeffCost() <= uiB8Thres )
-							//--
-              {
-                m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer(), c8x8Idx );
-
-                m_pcIntMbTempData->clearLumaLevels8x8Block( c8x8Idx );
-
-                if( coeffResidualPredFlag && m_pcIntMbTempData->getResidualPredFlag() )
-                {
-                  reCalcBlock8x8(*m_pcIntMbTempData, c8x8Idx, 0);
-                }
-                else if( avcRewriteFlag && m_pcIntMbTempData->getResidualPredFlag() )
-                  {
-                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 0);
-                }
-              }
-              else
-              {
-                uiCoeffCost += xGetCoeffCost();
-                uiExtCbp    += uiCbp;
-                uiMbBits    += uiBits;
-              }
-            }
-          }
-        }
-        else
-        {
-          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-          {
-            xSetCoeffCost( 0 );
-            UInt uiBits = 0;
-            UInt uiCbp  = 0;
-            for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
-            {
-              RNOK( xEncode4x4InterBlock( *m_pcIntMbTempData, cIdx, uiBits, uiCbp ) );
-            }
-            if( uiCbp )
-            {
-							//-- JVT-R091
-							// note: do not use coefficient skip as IntraBL does
-              if( xGetCoeffCost() <= uiB8Thres )
-							//--
-              {
-                m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer(), c8x8Idx );
-
-                m_pcIntMbTempData->clearLumaLevels8x8( c8x8Idx );
-
-                if( coeffResidualPredFlag && m_pcIntMbTempData->getResidualPredFlag() )
-                {
-                  reCalcBlock8x8(*m_pcIntMbTempData, c8x8Idx, 1);
-                }
-                else if( avcRewriteFlag && m_pcIntMbTempData->getResidualPredFlag() )
-                {
-                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 1);
-                }
-              }
-              else
-              {
-                uiCoeffCost += xGetCoeffCost();
-                uiExtCbp    += uiCbp;
-                uiMbBits    += uiBits;
-              }
-            }
-          }
-        }
-				//-- JVT-R091
-				// note: do not use coefficient skip as IntraBL does
-        if( 0 != uiExtCbp && uiCoeffCost <= uiMBThres )
-				//--
-        {
-          m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer() );
-          uiExtCbp = 0;
-
-          m_pcIntMbTempData->clearLumaLevels();
-
-          if( coeffResidualPredFlag &&  m_pcIntMbTempData->getResidualPredFlag() )
-          {
-            Bool bBaseTransSize8x8 = m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8();
-            for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-            {
-              reCalcBlock8x8(*m_pcIntMbTempData, c8x8Idx, !bBaseTransSize8x8);
-            }
-          }
-          else if(avcRewriteFlag &&  m_pcIntMbTempData->getResidualPredFlag() )
-          {
-            Bool bBaseTransSize8x8 = m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8();
-            for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-            {
-              reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, !bBaseTransSize8x8);
-            }
-          }
-        }
-
-        //----- encode chrominance signal -----
-        RNOK( xEncodeChromaTexture( *m_pcIntMbTempData, uiExtCbp, uiMbBits ) );
-
-        //----- set parameters ----
-        bCoded                         = ( uiExtCbp > 0 );
-        m_pcIntMbTempData->bits()      = uiMbBits;
-        m_pcIntMbTempData->cbp()       = xCalcMbCbp( uiExtCbp );
-        m_pcIntMbTempData->coeffCost() = uiCoeffCost;
-
-        RNOK( xCheckSkipSliceMb( *m_pcIntMbTempData ) );
-        RNOK( xAdjustRewriteReconstruction( *m_pcIntMbTempData ) );
-
-        MbDataAccess*  pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
-        if(!pcMbDataAccessBase||pcMbDataAccessBase->getMbData().getSafeResPred()||m_pcIntMbTempData->getResidualPredFlag()==false)
-          m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
-        else
-          m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16RP( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
-
-        Bool  bCoeffsPresent  = ( ( m_pcIntMbTempData->getMbCbp() & 0x0F ) != 0 );
-        Bool  bBaseIs8x8      = ( m_pcIntMbTempData->getResidualPredFlag() && m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8() );
-        Bool  b8x8Trafo       = ( ( uiTrafo8x8 ) && ( bCoeffsPresent || bBaseIs8x8 ) );
-        m_pcIntMbTempData ->setTransformSize8x8( b8x8Trafo );
-
-        //----- fix QP ------
-        RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbTempData ) );
-
-
-        //--- set parameters ---
-        uiDist  = m_pcIntMbTempData->distY     ();
-        uiDist += m_pcXDistortion  ->get8x8Cb  ( m_pcIntMbTempData->getMbCbAddr (), m_pcIntMbTempData->getCStride() );
-        uiDist += m_pcXDistortion  ->get8x8Cr  ( m_pcIntMbTempData->getMbCrAddr (), m_pcIntMbTempData->getCStride() );
-        RNOK(   BitCounter::init() );
-        RNOK(   MbCoder::m_pcMbSymbolWriteIf->cbp( *m_pcIntMbTempData ) );
-        if( m_pcIntMbTempData->cbp() )
-        {
-          RNOK( MbCoder::m_pcMbSymbolWriteIf->deltaQp( *m_pcIntMbTempData ) );
-        }
-        uiRate  = uiMbBits + BitCounter::getNumberOfWrittenBits();
-
-        //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
-        Bool bCoefficientsInPSkip = false;
-        if( rcMbDataAccess.getSH().getSliceType()  == P_SLICE   &&
-            rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
-            ( uiExtCbp != 0 || iCnt != 0 ) )
-        {
-          // temporarily convert SKIP mode into 16x16 mode
-          Mv cMvPred, cMvd;
-          rcMbDataAccess.getMvPredictor( cMvPred, 1, LIST_0 );
-          cMvd  = rcMbDataAccess.getMbMotionData( LIST_0 ).getMv();
-          cMvd -= cMvPred;
-          rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( cMvd );
-          rcMbDataAccess.getMbData().setMbMode( MODE_16x16 );
-          RNOK( BitCounter::init() );
-          RNOK( MbCoder::m_pcMbSymbolWriteIf->mbMode( rcMbDataAccess ) );
-          RNOK( MbCoder::xWriteReferenceFrames      ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
-          RNOK( MbCoder::xWriteMotionPredFlags      ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
-          RNOK( MbCoder::xWriteMotionVectors        ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
-          uiRate += BitCounter::getNumberOfWrittenBits();
-          // reset original SKIP mode
-          rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( Mv::m_cMvZero );
-          rcMbDataAccess.getMbData().setMbMode( MODE_SKIP );
-          // set flag
-          bCoefficientsInPSkip = true;
-        }
-        //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
-
-        bPotentialBSkip = false;
-        if( rcMbDataAccess.getSH().getSliceType() == B_SLICE &&
-            rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
-            iCnt == 0 /* no residual prediction */ && uiExtCbp == 0 )
-        {
-          uiRate = ( rcMbDataAccess.getSH().getNoInterLayerPredFlag() ? 1 : 0 );
-          bPotentialBSkip = true;
-        }
-
-        dCost   = (Double)uiDist + dLambda * (Double)uiRate;
-
-        // QP changed by fixMacroblockQP(), this will cause mismatch when avcRewrite enabled, so do not choose this mode for now
-        // TODO: need to redo the prediction using the new QP
-        if (avcRewriteFlag && m_pcIntMbTempData->getQp() != ucQp)
-          dCost= 1e30;
-
-        if( dCost < dMinCost )
-        {
-          dMinCost  = dCost;
-          rbCoded   = bCoded;
-
-          //----- store parameters and reconstructed signal to Frame and MbDataAccess -----
-          m_pcIntPicBuffer                  ->loadBuffer        ( m_pcIntMbTempData );
-          pcResidual->getFullPelYuvBuffer() ->loadBuffer        ( m_pcIntMbTempData );
-          m_pcIntMbTempData                 ->copyResidualDataTo( rcMbDataAccess );
-
-          //----- store "base layer" residual prediction signal ----
-          if( iCnt > 0 )
-          {
-            rcMbDataAccess.getMbTCoeffs().copyPredictionFrom( cBaseResMbBuffer );
-          }
-          else
-          {
-            rcMbDataAccess.getMbTCoeffs().clearPrediction();
-          }
-
-          //----- set residual prediction flag -----
-          rcMbDataAccess.getMbData().setResidualPredFlag( iCnt > 0 ? true : ( bPotentialBSkip ? false : bDefaultResPredFlag ) );
-
-          //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
-          bRemovePSkip = bCoefficientsInPSkip;
-          //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
-          // JVT-W043 {
-          bestuiDist = uiDist;
-          // JVT-W043 }
-        }
-
-        m_pcIntMbTempData->uninit();
-      }
-    }
-
-    if (avcRewriteFlag && (dMinCost == 1e30))  // in case, no valid mode is chosen due to we disallow the mode whose QP is changed by fixMacroblockQP()
-    {
-      // in rare case, no mode is selected, assign the last mode it
-      fprintf(stderr, "no mode is selected at poc %d, MB(%d, %d)", rcMbDataAccess.getSH().getPoc(), rcMbDataAccess.getMbY(), rcMbDataAccess.getMbX());
-      dMinCost  = dCost;
-      rbCoded   = bCoded;
-
-      //----- store parameters and reconstructed signal to Frame and MbDataAccess -----
-      m_pcIntPicBuffer                  ->loadBuffer        ( m_pcIntMbTempData );
-      pcResidual->getFullPelYuvBuffer() ->loadBuffer        ( m_pcIntMbTempData );
-      m_pcIntMbTempData                 ->copyResidualDataTo( rcMbDataAccess );
-
-      //----- set residual prediction flag -----
-      rcMbDataAccess.getMbData().setResidualPredFlag( iCnt > 0 ? true : ( bPotentialBSkip ? false : bDefaultResPredFlag ) );
-    }
-
-    //-- JVT-R091
-    // restore original residual
-    m_pcIntOrgMbPelData->loadLuma		( cOrgMbBuffer );
-    m_pcIntOrgMbPelData->loadChroma	( cOrgMbBuffer );
-    //--
-  }
-
-  rcMbDataAccess.getMbData().setQp4LF( rcMbDataAccess.getMbData().getQp() );
-
-  //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
-  if( bRemovePSkip )
-  {
-    // convert SKIP mode into 16x16 mode
-    Mv cMvPred, cMvd;
-    rcMbDataAccess.getMvPredictor( cMvPred, 1, LIST_0 );
-    cMvd  = rcMbDataAccess.getMbMotionData( LIST_0 ).getMv();
-    cMvd -= cMvPred;
-    rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( cMvd );
-    rcMbDataAccess.getMbData().setMbMode( MODE_16x16 );
-  }
-  //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
-    pcGenericRC->update_rc( bestuiDist );
-  }
-  // JVT-W043 }
-  return Err::m_nOK;
-}
 
 
 ErrVal
@@ -1255,14 +342,14 @@ MbEncoder::xCheckSkipSliceMbIntra4( IntMbTempData& rcMbTempData, LumaIdx c4x4Idx
   UChar ucQp     = rcMbTempData.getQp();
   UChar ucBaseQp = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().getQp();
   rcMbTempData  .setQp( ucBaseQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== adjust coeffs =====
   RNOK( reCalcBlock4x4Rewrite( rcMbTempData, c4x4Idx ) );
 
   //===== restore QP (will be adjusted later) =====
   rcMbTempData  .setQp( ucQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== clear parameters =====
   ruiAbsSum = 0;
@@ -1284,14 +371,14 @@ MbEncoder::xCheckSkipSliceMbIntra8( IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx
   UChar ucQp     = rcMbTempData.getQp();
   UChar ucBaseQp = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().getQp();
   rcMbTempData  .setQp( ucBaseQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== adjust coeffs =====
   RNOK( reCalcBlock8x8Rewrite( rcMbTempData, c8x8Idx, false ) );
 
   //===== restore QP (will be adjusted later) =====
   rcMbTempData  .setQp( ucQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== clear parameters =====
   ruiAbsSum = 0;
@@ -1313,14 +400,14 @@ MbEncoder::xCheckSkipSliceMbIntra16( IntMbTempData& rcMbTempData, UInt& ruiAcAbs
   UChar ucQp     = rcMbTempData.getQp();
   UChar ucBaseQp = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().getQp();
   rcMbTempData  .setQp( ucBaseQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== adjust coeffs =====
   RNOK( reCalcBlock16x16Rewrite( rcMbTempData ) );
 
   //===== restore QP (will be adjusted later) =====
   rcMbTempData  .setQp( ucQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== clear parameters =====
   ruiAcAbs = 0;
@@ -1344,14 +431,14 @@ MbEncoder::xCheckSkipSliceMbIntraChroma( IntMbTempData& rcMbTempData, UInt& ruiC
   UChar ucQp     = rcMbTempData.getQp();
   UChar ucBaseQp = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().getQp();
   rcMbTempData  .setQp( ucBaseQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== adjust coeffs =====
   RNOK( reCalcChromaRewrite( rcMbTempData ) );
 
   //===== restore QP (will be adjusted later) =====
   rcMbTempData  .setQp( ucQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, true );
 
   //===== clear parameters =====
   ruiChromaCbp = 0;
@@ -1378,7 +465,7 @@ MbEncoder::xAdjustRewriteReconstruction( IntMbTempData& rcMbTempData )
   UChar ucBaseQp = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().getQp();
   Bool  bBase8x8 = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8();
   rcMbTempData  .setQp( ucBaseQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, false );
 
   //===== recalc signal =====
   for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
@@ -1389,178 +476,246 @@ MbEncoder::xAdjustRewriteReconstruction( IntMbTempData& rcMbTempData )
 
   //===== restore QP (will be adjusted later) =====
   rcMbTempData  .setQp( ucQp );
-  m_pcTransform->setQp( rcMbTempData, rcMbTempData.getSH().isIntraSlice() );
+  m_pcTransform->setQp( rcMbTempData, false );
 
   return Err::m_nOK;
 }
 
-
 ErrVal
-MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
-                               MbDataAccess*   pcMbDataAccessBase,
-                               RefFrameList&   rcRefFrameList0,
-                               RefFrameList&   rcRefFrameList1,
-                               const Frame* pcBaseLayerFrame,
-                               const Frame* pcBaseLayerResidual,
-                               const Frame& rcOrigFrame,
-                               Frame&       rcIntraRecFrame,
-                               UInt           uiMaxNumMv,
-                               Bool            bMCBlks8x8Disable,
-                               Bool            bBiPred8x8Disable,
-                               UInt            uiNumMaxIter,
-                               UInt            uiIterSearchRange,
-                               Double          dLambda,
-                               Double&         rdCost,
-                               Bool            bSkipModeAllowed )
+MbEncoder::encodeMacroblockSVC( MbDataAccess&   rcMbDataAccess,       // current macroblock data
+                                MbDataAccess*   pcMbDataAccessBase,   // inferred macroblock data (from base layer)
+                                const Frame&    rcOrgFrame,           // original frame
+                                Frame&          rcFrame,              // reconstructed frame
+                                Frame*          pcResidual,           // reconstructed residual
+                                Frame*          pcPredSignal,         // prediction signal
+                                const Frame*    pcBaseLayerIntraRec,  // base layer intra reconstruction
+                                const Frame*    pcBaseLayerResidual,  // base layer residual reconstruction
+                                RefListStruct&  rcRefListStruct,      // reference picture lists
+                                UInt            uiMaxNumMv,           // maximum number of MVs for current macroblock
+                                UInt            uiNumMaxIter,         // number of iteration for bi-predictive search
+                                UInt            uiIterSearchRange,    // search range for iterative search
+                                Bool            bBiPred8x8Disable,    // if bi-prediction for blocks smaller than 8x8 is allowed
+                                Bool            bMCBlks8x8Disable,    // if blocks smaller than 8x8 are disabled
+                                Bool            bSkipModeAllowed,     // if skip mode is allowed
+                                UInt            uiMaxDeltaQp,         // maximum delta QP
+                                Double          dLambda,              // Langrangian multiplier
+                                Double&         rdCost                // r-d cost for coded macroblock
+                                )
 {
-  ROF( bInitDone );
-  ROF( uiMaxNumMv );
+  ROF( m_bInitDone );
+  Bool  bDisableIntraDQP  = false; // optional
+  uiMaxDeltaQp            = ( m_bLowComplexMbEnable[rcMbDataAccess.getSH().getDependencyId()] ? 0 : uiMaxDeltaQp );
+  UInt  uiCurrQP          = rcMbDataAccess.getMbData().getQp();
+  UInt  uiMinQp           = (UInt)gMax( MIN_QP, Int( uiCurrQP - uiMaxDeltaQp ) );
+  UInt  uiMaxQp           = (UInt)gMin( MAX_QP, Int( uiCurrQP + uiMaxDeltaQp ) );
+  Bool  bISlice           = ( rcMbDataAccess.getSH().getSliceType () == I_SLICE );
+  Bool  bPSlice           = ( rcMbDataAccess.getSH().getSliceType () == P_SLICE );
+  Bool  bBSlice           = ( rcMbDataAccess.getSH().getSliceType () == B_SLICE );
+  bBiPred8x8Disable       = ( bBiPred8x8Disable || rcMbDataAccess.getSH().getSPS().getBiPred8x8Disabled() );
+  ROT( ( bPSlice || bBSlice ) && ( uiMaxNumMv                                      == 0 ) );
+  ROT( ( bPSlice || bBSlice ) && ( rcRefListStruct.acRefFrameListRC[0].getActive() == 0 ) );
+  ROT( (            bBSlice ) && ( rcRefListStruct.acRefFrameListRC[1].getActive() == 0 ) );
+  ROT( ( bPSlice            ) && ( rcRefListStruct.acRefFrameListRC[1].getActive() != 0 ) );
+  ROT( ( bISlice            ) && ( rcRefListStruct.acRefFrameListRC[0].getActive() != 0 ) );
+  ROT( ( bISlice            ) && ( rcRefListStruct.acRefFrameListRC[0].getActive() != 0 ) );
 
-  bBiPred8x8Disable = ( bBiPred8x8Disable || rcMbDataAccess.getSH().getSPS().getBiPred8x8Disabled() );
+  //===== set QP and Lambda =====
+  if( rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() )
+  {
+    UInt uiLastQP  = rcMbDataAccess.getLastQp();
+    ROF( uiLastQP >= uiMinQp && uiLastQP <= uiMaxQp );
+    ROF( ! bDisableIntraDQP  || uiLastQP == uiCurrQP || !bISlice );
+  }
+  RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiCurrQP, dLambda ) );
+  m_pcTransform->setClipMode( false );
 
-  rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
+  //===== set reference layer =====
+  rcMbDataAccess.setMbDataAccessBase( pcMbDataAccessBase );
+  YuvMbBuffer cBaseLayerBuffer;
 
-  Bool  bBSlice = rcMbDataAccess.getSH().getSliceType () == B_SLICE;
-  UInt  uiQp    = rcMbDataAccess.getSH().getSliceQp     ();
-  RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
-
+  //===== init temporary data =====
   m_pcIntMbBestIntraChroma  = NULL;
   m_pcIntMbBestData   ->init( rcMbDataAccess );
   m_pcIntMbTempData   ->init( rcMbDataAccess );
   m_pcIntMbBest8x8Data->init( rcMbDataAccess );
   m_pcIntMbTemp8x8Data->init( rcMbDataAccess );
 
-  m_pcIntPicBuffer                  = rcIntraRecFrame.getFullPelYuvBuffer();
-  YuvPicBuffer*  pcOrgPicBuffer  = const_cast<Frame&>( rcOrigFrame ).getFullPelYuvBuffer();
-  m_pcXDistortion->loadOrgMbPelData ( pcOrgPicBuffer, m_pcIntOrgMbPelData );
-  m_pcTransform  ->setQp            ( rcMbDataAccess, false );
+  //===== init picture data ====
+  m_pcIntPicBuffer = rcFrame.getFullPelYuvBuffer();
+  m_pcXDistortion->loadOrgMbPelData( rcOrgFrame.getFullPelYuvBuffer(), m_pcIntOrgMbPelData );
 
-  YuvMbBuffer  cBaseLayerBuffer;
-  ROT( !rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ! pcMbDataAccessBase );
-  Bool  bIsEnhLayer       = ! rcMbDataAccess.getSH().getNoInterLayerPredFlag();
-  Bool  bInCropWindow     = ( bIsEnhLayer   && pcMbDataAccessBase->getMbData().getInCropWindowFlag() );
-  pcMbDataAccessBase      = ( bInCropWindow  ? pcMbDataAccessBase : 0 );
-  Bool  bIntraEnable      = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() ||   rcMbDataAccess.getMbDataComplementary().isIntra();
-  Bool  bInterEnable      = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
-
-  if( rcMbDataAccess.isFieldMbInMbaffFrame() && rcMbDataAccess.getMbPicType() == BOT_FIELD && rcMbDataAccess.getMbDataComplementary().isIntra() && bInCropWindow )
+  //===== set estimation parameters =====
+  ROT( !rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ( !pcMbDataAccessBase || !pcBaseLayerIntraRec || !pcBaseLayerResidual ) );
+  Bool  bIsEnhLayer           = !rcMbDataAccess.getSH().getNoInterLayerPredFlag();
+  Bool  bInCropWindow         = ( bIsEnhLayer && pcMbDataAccessBase->getMbData().getInCropWindowFlag() );
+  pcMbDataAccessBase          = ( bInCropWindow  ? pcMbDataAccessBase : 0 );
+  Bool  bSNRMode              = bInCropWindow && ( rcMbDataAccess.getSH().getSCoeffResidualPredFlag() || rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() );
+  Bool  bMismatchedFieldFlag  = bSNRMode && rcMbDataAccess.getMbData().getFieldFlag() != pcMbDataAccessBase->getMbData().getFieldFlag();
+  Bool  bIntraEnable          = true;
+  Bool  bInterEnable          = !bISlice;
+  Bool  bTCoeffPredFlag       = rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag();
+  Bool  bSCoeffPredFlag       = rcMbDataAccess.getCoeffResidualPredFlag();
+  Bool  bARP                  = rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag();
+  Bool  bDRP                  = rcMbDataAccess.getSH().getDefaultResidualPredictionFlag ();
+  Bool  bELMbRefInter         = ( bInCropWindow && bInterEnable && !pcMbDataAccessBase->getMbData().isIntra() );
+  Bool  bCheckWithResPred     = ( bInterEnable &&    bInCropWindow && ( ( bARP && bELMbRefInter ) ||  bDRP ) && !bMismatchedFieldFlag );
+  Bool  bCheckWithoutResPred  = ( bInterEnable && ( !bInCropWindow ||     bARP                    || !bDRP ) );
+  Bool  bWithAndWithoutRP     = ( bCheckWithResPred && bCheckWithoutResPred );
+  Bool  bPreferResPred        = rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag();
+  Bool  bZeroBaseLayerResFlag = false;
+  if( bCheckWithResPred )
   {
-    if( ! pcMbDataAccessBase->getMbData().isIntra() || ! pcMbDataAccessBase->getMbDataComplementary().isIntra() )
-    {
-      bInterEnable = true;
-    }
-  }
-
-  Bool avcRewriteFlag = rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag();
-  Bool coeffResidualPredFlag = rcMbDataAccess.getCoeffResidualPredFlag();
-
-  Bool  bDefaultResPredFlag = false;
-  if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
-     !rcMbDataAccess.getSH().getNoInterLayerPredFlag() &&
-      rcMbDataAccess.getMbDataAccessBase()->getMbData().getInCropWindowFlag() &&
-     !rcMbDataAccess.getMbDataAccessBase()->getMbData().isIntra() )
-  {
-    ROF( pcBaseLayerResidual );
-    cBaseLayerBuffer.loadBuffer ( const_cast<Frame*>(pcBaseLayerResidual)->getFullPelYuvBuffer() );
-    if (!avcRewriteFlag && !coeffResidualPredFlag)
-      bDefaultResPredFlag  = cBaseLayerBuffer.isZero();
-  }
-
-
-  //===== P_SKIP ====
-  if( bSkipModeAllowed && ! bBSlice && ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) )
-  {
-    RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1 ) );
-  }
-
-
-  //===== inter modes with residual prediction =====
-  if( bInCropWindow && bInterEnable )
-  {
-    //--- subtract (upsampled) base layer residual from original macroblock data ---
-    ROF( pcBaseLayerResidual );
-    if( avcRewriteFlag )
+    if( bTCoeffPredFlag )
     {
       cBaseLayerBuffer.setAllSamplesToZero();
+      bZeroBaseLayerResFlag   = pcMbDataAccessBase->getMbTCoeffs().allCoeffsZero();
     }
-    else if( coeffResidualPredFlag )
+    else if( bSCoeffPredFlag )
     {
       pcMbDataAccessBase->getMbTCoeffs().copyPredictionTo( cBaseLayerBuffer );
+      bZeroBaseLayerResFlag   = pcMbDataAccessBase->getMbTCoeffs().allLevelsAndPredictionsZero();
     }
     else
     {
-      cBaseLayerBuffer.loadBuffer( const_cast<Frame*>(pcBaseLayerResidual)->getFullPelYuvBuffer() );
-    }
-
-    if( avcRewriteFlag || coeffResidualPredFlag || !cBaseLayerBuffer.isZero() || ! rcMbDataAccess.getSH().getAdaptiveILPred() )
-    {
-      m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
-
-      if( ! pcMbDataAccessBase->getMbData().isIntra() )
-      {
-        RNOK( xEstimateMbBLSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, uiMaxNumMv, bBiPred8x8Disable, bBSlice, pcMbDataAccessBase, rcMbDataAccess, true ) );
-      }
-
-      if( rcMbDataAccess.getSH().getAdaptiveILPred() )
-      {
-        if( m_bUseBDir )
-        {
-          RNOK( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcMbDataAccessBase, uiMaxNumMv, true, rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
-        }
-        RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
-        RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
-        RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
-        RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, bMCBlks8x8Disable, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
-        RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
-      }
-      else if( !pcMbDataAccessBase->getMbData().isIntra() && m_pcIntMbBestData->getCostData().rdCost() == DOUBLE_MAX )
-      {
-        RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false, pcMbDataAccessBase, true ) );
-      }
-
-      //--- recover original macroblock data ---
-      m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
+      cBaseLayerBuffer.loadBuffer( pcBaseLayerResidual->getFullPelYuvBuffer() );
+      bZeroBaseLayerResFlag   = cBaseLayerBuffer.isZero();
     }
   }
+  if( bWithAndWithoutRP && bZeroBaseLayerResFlag ) // inter enabled, in crop window, adap. res. pred, inter base layer block, and zero base layer residual
+  { // avoiding to check both
+    bCheckWithoutResPred      = !bPreferResPred;
+    bCheckWithResPred         =  bPreferResPred;
+  }
+  Bool  bABM                  = rcMbDataAccess.getSH().getAdaptiveBaseModeFlag();
+  Bool  bDBM                  = rcMbDataAccess.getSH().getDefaultBaseModeFlag ();
+  Bool  bCheckBaseMode        =  bInCropWindow && ( bABM ||  bDBM ) && !bMismatchedFieldFlag;
+  Bool  bNonBaseModeOk        = !bInCropWindow ||   bABM || !bDBM;
+  Bool  bCheckStdInter        = !bInCropWindow || rcMbDataAccess.getSH().getAdaptiveILPred() || ( !bABM && !bDBM );
+  Bool  bCheckIntraBL         = ( bIntraEnable &&    bInCropWindow && ( bABM ||  bDBM ) && pcMbDataAccessBase->getMbData().isIntra() && !bMismatchedFieldFlag );
+  Bool  bCheckSpatialIntra    = ( bIntraEnable && ( !bInCropWindow ||   bABM || !bDBM ) && rcMbDataAccess.getSH().getSPS().getNumberOfQualityLevelsCGSSNR() == 1 );
+  Bool  bLowComplexMbEnable   = m_bLowComplexMbEnable[rcMbDataAccess.getSH().getDependencyId()];
+  m_bBaseMotionPredAllowed    = ( rcMbDataAccess.getSH().getAdaptiveMotionPredictionFlag() || rcMbDataAccess.getSH().getDefaultMotionPredictionFlag() ) && !bMismatchedFieldFlag;
 
 
-  //===== intra base layer mode =====
-  if( bInCropWindow && bIntraEnable && pcMbDataAccessBase->getMbData().isIntra() )
+  //===== CHECK: inter modes with residual prediction =====
+  if( bCheckWithResPred )
   {
-    RNOK( xEstimateMbIntraBL( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerFrame, bBSlice, pcMbDataAccessBase ) );
-  }
+    m_pcIntOrgMbPelData->subtract( cBaseLayerBuffer );
 
-
-  //===== inter modes without residual prediction =====
-  if( bInterEnable && ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) )
-  {
-    if( bInCropWindow && ! pcMbDataAccessBase->getMbData().isIntra() )
+    if( bCheckBaseMode && !pcMbDataAccessBase->getMbData().isIntra() )
     {
-      RNOK( xEstimateMbBLSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, uiMaxNumMv, bBiPred8x8Disable, bBSlice, pcMbDataAccessBase, rcMbDataAccess, bDefaultResPredFlag ) );
+      RNOK  ( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, pcBaseLayerIntraRec, uiMaxNumMv, bBiPred8x8Disable, bBSlice, pcMbDataAccessBase, rcMbDataAccess, true ) );
+    }
+    if( bCheckStdInter )
+    {
+      RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, pcMbDataAccessBase,  uiMaxNumMv, true, rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
+      RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true ) );
+      RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true ) );
+      RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true ) );
+      RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true, bMCBlks8x8Disable, bBiPred8x8Disable ) );
+      RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true ) );
+      if( bWithAndWithoutRP && !bCheckWithoutResPred )
+      { // potential B_SKIP without residual prediction
+        RNOK( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, pcMbDataAccessBase,  uiMaxNumMv, false, rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
+      }
+      if( bPSlice && rcMbDataAccess.getSH().getDefaultResidualPredictionFlag() && !bLowComplexMbEnable )
+      { // P_SKIP with residual prediction
+        RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, true,  bSkipModeAllowed ) );
+      }
+      if( bPSlice && !bCheckWithoutResPred && !rcMbDataAccess.getSH().getDefaultResidualPredictionFlag() && !bLowComplexMbEnable )
+      { // P_SKIP without residual prediction
+        RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, false, bSkipModeAllowed ) );
+      }
+    }
+    else if( bNonBaseModeOk && !pcMbDataAccessBase->getMbData().isIntra() && m_pcIntMbBestData->getCostData().rdCost() == DOUBLE_MAX ) // fall-back
+    {
+      ROF   ( rcMbDataAccess.getSH().getAdaptiveBaseModeFlag() );
+      RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, true ) );
     }
 
-    if( m_bUseBDir )
-    {
-      RNOK( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcMbDataAccessBase, uiMaxNumMv, bDefaultResPredFlag, rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
-    }
-    RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcMbDataAccessBase, uiMaxNumMv, false,  rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
-    RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
-    RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
-    RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
-    RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, bMCBlks8x8Disable, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
-    RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
+    m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
   }
 
-
-  //===== normal intra mode =====
-  if( bIntraEnable && ( ! bIsEnhLayer || rcMbDataAccess.getSH().getAdaptiveILPred() || ! bInCropWindow ) && rcMbDataAccess.getSH().getSPS().getNumberOfQualityLevelsCGSSNR() == 1 )
+  //===== CHECK: inter modes without residual prediction =====
+  if( bCheckWithoutResPred )
   {
-    RNOK  ( xEstimateMbIntra16  ( m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
-    RNOK  ( xEstimateMbIntra8   ( m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
-    RNOK  ( xEstimateMbIntra4   ( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
-    RNOK  ( xEstimateMbPCM      ( m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
+    if( bCheckBaseMode && !pcMbDataAccessBase->getMbData().isIntra() )
+    {
+      RNOK  ( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, pcBaseLayerIntraRec, uiMaxNumMv, bBiPred8x8Disable, bBSlice, pcMbDataAccessBase, rcMbDataAccess, false ) );
+    }
+    if( bCheckStdInter )
+    {
+      if( bPSlice && !bLowComplexMbEnable )
+      { // P_SKIP without residual prediction
+        RNOK( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, false, bSkipModeAllowed ) );
+      }
+      RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, pcMbDataAccessBase, uiMaxNumMv, false,  rcMbDataAccess.getMbData().getQp(), bSkipModeAllowed ) );
+      RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false ) );
+      RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false ) );
+      RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false ) );
+      RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false, bMCBlks8x8Disable, bBiPred8x8Disable ) );
+      RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false ) );
+    }
+    else if( bNonBaseModeOk && !pcMbDataAccessBase->getMbData().isIntra() && m_pcIntMbBestData->getCostData().rdCost() == DOUBLE_MAX ) // fall-back
+    {
+      ROF   ( rcMbDataAccess.getSH().getAdaptiveBaseModeFlag() );
+      RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiMinQp, uiMaxQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, pcMbDataAccessBase, false ) );
+    }
   }
-  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, &rcRefFrameList0, &rcRefFrameList1, true, &cBaseLayerBuffer ) );
+
+  //===== CHECK: intra base layer mode =====
+  if( bCheckIntraBL )
+  {
+    RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, uiMinQp, uiMaxQp, pcBaseLayerIntraRec, bBSlice, pcMbDataAccessBase ) );
+  }
+
+  //===== CHECK: spatial intra modes ====
+  m_pcTransform->setClipMode( true );
+  if( bCheckSpatialIntra )
+  {
+    UInt  uiMinIntraQP  = ( bDisableIntraDQP ? uiCurrQP : uiMinQp );
+    UInt  uiMaxIntraQP  = ( bDisableIntraDQP ? uiCurrQP : uiMaxQp );
+    for( UInt uiQp = uiMinIntraQP; uiQp <= uiMaxIntraQP; uiQp++ )
+    {
+      m_pcIntMbBestIntraChroma  = NULL;
+      RNOK( xEstimateMbIntra16 ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+      RNOK( xEstimateMbIntra8  ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+      RNOK( xEstimateMbIntra4  ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+    }
+    RNOK  ( xEstimateMbPCM     ( m_pcIntMbTempData, m_pcIntMbBestData,       bBSlice ) );
+  }
+
+  //---- check whether a mode was selected ---
+  if( m_pcIntMbBestData->getCostData().rdCost() == DOUBLE_MAX )
+  {
+    ROF( bMismatchedFieldFlag );
+    rdCost = DOUBLE_MAX;
+    return Err::m_nOK;
+  }
+
+  //JVT-W043 {
+  if( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->update_rc( jsvmCalcMAD( m_pcIntMbBestData, rcMbDataAccess ) );
+  }
+  // JVT-W043 }
+
+  // JVT-V079 Low-complexity MB mode decision {
+  if( bLowComplexMbEnable && !m_pcIntMbBestData->isIntra() )
+  {
+    if( bPSlice && m_pcIntMbBestData->getMbMode() == MODE_16x16 && m_pcIntMbBestData->getMbMotionData( LIST_0 ).getRefIdx() == 1 )
+    {
+      RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, rcMbDataAccess.getSH().getDefaultResidualPredictionFlag(), bSkipModeAllowed ) );
+    }
+    /* Inter mode needs motion compensation */
+    RNOK( xSetRdCostInterMb( *m_pcIntMbBestData, pcMbDataAccessBase, rcRefListStruct, uiMinQp, uiMaxQp ) );
+  }
+  //JVT-V079 Low-complexity MB mode decision }
+
+  //===== store best estimation =====
+  RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcResidual, pcPredSignal, rcRefListStruct, &cBaseLayerBuffer ) );
+
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -1616,8 +771,8 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 				  yy=(Int)(y/m_aadRatio[m_uiLayerID][1]);
 				  blockIndex=yy*(Int)(KBlock/m_aadRatio[m_uiLayerID][0])+xx;
 
-				  ep_base=const_cast<Frame*>(pcBaseLayerFrame)->getChannelDistortion()[blockIndex];
-				  const_cast<Frame&>(rcOrigFrame).getChannelDistortion()[y*KBlock+x]=(p*ep_base+(q-p)*(ec_rec+ec_ep))/q;
+				  ep_base=pcBaseLayerIntraRec->getChannelDistortion()[blockIndex];
+				  rcFrame.getChannelDistortion()[y*KBlock+x]=(p*ep_base+(q-p)*(ec_rec+ec_ep))/q;
 			  }
 	  }
 	  else if(mode==MODE_SKIP||mode==MODE_16x16||mode==MODE_16x8||mode==MODE_8x16||mode==MODE_8x8||mode==MODE_8x8ref0)
@@ -1627,8 +782,8 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 			  Int iRefIdx[2];
 			  iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 			  iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-			  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-			  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+			  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+			  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 			  Int iMvX;
 			  Int iMvY;
 			  Int iDLIST0=0,iDLIST1=0;
@@ -1659,7 +814,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 			  else
 				  ec_rec=0;
 
-			  const_cast<Frame&>(rcOrigFrame).getChannelDistortion()[y*KBlock+x]=(p*ep_ref+(q-p)*(ec_rec+ec_ep))/q;
+			  rcFrame.getChannelDistortion()[y*KBlock+x]=(p*ep_ref+(q-p)*(ec_rec+ec_ep))/q;
 		  }
 	  }
 	  else
@@ -1676,7 +831,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 					  ec_rec=GetEC_REC(m_pcIntPicBuffer,m_pcFrameEcEp->getFullPelYuvBuffer(),x,y);
 				  else
 					  ec_rec=0;
-				  const_cast<Frame&>(rcOrigFrame).getChannelDistortion()[y*KBlock+x]=(q-p)*(ec_rec+ec_ep)/q;
+				  rcFrame.getChannelDistortion()[y*KBlock+x]=(q-p)*(ec_rec+ec_ep)/q;
 			  }
 	  }
   }
@@ -1693,16 +848,87 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 }
 
 
+ErrVal
+MbEncoder::estimatePrediction( MbDataAccess&  rcMbDataAccess,
+                               RefListStruct& rcRefListStruct,
+                               const Frame&   rcOrigFrame,
+                               Frame&         rcIntraRecFrame,
+                               UInt           uiMaxNumMv,
+                               Bool           bMCBlks8x8Disable,
+                               Bool           bBiPred8x8Disable,
+                               UInt           uiNumMaxIter,
+                               UInt           uiIterSearchRange,
+                               Double         dLambda,
+                               Double&        rdCost )
+{
+  ROF( m_bInitDone );
+  ROF( uiMaxNumMv );
+
+  bBiPred8x8Disable = ( bBiPred8x8Disable || rcMbDataAccess.getSH().getSPS().getBiPred8x8Disabled() );
+  rcMbDataAccess.setMbDataAccessBase( NULL );
+
+  Bool  bBSlice = rcMbDataAccess.getSH().getSliceType () == B_SLICE;
+  UInt  uiQp    = rcMbDataAccess.getSH().getSliceQp   ();
+  RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
+
+  m_pcIntMbBestIntraChroma  = NULL;
+  m_pcIntMbBestData   ->init( rcMbDataAccess );
+  m_pcIntMbTempData   ->init( rcMbDataAccess );
+  m_pcIntMbBest8x8Data->init( rcMbDataAccess );
+  m_pcIntMbTemp8x8Data->init( rcMbDataAccess );
+
+  m_pcIntPicBuffer               = rcIntraRecFrame.getFullPelYuvBuffer();
+  YuvPicBuffer*  pcOrgPicBuffer  = const_cast<Frame&>( rcOrigFrame ).getFullPelYuvBuffer();
+  m_pcXDistortion->loadOrgMbPelData ( pcOrgPicBuffer, m_pcIntOrgMbPelData );
+  m_pcTransform  ->setQp            ( rcMbDataAccess, false );
+
+  Bool  bIntraEnable  = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() ||   rcMbDataAccess.getMbDataComplementary().isIntra();
+  Bool  bInterEnable  = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
+
+  if( bInterEnable )
+  {
+    if( ! bBSlice )
+    {
+      RNOK( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, false, true ) );
+    }
+    RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, 0, uiMaxNumMv, false, rcMbDataAccess.getMbData().getQp(), true ) );
+    RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, 0, false ) );
+    RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, 0, false ) );
+    RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, 0, false ) );
+    RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, 0, false, bMCBlks8x8Disable, bBiPred8x8Disable ) );
+    RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefListStruct, uiQp, uiQp, uiMaxNumMv, uiNumMaxIter, uiIterSearchRange, 0, false ) );
+  }
+  if( bIntraEnable )
+  {
+    RNOK  ( xEstimateMbIntra16  ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+    RNOK  ( xEstimateMbIntra8   ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+    RNOK  ( xEstimateMbIntra4   ( m_pcIntMbTempData, m_pcIntMbBestData, uiQp, bBSlice ) );
+    RNOK  ( xEstimateMbPCM      ( m_pcIntMbTempData, m_pcIntMbBestData,       bBSlice ) );
+  }
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, rcRefListStruct, 0 ) );
+
+  rdCost = m_pcIntMbBestData->rdCost();
+
+  m_pcIntMbBestData   ->uninit();
+  m_pcIntMbTempData   ->uninit();
+  m_pcIntMbBest8x8Data->uninit();
+  m_pcIntMbTemp8x8Data->uninit();
+
+  return Err::m_nOK;
+}
+
+
 
 ErrVal
-MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
-                                 Frame*       pcMCFrame,
-                                 RefFrameList&   rcRefFrameList0,
-                                 RefFrameList&   rcRefFrameList1,
-                                 Bool            bCalcMv,
-                                 Bool            bFaultTolerant)
+MbEncoder::compensatePrediction( MbDataAccess&  rcMbDataAccess,
+                                 Frame*         pcMCFrame,
+                                 RefListStruct& rcRefListStruct,
+                                 Bool           bCalcMv,
+                                 Bool           bFaultTolerant)
 {
-  YuvMbBuffer  cYuvMbBuffer;
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListRC[0];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListRC[1];
+  YuvMbBuffer   cYuvMbBuffer;
   if( rcMbDataAccess.getMbData().isIntra() )
   {
     cYuvMbBuffer.setAllSamplesToZero();
@@ -1795,10 +1021,11 @@ MbEncoder::xCheckBestEstimation( IntMbTempData*& rpcMbTempData,
 
 
 ErrVal
-MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
-                               IntMbTempData*&  rpcMbTempData,
+MbEncoder::xEstimateMbIntraBL( IntMbTempData*&  rpcMbTempData,
                                IntMbTempData*&  rpcMbBestData,
-                               const Frame*  pcBaseLayerRec,
+                               UInt             uiMinQP,
+                               UInt             uiMaxQP,
+                               const Frame*     pcBaseLayerRec,
                                Bool             bBSlice,
                                MbDataAccess*    pcMbDataAccessBase )
 {
@@ -1808,45 +1035,53 @@ MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
 
-  Bool            bBLSkip           = pcMbDataAccessBase->getMbData().isIntra();
-  UInt            uiCoeffBits       = 0;
-  YuvMbBuffer& rcYuvMbBuffer     = *rpcMbTempData;
-  YuvMbBuffer& rcTempYuvMbBuffer =  rpcMbTempData->getTempYuvMbBuffer();
+  Bool          bBLSkip           = pcMbDataAccessBase->getMbData().isIntra();
+  YuvMbBuffer&  rcYuvMbBuffer     = *rpcMbTempData;
+  YuvMbBuffer&  rcTempYuvMbBuffer = rpcMbTempData->getTempYuvMbBuffer();
+  MbDataAccess& rcMbDataAccess    = rpcMbTempData->getMbDataAccess();
 
   rpcMbTempData->clear();
   rpcMbTempData->setMbMode( INTRA_BL );
   rpcMbTempData->setBLSkipFlag( bBLSkip );
   rpcMbTempData->setTransformSize8x8( false );
 
-  if (rpcMbTempData->getSH().getTCoeffLevelPredictionFlag())
+  if( rpcMbTempData->getSH().getTCoeffLevelPredictionFlag() )
   {
-    Bool bClipValue                   = m_pcTransform->getClipMode();
+    Bool bClipValue = m_pcTransform->getClipMode();
     m_pcTransform->setClipMode( true );
 
-    switch( pcMbDataAccessBase->getMbData().getMbMode() )
+    if( pcMbDataAccessBase->getMbData().getMbMode() == MODE_PCM )
     {
-    case INTRA_4X4:
-      if( pcMbDataAccessBase->getMbData().isTransformSize8x8() == false )
-      {
-        RNOK( xEstimateMbIntra4 ( rcMbDataAccess, rpcMbTempData, rpcMbBestData, bBSlice, bBLSkip ) );
-      }
-      else
-      {
-        RNOK( xEstimateMbIntra8 (  rpcMbTempData, rpcMbBestData, bBSlice, bBLSkip ) );
-      }
-      break;
-    case INTRA_BL:
-      printf("Check if AvcRewriteFlag is on for all the layers below the current layer\n");
-      break;
-    case MODE_PCM:
       RNOK( xEstimateMbPCMRewrite( rpcMbTempData, rpcMbBestData ) );
-      break;
-    default:
-      RNOK( xEstimateMbIntra16 (  rpcMbTempData, rpcMbBestData, bBSlice, bBLSkip ) );
-      break;
     }
-
+    else
+    {
+      for( UInt uiQp = uiMinQP; uiQp <= uiMaxQP; uiQp++ )
+      {
+        switch( pcMbDataAccessBase->getMbData().getMbMode() )
+        {
+        case INTRA_4X4:
+          if( pcMbDataAccessBase->getMbData().isTransformSize8x8() == false )
+          {
+            RNOK( xEstimateMbIntra4   ( rpcMbTempData, rpcMbBestData, uiQp, bBSlice, bBLSkip ) );
+          }
+          else
+          {
+            RNOK( xEstimateMbIntra8   ( rpcMbTempData, rpcMbBestData, uiQp, bBSlice, bBLSkip ) );
+          }
+          break;
+        case INTRA_BL:
+        case MODE_PCM:
+          ROT(1);
+          break;
+        default:
+          RNOK( xEstimateMbIntra16    ( rpcMbTempData, rpcMbBestData, uiQp, bBSlice, bBLSkip ) );
+          break;
+        }
+      }
+    }
     m_pcTransform->setClipMode( bClipValue );
+    m_pcTransform->setQp      ( rcMbDataAccess, true );
     return Err::m_nOK;
   }
 
@@ -1860,65 +1095,107 @@ MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
   {
     rcYuvMbBuffer.loadBuffer( ((Frame*)pcBaseLayerRec)->getFullPelYuvBuffer() );
   }
-
   rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
   rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
 
-  //===== encode residual and get rate for coefficients =====
-  UInt  uiCoeffCost = 0;
-  UInt  uiExtCbp    = 0;
-  //--- LUMA ---
-  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-  {
-    xSetCoeffCost( 0 );
-    UInt  uiBits = 0;
-    UInt  uiCbp  = 0;
 
-    for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+  //===== LOOP OVER QP values =====
+  Double            dMinCost  = DOUBLE_MAX;
+  UInt              uiBestQP  = MSYS_UINT_MAX;
+  UInt              uiBestCBP = MSYS_UINT_MAX;
+  MbTransformCoeffs cBestCoeffs;
+  YuvMbBuffer       cBestRec;
+  for( UInt uiQP = uiMinQP; uiQP <= uiMaxQP; uiQP++ )
+  {
+    rpcMbTempData->setQp( uiQP );
+    m_pcTransform->setQp( *rpcMbTempData, true );
+
+    //===== encode residual and get rate for coefficients =====
+    UInt  uiCoeffBits = 0;
+    UInt  uiCoeffCost = 0;
+    UInt  uiExtCbp    = 0;
+    //--- LUMA ---
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
-      RNOK( xEncode4x4InterBlock( *rpcMbTempData, cIdx, uiBits, uiCbp ) );
+      xSetCoeffCost( 0 );
+      UInt  uiBits = 0;
+      UInt  uiCbp  = 0;
+
+      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+      {
+        RNOK( xEncode4x4InterBlock( *rpcMbTempData, cIdx, uiBits, uiCbp ) );
+      }
+      if( uiCbp )
+      {
+        uiCoeffCost += xGetCoeffCost();
+        uiExtCbp    += uiCbp;
+        uiCoeffBits += uiBits;
+      }
     }
-    if( uiCbp )
+    //--- CHROMA ---
+    RNOK( xEncodeChromaTexture( *rpcMbTempData, uiExtCbp, uiCoeffBits ) );
+    //--- get CBP ---
+    rpcMbTempData->cbp() = xCalcMbCbp( uiExtCbp );
+
+    RNOK( xCheckSkipSliceMb( *rpcMbTempData ) );
+
+    rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
+    rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
+
+    //JVT-V079 Low-complexity MB mode decision {
+    if ( !bLowComplexMbEnable )
     {
-      uiCoeffCost += xGetCoeffCost();
-      uiExtCbp    += uiCbp;
-      uiCoeffBits += uiBits;
+      RNOK( xSetRdCostIntraMb     ( *rpcMbTempData, uiCoeffBits, bBLSkip ) );
+    }
+    else
+    {
+      RNOK( xSetRdCostIntraMb     ( *rpcMbTempData, uiCoeffBits, bBLSkip ) );
+      XPel*         pPel        = rpcMbTempData->getMbLumAddr();
+      Int           iStride     = rpcMbTempData->getLStride();
+      UInt uiDist  = m_pcXDistortion->getLum16x16( pPel, iStride, DF_HADAMARD );
+
+      //--- store estimated parameters ---
+      rpcMbTempData->rdCost() = uiDist;
+    }
+    //JVT-V079 Low-complexity MB mode decision }
+
+    //===== check rd-cost =====
+    if( rpcMbTempData->rdCost() < dMinCost )
+    {
+      dMinCost  = rpcMbTempData->rdCost();
+      uiBestQP  = rpcMbTempData->getQp      ();
+      uiBestCBP = rpcMbTempData->getMbExtCbp();
+      cBestCoeffs .copyFrom   (  rpcMbTempData->getMbTCoeffs() );
+      cBestRec    .loadLuma   ( *rpcMbTempData );
+      cBestRec    .loadChroma ( *rpcMbTempData );
+    }
+
+    //===== reset prediction signal =====
+    rpcMbTempData->loadLuma   ( rcTempYuvMbBuffer );
+    rpcMbTempData->loadChroma ( rcTempYuvMbBuffer );
+    if( rcMbDataAccess.getSH().getSCoeffResidualPredFlag() )
+    {
+      pcMbDataAccessBase->getMbTCoeffs().copyPredictionTo( rcYuvMbBuffer );
     }
   }
-  //--- CHROMA ---
-  RNOK( xEncodeChromaTexture( *rpcMbTempData, uiExtCbp, uiCoeffBits ) );
-  //--- get CBP ---
-  rpcMbTempData->cbp() = xCalcMbCbp( uiExtCbp );
 
-  RNOK( xCheckSkipSliceMb( *rpcMbTempData ) );
+  //===== set best data ====
+  rpcMbTempData->rdCost() = dMinCost;
+  rpcMbTempData->setQp        ( uiBestQP );
+  rpcMbTempData->setMbExtCbp  ( uiBestCBP );
+  rpcMbTempData->getMbTCoeffs ().copyFrom( cBestCoeffs );
+  rpcMbTempData->loadLuma     ( cBestRec );
+  rpcMbTempData->loadChroma   ( cBestRec );
 
-  rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
-  rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
-
-  //JVT-V079 Low-complexity MB mode decision {
-  if ( !bLowComplexMbEnable )
-  {
-   RNOK( xSetRdCostIntraMb     ( *rpcMbTempData, uiCoeffBits, bBSlice, bBLSkip ) );
-  }
-  else
-  {
-   RNOK( xSetRdCostIntraMb     ( *rpcMbTempData, uiCoeffBits, bBSlice, bBLSkip ) );
-   XPel*         pPel        = rpcMbTempData->getMbLumAddr();
-   Int           iStride     = rpcMbTempData->getLStride();
-   UInt uiDist  = m_pcXDistortion->getLum16x16( pPel, iStride, DF_HADAMARD );
-
-    //--- store estimated parameters ---
-   rpcMbTempData->rdCost() = uiDist;
-  }
-  //JVT-V079 Low-complexity MB mode decision }
+  //===== reset transform status =====
+  m_pcTransform->setQp( rcMbDataAccess, true );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
   {
-	  MbDataAccess& rcMbDataAccessl  = rpcMbTempData->getMbDataAccess();
 	  Int x,y,blockX,blockY;
-	  blockX=rcMbDataAccessl.getMbX()*4;
-	  blockY=rcMbDataAccessl.getMbY()*4;
+	  blockX=rcMbDataAccess.getMbX()*4;
+	  blockY=rcMbDataAccess.getMbY()*4;
 	  Int blockIndex;
 	  Int ep_ref=0;
 	  Int KBlock=m_pcIntPicBuffer->getLWidth()/4;
@@ -1939,7 +1216,7 @@ MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
   //JVT-R057 LA-RDO}
 
   RNOK( xCheckBestEstimation  (  rpcMbTempData, rpcMbBestData ) );
-  RNOK( xEstimateMbIntraBL8x8 (  rpcMbTempData, pcMbDataAccessBase, rpcMbBestData, pcBaseLayerRec, bBSlice, bBLSkip ) );
+  RNOK( xEstimateMbIntraBL8x8 (  rpcMbTempData, pcMbDataAccessBase, rpcMbBestData, uiMinQP, uiMaxQP, pcBaseLayerRec, bBSlice, bBLSkip ) );
 
   return Err::m_nOK;
 }
@@ -1949,7 +1226,9 @@ ErrVal
 MbEncoder::xEstimateMbIntraBL8x8( IntMbTempData*&  rpcMbTempData,
                                   MbDataAccess*    pcMbDataAccessBase,
                                   IntMbTempData*&  rpcMbBestData,
-                                  const Frame*  pcBaseLayerRec,
+                                  UInt             uiMinQP,
+                                  UInt             uiMaxQP,
+                                  const Frame*     pcBaseLayerRec,
                                   Bool             bBSlice,
                                   Bool             bBLSkip )
 {
@@ -1962,7 +1241,6 @@ MbEncoder::xEstimateMbIntraBL8x8( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->setBLSkipFlag( bBLSkip );
   rpcMbTempData->setTransformSize8x8( true );
 
-  UInt            uiCoeffBits       = 0;
   YuvMbBuffer& rcYuvMbBuffer     = *rpcMbTempData;
   YuvMbBuffer& rcTempYuvMbBuffer =  rpcMbTempData->getTempYuvMbBuffer();
 
@@ -1980,35 +1258,78 @@ MbEncoder::xEstimateMbIntraBL8x8( IntMbTempData*&  rpcMbTempData,
   rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
 
 
-  //===== encode residual and get rate for coefficients =====
-  UInt  uiCoeffCost = 0;
-  UInt  uiExtCbp    = 0;
-  //--- LUMA ---
-  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+  //===== LOOP OVER QP values =====
+  Double            dMinCost  = DOUBLE_MAX;
+  UInt              uiBestQP  = MSYS_UINT_MAX;
+  UInt              uiBestCBP = MSYS_UINT_MAX;
+  MbTransformCoeffs cBestCoeffs;
+  YuvMbBuffer       cBestRec;
+  for( UInt uiQP = uiMinQP; uiQP <= uiMaxQP; uiQP++ )
   {
-    xSetCoeffCost( 0 );
-    UInt  uiBits = 0;
-    UInt  uiCbp  = 0;
+    rpcMbTempData->setQp( uiQP );
+    m_pcTransform->setQp( *rpcMbTempData, true );
 
-    RNOK( xEncode8x8InterBlock( *rpcMbTempData, c8x8Idx, uiBits, uiCbp ) );
-    if( uiCbp )
+    //===== encode residual and get rate for coefficients =====
+    UInt  uiCoeffBits = 0;
+    UInt  uiCoeffCost = 0;
+    UInt  uiExtCbp    = 0;
+    //--- LUMA ---
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
-      uiCoeffCost += xGetCoeffCost();
-      uiExtCbp    += uiCbp;
-      uiCoeffBits += uiBits;
+      xSetCoeffCost( 0 );
+      UInt  uiBits = 0;
+      UInt  uiCbp  = 0;
+
+      RNOK( xEncode8x8InterBlock( *rpcMbTempData, c8x8Idx, uiBits, uiCbp ) );
+      if( uiCbp )
+      {
+        uiCoeffCost += xGetCoeffCost();
+        uiExtCbp    += uiCbp;
+        uiCoeffBits += uiBits;
+      }
+    }
+    //--- CHROMA ---
+    RNOK( xEncodeChromaTexture( *rpcMbTempData, uiExtCbp, uiCoeffBits ) );
+    //--- get CBP ---
+    rpcMbTempData->cbp() = xCalcMbCbp( uiExtCbp );
+
+    RNOK( xCheckSkipSliceMb( *rpcMbTempData ) );
+
+    rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
+    rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
+
+    RNOK( xSetRdCostIntraMb( *rpcMbTempData, uiCoeffBits, bBLSkip ) );
+
+    //===== check rd-cost =====
+    if( rpcMbTempData->rdCost() < dMinCost )
+    {
+      dMinCost  = rpcMbTempData->rdCost();
+      uiBestQP  = rpcMbTempData->getQp      ();
+      uiBestCBP = rpcMbTempData->getMbExtCbp();
+      cBestCoeffs .copyFrom   (  rpcMbTempData->getMbTCoeffs() );
+      cBestRec    .loadLuma   ( *rpcMbTempData );
+      cBestRec    .loadChroma ( *rpcMbTempData );
+    }
+
+    //===== reset prediction signal =====
+    rpcMbTempData->loadLuma   ( rcTempYuvMbBuffer );
+    rpcMbTempData->loadChroma ( rcTempYuvMbBuffer );
+    if( rpcMbTempData->getSH().getSCoeffResidualPredFlag() )
+    {
+      pcMbDataAccessBase->getMbTCoeffs().copyPredictionTo( rcYuvMbBuffer );
     }
   }
-  //--- CHROMA ---
-  RNOK( xEncodeChromaTexture( *rpcMbTempData, uiExtCbp, uiCoeffBits ) );
-  //--- get CBP ---
-  rpcMbTempData->cbp() = xCalcMbCbp( uiExtCbp );
 
-  RNOK( xCheckSkipSliceMb( *rpcMbTempData ) );
+  //===== set best data ====
+  rpcMbTempData->rdCost() = dMinCost;
+  rpcMbTempData->setQp        ( uiBestQP );
+  rpcMbTempData->setMbExtCbp  ( uiBestCBP );
+  rpcMbTempData->getMbTCoeffs ().copyFrom( cBestCoeffs );
+  rpcMbTempData->loadLuma     ( cBestRec );
+  rpcMbTempData->loadChroma   ( cBestRec );
 
-  rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
-  rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
-
-  RNOK( xSetRdCostIntraMb   ( *rpcMbTempData, uiCoeffBits, bBSlice, bBLSkip ) );
+  //===== reset transform status =====
+  m_pcTransform->setQp( rpcMbTempData->getMbDataAccess(), true );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -2017,10 +1338,10 @@ MbEncoder::xEstimateMbIntraBL8x8( IntMbTempData*&  rpcMbTempData,
   }
   //JVT-R057 LA-RDO}
 
-  ROT( rpcMbBestData->getSH().getTCoeffLevelPredictionFlag() );
-  if( !rpcMbBestData->getMbDataAccess().isSCoeffPred() )
+  ROT( rpcMbTempData->getSH().getTCoeffLevelPredictionFlag() );
+  if( !rpcMbTempData->getMbDataAccess().isSCoeffPred() )
   {
-    RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
+    RNOK( xCheckBestEstimation( rpcMbTempData, rpcMbBestData ) );
   }
   else if( pcMbDataAccessBase->getMbData().isTransformSize8x8() )
   {
@@ -2038,6 +1359,7 @@ MbEncoder::xEstimateMbIntraBL8x8( IntMbTempData*&  rpcMbTempData,
 ErrVal
 MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
                                IntMbTempData*&  rpcMbBestData,
+                               UInt             uiQp,
                                Bool             bBSlice,
 							                 Bool             bBLSkip
                                )
@@ -2046,6 +1368,8 @@ MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
 
   rpcMbTempData->clear();
   rpcMbTempData->setBLSkipFlag( bBLSkip );
+  rpcMbTempData->setQp( uiQp );
+  m_pcTransform->setQp( *rpcMbTempData, true );
 
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
@@ -2225,7 +1549,7 @@ MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->rdCost() = uiCost;
 
   if ( !bLowComplexMbEnable )
-   RNOK( xSetRdCostIntraMb   ( *rpcMbTempData, uiBestBits, bBSlice, false ) );
+   RNOK( xSetRdCostIntraMb   ( *rpcMbTempData, uiBestBits, false ) );
 
   if( avcRewriteFlag && bBLSkip && rpcMbTempData->getMbCbp() == 0 && ! rpcMbTempData->getSH().getSliceSkipFlag() )
   {
@@ -2243,17 +1567,18 @@ MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
 
 
 ErrVal
-MbEncoder::xEstimateMbIntra4( MbDataAccess&    rcMbDataAccess,
-                                IntMbTempData*&  rpcMbTempData,
-                                IntMbTempData*&  rpcMbBestData,
-                                Bool             bBSlice,
-                                Bool           bBLSkip
-)
+MbEncoder::xEstimateMbIntra4( IntMbTempData*&  rpcMbTempData,
+                              IntMbTempData*&  rpcMbBestData,
+                              UInt             uiQp,
+                              Bool             bBSlice,
+                              Bool             bBLSkip )
 {
   ROTRS( rpcMbTempData->getSH().getSliceSkipFlag() && !bBLSkip, Err::m_nOK );
 
   /* JVT-V079: parameter rcMbDataAccess used to catch most probable intra pred mode */
   rpcMbTempData->clear();
+  rpcMbTempData->setQp( uiQp );
+  m_pcTransform->setQp( *rpcMbTempData, true );
 
   Bool avcRewriteFlag = rpcMbTempData->getSH().getTCoeffLevelPredictionFlag();
   if (avcRewriteFlag)
@@ -2267,8 +1592,8 @@ MbEncoder::xEstimateMbIntra4( MbDataAccess&    rcMbDataAccess,
     rpcMbTempData->setBLSkipFlag( false );
   }
 
-  UInt uiQp    = rcMbDataAccess.getMbData().getQp();
-  UInt uiCost, uiTempCost =0;
+  MbDataAccess& rcMbDataAccess      = rpcMbTempData->getMbDataAccess();
+  UInt          uiCost, uiTempCost  = 0;
 
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
@@ -2367,7 +1692,7 @@ MbEncoder::xEstimateMbIntra4( MbDataAccess&    rcMbDataAccess,
   rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
 
   if ( !bLowComplexMbEnable )
-    RNOK( xSetRdCostIntraMb   ( *rpcMbTempData, uiMbBits, bBSlice, false ) );
+    RNOK( xSetRdCostIntraMb( *rpcMbTempData, uiMbBits, false ) );
 
   if( avcRewriteFlag && bBLSkip && rpcMbTempData->getMbCbp() == 0 && ! rpcMbTempData->getSH().getSliceSkipFlag() )
   {
@@ -2385,10 +1710,11 @@ MbEncoder::xEstimateMbIntra4( MbDataAccess&    rcMbDataAccess,
 
 
 ErrVal
-MbEncoder::xEstimateMbIntra8( IntMbTempData*&  rpcMbTempData,
-                              IntMbTempData*&  rpcMbBestData,
-                              Bool             bBSlice,
-                              Bool bBLSkip
+MbEncoder::xEstimateMbIntra8( IntMbTempData*& rpcMbTempData,
+                              IntMbTempData*& rpcMbBestData,
+                              UInt            uiQp,
+                              Bool            bBSlice,
+                              Bool            bBLSkip
                               )
 {
   ROTRS( rpcMbTempData->getSH().getSliceSkipFlag() && !bBLSkip, Err::m_nOK );
@@ -2396,6 +1722,8 @@ MbEncoder::xEstimateMbIntra8( IntMbTempData*&  rpcMbTempData,
   ROTRS( ! rpcMbTempData->getSH().getPPS().getTransform8x8ModeFlag(), Err::m_nOK );
 
   rpcMbTempData->clear();
+  rpcMbTempData->setQp( uiQp );
+  m_pcTransform->setQp( *rpcMbTempData, true );
 
   Bool avcRewriteFlag = rpcMbTempData->getSH().getTCoeffLevelPredictionFlag();
   if (avcRewriteFlag)
@@ -2445,7 +1773,7 @@ MbEncoder::xEstimateMbIntra8( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
   rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
 
-  RNOK( xSetRdCostIntraMb   ( *rpcMbTempData, uiMbBits, bBSlice, false ) );
+  RNOK( xSetRdCostIntraMb( *rpcMbTempData, uiMbBits, false ) );
 
   if( avcRewriteFlag && bBLSkip && rpcMbTempData->getMbCbp() == 0 && ! rpcMbTempData->getSH().getSliceSkipFlag() )
   {
@@ -2470,6 +1798,7 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
 
   rpcMbTempData->clear        ();
   rpcMbTempData->setMbMode    ( MODE_PCM );
+  rpcMbTempData->setQp        ( rpcMbTempData->getMbDataAccess().getLastQp() );
   rpcMbTempData->setBLSkipFlag( false );
   rpcMbTempData->loadLuma     ( *m_pcIntOrgMbPelData );
   rpcMbTempData->loadChroma   ( *m_pcIntOrgMbPelData );
@@ -2485,7 +1814,7 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
   {
     for( m = 0; m < 16; m++ )
     {
-      dest       = min( 255, max( 1, pucSrc[m] ) );
+      dest       = gMin( 255, gMax( 1, pucSrc[m] ) );
       pCoeff->setLevel( dest );
       *pCoeff++;
       diff       = pucSrc[m] - dest;
@@ -2502,7 +1831,7 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
   {
     for( m = 0; m < 8; m++ )
     {
-      dest       = min( 255, max( 1, pucSrc[m] ) );
+      dest       = gMin( 255, gMax( 1, pucSrc[m] ) );
       pCoeff->setLevel( dest );
       *pCoeff++;
       diff       = pucSrc[m] - dest;
@@ -2518,7 +1847,7 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
   {
     for( m = 0; m < 8; m++ )
     {
-      dest       = min( 255, max( 1, pucSrc[m] ) );
+      dest       = gMin( 255, gMax( 1, pucSrc[m] ) );
       pCoeff->setLevel( dest );
       *pCoeff++;
       diff       = pucSrc[m] - dest;
@@ -2558,6 +1887,7 @@ MbEncoder::xEstimateMbPCMRewrite( IntMbTempData*&   rpcMbTempData,
 
   rpcMbTempData->clear        ();
   rpcMbTempData->setMbMode    ( INTRA_BL );
+  rpcMbTempData->setQp        ( rpcMbTempData->getMbDataAccess().getLastQp() );
   rpcMbTempData->setBLSkipFlag( true );
   rpcMbTempData->loadLuma     ( *m_pcIntOrgMbPelData );
   rpcMbTempData->loadChroma   ( *m_pcIntOrgMbPelData );
@@ -2643,63 +1973,6 @@ UInt MbEncoder::xCalcMbCbp( UInt uiExtCbp )
   uiMbCbp += (uiExtCbp >> 16) << 4;
 
   return (uiMbCbp<<24) | uiExtCbp;
-}
-
-
-
-
-
-
-__inline Void MbEncoder::xUpDateBest( IntMbTempData& rcMbTempData )
-{
-  // no bits available
-  if( ! rcMbTempData.isPCM() )
-  {
-    BitCounter::init();
-    if( ! rcMbTempData.isIntra16x16() )
-    {
-      rcMbTempData.cbp() = xCalcMbCbp( rcMbTempData.cbp() );
-      MbCoder::m_pcMbSymbolWriteIf->cbp( rcMbTempData );
-      if( rcMbTempData.cbp() )
-      {
-        MbCoder::m_pcMbSymbolWriteIf->deltaQp( rcMbTempData );
-      }
-    }
-    else
-    {
-      MbCoder::m_pcMbSymbolWriteIf->deltaQp( rcMbTempData );
-    }
-
-
-    if( ! rcMbTempData.isSkiped() )
-    {
-      MbCoder::m_pcMbSymbolWriteIf->mbMode( rcMbTempData/*, false*/ );
-
-      rcMbTempData.bits() += (rcMbTempData.getSH().isIntraSlice() ? 0 : 1); // run
-    }
-    else
-    {
-      rcMbTempData.bits() += 1; // run
-    }
-
-    rcMbTempData.bits() += BitCounter::getNumberOfWrittenBits();
-  }
-
-
-  UInt uiDist;
-  uiDist  = rcMbTempData.distY();
-  uiDist += rcMbTempData.distU();
-  uiDist += rcMbTempData.distV();
-
-  rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( rcMbTempData.bits(), uiDist );
-
-  ROFVS( rcMbTempData.rdCost() < m_pcIntMbBestData->rdCost() )
-
-  IntMbTempData* pcMbTempData = &rcMbTempData;
-
-  m_pcIntMbTempData = m_pcIntMbBestData;
-
-  m_pcIntMbBestData = pcMbTempData;
 }
 
 
@@ -2802,34 +2075,6 @@ MbEncoder::xEncode8x8InterBlock( IntMbTempData& rcMbTempData,
 
   ruiExtCbp |= 0x33 << c8x8Idx.b4x4();
   ruiBits   += uiBits;
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MbEncoder::xEncode16x16ResidualMB( IntMbTempData& rcMbTempData,
-                                   UInt&          ruiBits,
-                                   UInt&          ruiExtCbp )
-{
-  UInt uiDCAbs  = 0;
-  UInt uiACAbs  = 0;
-
-  Int           iScalMat  = ( 0 );
-  const UChar*  pucScale  = ( rcMbTempData.getSH().isScalingMatrixPresent(iScalMat) ? rcMbTempData.getSH().getScalingMatrix(iScalMat) : NULL );
-
-  RNOK( m_pcTransform->transformMb16x16( m_pcIntOrgMbPelData,
-                                         rcMbTempData,
-                                         rcMbTempData.get( B4x4Idx(0) ), pucScale, uiDCAbs, uiACAbs )  );
-
-  BitCounter::init();
-  ROF( rcMbTempData.getMbDataAccess().getMbData().getMbMode() == MODE_SKIP );
-  rcMbTempData.getMbDataAccess().getMbData().setMbMode( MbMode(INTRA_4X4 + 1) ); // one arbitrary Intra 16x16 mode
-  RNOK( MbCoder::xScanLumaIntra16x16( rcMbTempData, rcMbTempData, uiACAbs != 0 ) );
-  rcMbTempData.getMbDataAccess().getMbData().setMbMode( MODE_SKIP );
-  ruiBits   = ( BitCounter::getNumberOfWrittenBits() );
-  ruiExtCbp = ( uiACAbs ? 0xFFFF : 0 );
 
   return Err::m_nOK;
 }
@@ -3145,18 +2390,9 @@ MbEncoder::xStoreEstimation( MbDataAccess&  rcMbDataAccess,
                              IntMbTempData& rcMbBestData,
                              Frame*         pcRecSubband,
                              Frame*         pcPredSignal,
-                             RefFrameList*  pcRefList0,
-                             RefFrameList*  pcRefList1,
-                             Bool           bMotionFieldEstimation,
+                             RefListStruct& rcRefListStruct,
                              YuvMbBuffer*   pcBaseLayerBuffer )
 {
-  if( bMotionFieldEstimation )
-  {
-    //===== reset parameters: IMPORTANT FOR ENCODING OF MOTION FIELDS =====
-    rcMbBestData.cbp() = 0;
-    rcMbBestData.setAllCoeffCount( 0 );
-  }
-
   if( rcMbBestData.isIntra() )
   {
     rcMbBestData.getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
@@ -3227,41 +2463,57 @@ MbEncoder::xStoreEstimation( MbDataAccess&  rcMbDataAccess,
 
   rcMbDataAccess.getMbData().setQp4LF( rcMbDataAccess.getMbData().getQp() );
 
+  RefFrameList* pcRefList0 = &rcRefListStruct.acRefFrameListRC[0];
+  RefFrameList* pcRefList1 = &rcRefListStruct.acRefFrameListRC[1];
   RNOK( rcMbDataAccess.getMbMotionData( LIST_0 ).setRefPicIdcs( pcRefList0 ) );
   RNOK( rcMbDataAccess.getMbMotionData( LIST_1 ).setRefPicIdcs( pcRefList1 ) );
-
-  if( rcMbDataAccess.getMbData().getResidualPredFlag() )
-  {
-    ROF( pcBaseLayerBuffer );
-    ((YuvMbBuffer&)rcMbBestData).add( *pcBaseLayerBuffer );
-  }
 
   if( pcPredSignal )
   {
     RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &rcMbBestData.getTempYuvMbBuffer() ) );
   }
 
-  if( pcRecSubband )
+  YuvMbBuffer cResidual;
+  if( rcMbBestData.isIntra() )
   {
-    YuvMbBuffer cYuvMbBuffer;
-
-    if( rcMbBestData.isIntra() )
+    if( pcRecSubband )
     {
-      cYuvMbBuffer.setAllSamplesToZero();
+      cResidual.setAllSamplesToZero();
+      RNOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cResidual ) );
     }
-    else
+    rcMbBestData.clip();
+  }
+  else if( rcMbDataAccess.getMbData().getResidualPredFlag() )
+  {
+    ROF( pcBaseLayerBuffer );
+    cResidual   .loadLuma   ( rcMbBestData );
+    cResidual   .loadChroma ( rcMbBestData );
+    cResidual   .subtract   ( rcMbBestData.getTempYuvMbBuffer() );
+    cResidual   .addRes     ( *pcBaseLayerBuffer );
+    rcMbBestData.loadLuma   ( rcMbBestData.getTempYuvMbBuffer() );
+    rcMbBestData.loadChroma ( rcMbBestData.getTempYuvMbBuffer() );
+    rcMbBestData.addClip    ( cResidual );
+    if( pcRecSubband )
     {
-      cYuvMbBuffer.loadLuma   ( rcMbBestData );
-      cYuvMbBuffer.loadChroma ( rcMbBestData );
-      cYuvMbBuffer.subtract   ( rcMbBestData.getTempYuvMbBuffer() );
+      RNOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cResidual ) );
     }
-
-    RNOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
+  }
+  else
+  {
+    if( pcRecSubband )
+    {
+      cResidual.loadLuma   ( rcMbBestData );
+      cResidual.loadChroma ( rcMbBestData );
+      cResidual.subtract   ( rcMbBestData.getTempYuvMbBuffer() );
+      RNOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cResidual ) );
+    }
+    rcMbBestData.clip();
   }
 
-  rcMbBestData.clip();
   if( m_pcIntPicBuffer )
+  {
     m_pcIntPicBuffer->loadBuffer( &rcMbBestData );
+  }
 
   return Err::m_nOK;
 }
@@ -3538,7 +2790,7 @@ MbEncoder::xEncodeChromaTexture( IntMbTempData& rcMbTempData,
   if( (uiAcBits1 + uiAcBits2) > 8)
   {
     ruiBits += uiAcBits1 + uiAcBits2;
-    uiChromaCbp = max( uiCbp1, uiCbp2 );
+    uiChromaCbp = gMax( uiCbp1, uiCbp2 );
   }
 
   if( rcMbTempData.getMbDataAccess().isSCoeffPred() || rcMbTempData.getSH().getTCoeffLevelPredictionFlag() || uiCbp1)
@@ -3655,13 +2907,19 @@ MbEncoder::reCalcChromaRewrite( IntMbTempData& rcMbTempData )
 ErrVal
 MbEncoder::xSetRdCostIntraMb( IntMbTempData&  rcMbTempData,
                               UInt            uiCoeffBits,
-                              Bool            bSlice,
                               Bool            bBLSkip )
 {
-  YuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
-  MbDataAccess&   rcMbDataAccess    = rcMbTempData.getMbDataAccess();
-  UInt            uiMbDist          = 0;
-  UInt            uiMbBits          = 0;
+  if( rcMbTempData.getSH().getTCoeffLevelPredictionFlag() && 
+      rcMbTempData.getMbCbp() == 0 &&
+      rcMbTempData.getQp   () != rcMbTempData.getMbDataAccess().getLastQp() )
+  {
+    rcMbTempData.rdCost() = DOUBLE_MAX;
+    return Err::m_nOK;
+  }
+
+  YuvMbBuffer&  rcYuvMbBuffer = rcMbTempData;
+  UInt          uiMbDist      = 0;
+  UInt          uiMbBits      = 0;
 
   //===== get distortion =====
   uiMbDist  += rcMbTempData.distY() = m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
@@ -3669,30 +2927,16 @@ MbEncoder::xSetRdCostIntraMb( IntMbTempData&  rcMbTempData,
   uiMbDist  += rcMbTempData.distV() = m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
 
   //===== get rate =====
-  SliceType eRealSliceType  = rcMbDataAccess.getSH().getSliceType();
-  if( ! bSlice )
-  {
-    rcMbDataAccess.getSH().setSliceType( P_SLICE );
-  }
-
   RNOK(   BitCounter::init() );
-
-  MbMode  eMbMode = rcMbDataAccess.getMbData().getMbMode();
-  if( eMbMode == INTRA_BL )
-  {
-    rcMbDataAccess.getMbData().setMbMode( INTRA_4X4 );
-  }
-
   if( ! bBLSkip )
   {
-    RNOK( MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbDataAccess/*, false*/ ) );
+    RNOK( MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbTempData ) );
   }
-
-  rcMbDataAccess.getMbData().setMbMode( eMbMode );
-
-  rcMbDataAccess.getSH().setSliceType( eRealSliceType );
-
-  RNOK(   MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
+  RNOK(   MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbTempData ) );
+  if( rcMbTempData.cbp() )
+  {
+    RNOK( MbCoder::m_pcMbSymbolWriteIf->deltaQp   ( rcMbTempData ) );
+  }
   uiMbBits  += BitCounter::getNumberOfWrittenBits();
   uiMbBits  += uiCoeffBits + 1; // 1 for chroma pred mode
 
@@ -3706,81 +2950,34 @@ MbEncoder::xSetRdCostIntraMb( IntMbTempData&  rcMbTempData,
 
 
 
-
-Bool
-MbEncoder::xCheckUpdate( YuvMbBuffer&   rcPredBuffer,
-                         YuvMbBuffer&   rcOrigBuffer,
-                         LumaIdx           cIdx,
-                         Int               iXSize,
-                         Int               iYSize )
-{
-  XPel* pPred     = rcPredBuffer.getYBlk( cIdx );
-  XPel* pOrig     = rcOrigBuffer.getYBlk( cIdx );
-  Int   iStride   = rcPredBuffer.getLStride();
-  Int   x, y;
-
-  Int   iSumPred2 = 0;
-  Int   iSumOrig2 = 0;
-  Int   iSumRes2  = 0;
-  Int   iSumPred1 = 0;
-  Int   iSumOrig1 = 0;
-  Int   iSumRes1  = 0;
-
-  for( y = 0; y < iYSize; y++ )
-  {
-    for( x = 0; x < iXSize; x++ )
-    {
-      Int iRes   = pOrig[x] - pPred[x];
-      iSumPred2 += pPred[x] * pPred[x];
-      iSumOrig2 += pOrig[x] * pOrig[x];
-      iSumRes2  += iRes     * iRes;
-      iSumPred1 += pPred[x];
-      iSumOrig1 += pOrig[x];
-      iSumRes1  += iRes;
-    }
-    pPred += iStride;
-    pOrig += iStride;
-  }
-
-  Double  dSamples  = iXSize * iYSize;
-  Double  dVarPred  = (Double)iSumPred2/dSamples - ( (Double)iSumPred1/dSamples ) * ( (Double)iSumPred1/dSamples );
-  Double  dVarOrig  = (Double)iSumOrig2/dSamples - ( (Double)iSumOrig1/dSamples ) * ( (Double)iSumOrig1/dSamples );
-  Double  dVarRes   = (Double)iSumRes2 /dSamples - ( (Double)iSumRes1 /dSamples ) * ( (Double)iSumRes1 /dSamples );
-
-  Bool   bUpdate = ( dVarRes < 0.5*dVarOrig && dVarRes < 0.5*dVarPred );
-  return bUpdate;
-}
-
-
 ErrVal
 MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
                               MbDataAccess*   pcMbDataAccessBase,
-                              RefFrameList&   rcRefFrameList0,
-                              RefFrameList&   rcRefFrameList1,
+                              RefListStruct&  rcRefListStruct,
+                              UInt            uiMinQP,
+                              UInt            uiMaxQP,
+                              Bool            bLowComplexity,   // JVT-V079
                               Bool            bBLSkip,
                               UInt            uiAdditionalBits,
-                              Bool            bSkipMCPrediction,
-                              Frame*       pcBaseLayerRec,
-                              Bool            bLowComplexity )   // JVT-V079
+                              Frame*          pcBaseLayerRec )
 {
-  YuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
-  YuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData  .getTempYuvMbBuffer ();
-  MbDataAccess&   rcMbDataAccess    = rcMbTempData  .getMbDataAccess    ();
-  MbData&         rcMbData          = rcMbDataAccess.getMbData          ();
-  UInt            uiMbDist          = 0;
-  UInt            uiMbBits          = 0;
-  MbMode          eMbMode           = rcMbData.getMbMode();
-  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
-  UInt            uiFwdBwd          = 0;
+  YuvMbBuffer   cTempPredBuffer;
+  YuvMbBuffer&  rcYuvMbBuffer     = rcMbTempData;
+  YuvMbBuffer&  rcTempYuvMbBuffer = rcMbTempData  .getTempYuvMbBuffer ();
+  MbDataAccess& rcMbDataAccess    = rcMbTempData  .getMbDataAccess    ();
+  MbData&       rcMbData          = rcMbDataAccess.getMbData          ();
+  MbMode        eMbMode           = rcMbData.getMbMode();
+  Bool          b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
+  UInt          uiFwdBwd          = 0;
 
-  if ( bLowComplexity && (rcMbTempData.rdCost() != DOUBLE_MAX ) )
+  if( bLowComplexity && ( rcMbTempData.rdCost() != DOUBLE_MAX ) )
   {
     return Err::m_nOK;
   }
 
   // enforce to use the same transform size as base
   if( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isTransformSize8x8()
-    && ( rcMbDataAccess.isSCoeffPred() || rcMbDataAccess.isTCoeffPred() ) )
+      && ( rcMbDataAccess.isSCoeffPred() || rcMbDataAccess.isTCoeffPred() ) )
   {
     // 4x4-trafo not allowed here
     // Encoders can consider 8x8 transform though...
@@ -3808,164 +3005,252 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
   }
   rcMbTempData.setFwdBwd( uiFwdBwd );
 
-  if( ! bSkipMCPrediction )
+  //===== get prediction signal (for residual coding) =====
   {
-    //===== get prediction and copy to temp buffer =====
+    RefFrameList& rcMCList0 = rcRefListStruct.acRefFrameListMC[ 0 ];
+    RefFrameList& rcMCList1 = rcRefListStruct.acRefFrameListMC[ 1 ];
     if( b8x8Mode )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcMCList0, rcMCList1,
                                                      &rcYuvMbBuffer, false, false ) );
       }
     }
     else
     {
-      RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                    &rcYuvMbBuffer, false) );
+      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcMCList0, rcMCList1,
+                                                &rcYuvMbBuffer, false ) );
     }
-    if(pcBaseLayerRec)
+    if( bBLSkip )
     {
-      RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess,  &rcYuvMbBuffer, pcBaseLayerRec));
+      ROF( pcBaseLayerRec );
+      RNOK( m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec ) );
+    }
+    cTempPredBuffer.loadLuma  ( rcYuvMbBuffer );
+    cTempPredBuffer.loadChroma( rcYuvMbBuffer );
+  }
+
+  //===== get prediction signal (for reconstruction) =====
+  if( rcRefListStruct.bMCandRClistsDiffer )
+  {
+    RefFrameList& rcMCList0 = rcRefListStruct.acRefFrameListRC[ 0 ];
+    RefFrameList& rcMCList1 = rcRefListStruct.acRefFrameListRC[ 1 ];
+    if( b8x8Mode )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcMCList0, rcMCList1,
+                                                     &rcTempYuvMbBuffer, false, false ) );
+      }
+    }
+    else
+    {
+      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcMCList0, rcMCList1,
+                                                &rcTempYuvMbBuffer, false ) );
+    }
+    if( bBLSkip )
+    {
+      ROF( pcBaseLayerRec );
+      RNOK( m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &rcTempYuvMbBuffer, pcBaseLayerRec ) );
     }
   }
-  rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
-  rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
-
-  if ( bLowComplexity )
+  else
   {
-    rcMbTempData.rdCost() = m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride(), DF_SAD );
+    rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
+    rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
+  }
+
+  if( bLowComplexity )
+  {
+    rcMbTempData.rdCost() = m_pcXDistortion->getLum16x16( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride(), DF_SAD );
     return Err::m_nOK;
   }
 
-  //===== encode residual and get rate for coefficients =====
-  UInt  uiCoeffCost = 0;
-  UInt  uiExtCbp    = 0;
-  Bool  bSkipMode   = ( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isPSlice() );
-
-  if( ! bSkipMode )
+  //===== LOOP OVER QP VALUES ====
+  Bool              bSkipMode = ( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isPSlice() );
+  Double            dMinCost  = DOUBLE_MAX;
+  UInt              uiBestQP  = MSYS_UINT_MAX;
+  UInt              uiBestCBP = MSYS_UINT_MAX;
+  MbTransformCoeffs cBestCoeffs;
+  YuvMbBuffer       cBestRec;
+  if( bSkipMode )
   {
-    //--- LUMA ---
-    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    uiMinQP = uiMaxQP = rcMbDataAccess.getMbData().getQp();
+  }
+  for( UInt uiQP = uiMinQP; uiQP <= uiMaxQP; uiQP++ )
+  {
+    rcMbTempData  .setQp( uiQP );
+    m_pcTransform->setQp( rcMbTempData, false );
+    
+    //===== encode residual and get rate for coefficients =====
+    UInt  uiMbDist    = 0;
+    UInt  uiMbBits    = 0;
+    UInt  uiCoeffCost = 0;
+    UInt  uiExtCbp    = 0;
+    if( ! bSkipMode )
     {
-      xSetCoeffCost( 0 );
-      UInt  uiBits = 0;
-      UInt  uiCbp  = 0;
-
-      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+      //--- LUMA ---
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        RNOK( xEncode4x4InterBlock( rcMbTempData, cIdx, uiBits, uiCbp ) );
-      }
-      if( uiCbp )
-      {
-        if( xGetCoeffCost() <= 4 )
+        xSetCoeffCost( 0 );
+        UInt  uiBits = 0;
+        UInt  uiCbp  = 0;
+        for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
         {
-          rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer, c8x8Idx );
-          rcMbTempData.clearLumaLevels8x8( c8x8Idx );
-
-          if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+          RNOK( xEncode4x4InterBlock( rcMbTempData, cIdx, uiBits, uiCbp ) );
+        }
+        if( uiCbp )
+        {
+          if( xGetCoeffCost() <= 4 )
+          {
+            rcYuvMbBuffer.loadLuma( cTempPredBuffer, c8x8Idx );
+            rcMbTempData.clearLumaLevels8x8( c8x8Idx );
+            if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+            {
+              reCalcBlock8x8(rcMbTempData, c8x8Idx, 1);
+            }
+            else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+            {
+              reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
+            }
+          }
+          else
+          {
+            uiCoeffCost += xGetCoeffCost();
+            uiExtCbp    += uiCbp;
+            uiMbBits    += uiBits;
+          }
+        }
+      }
+      if( uiExtCbp && uiCoeffCost <= 5 )
+      {
+        rcYuvMbBuffer.loadLuma( cTempPredBuffer );
+        uiExtCbp  = 0;
+        uiMbBits  = 0;
+        rcMbTempData.clearLumaLevels();
+        if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+        {
+          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
           {
             reCalcBlock8x8(rcMbTempData, c8x8Idx, 1);
           }
-          else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+        }
+        else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+        {
+          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
           {
             reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
           }
         }
-        else
-        {
-          uiCoeffCost += xGetCoeffCost();
-          uiExtCbp    += uiCbp;
-          uiMbBits    += uiBits;
-        }
       }
+      //--- CHROMA ---
+      RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
     }
-    if( uiExtCbp && uiCoeffCost <= 5 )
+    rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
+    RNOK( xCheckSkipSliceMb( rcMbTempData ) );
+    RNOK( xAdjustRewriteReconstruction( rcMbTempData ) );
+
+    //===== get distortion =====
+    if( !pcMbDataAccessBase || pcMbDataAccessBase->getMbData().getSafeResPred() || !rcMbTempData.getResidualPredFlag() )
     {
-      rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer );
-      uiExtCbp  = 0;
-      uiMbBits  = 0;
+      uiMbDist += m_pcXDistortion->getLum16x16  ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+    }
+    else
+    {
+      uiMbDist += m_pcXDistortion->getLum16x16RP( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+    }
+    uiMbDist   += m_pcXDistortion->get8x8Cb     ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
+    uiMbDist   += m_pcXDistortion->get8x8Cr     ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
 
-      rcMbTempData.clearLumaLevels();
-      if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+    if( rcMbDataAccess.getSH().getSliceType()  == B_SLICE   &&
+        rcMbTempData.getMbMode() == MODE_SKIP && uiExtCbp == 0 &&
+        rcMbTempData.getResidualPredFlag() == rcMbDataAccess.getSH().getDefaultResidualPredictionFlag() )
+    {
+      bSkipMode = true;
+      if( rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
       {
-        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-        {
-          reCalcBlock8x8(rcMbTempData, c8x8Idx, 1);
-        }
-      }
-      else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
-      {
-        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-        {
-          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
-        }
+        uiMbBits += 1;
       }
     }
 
-    //--- CHROMA ---
-    RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
+    //===== get rate =====
+    if( ! bSkipMode )
+    {
+      RNOK( BitCounter::init() );
+      if( ! bBLSkip )
+      {
+        RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbTempData ) );
+        if( b8x8Mode )
+        {
+          RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbTempData ) );
+        }
+      }
+      RNOK(     MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbTempData ) );
+      if( rcMbTempData.cbp() )
+      {
+        RNOK(   MbCoder::m_pcMbSymbolWriteIf->deltaQp   ( rcMbTempData ) );
+      }
+      if( rcRefListStruct.acRefFrameListRC[ 0 ].getActive() && !bBLSkip )
+      {
+        RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbTempData, eMbMode, LIST_0 ) );
+        RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbTempData, eMbMode, LIST_0 ) );
+        RNOK(   MbCoder::xWriteMotionVectors            ( rcMbTempData, eMbMode, LIST_0 ) );
+      }
+      if( rcRefListStruct.acRefFrameListRC[ 1 ].getActive() && !bBLSkip )
+      {
+        RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbTempData, eMbMode, LIST_1 ) );
+        RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbTempData, eMbMode, LIST_1 ) );
+        RNOK(   MbCoder::xWriteMotionVectors            ( rcMbTempData, eMbMode, LIST_1 ) );
+      }
+      uiMbBits  += BitCounter::getNumberOfWrittenBits();
+    }
+
+    //===== set rd-cost =====
+    if( rcMbTempData.getSH().getTCoeffLevelPredictionFlag() && 
+        rcMbTempData.getMbCbp() == 0 &&
+        rcMbTempData.getQp   () != rcMbDataAccess.getLastQp() )
+    {
+      rcMbTempData.rdCost() = DOUBLE_MAX;
+    }
+    else
+    {
+      rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits + uiAdditionalBits, uiMbDist );
+    }
+
+    //===== check r-d cost =====
+    if( rcMbTempData.rdCost() < dMinCost )
+    {
+      dMinCost  = rcMbTempData.rdCost();
+      uiBestQP  = rcMbTempData.getQp      ();
+      uiBestCBP = rcMbTempData.getMbExtCbp();
+      cBestCoeffs .copyFrom   ( rcMbTempData.getMbTCoeffs() );
+      cBestRec    .loadLuma   ( rcMbTempData );
+      cBestRec    .loadChroma ( rcMbTempData );
+    }
+
+    //===== reset prediction signal =====
+    rcMbTempData.loadLuma   ( cTempPredBuffer );
+    rcMbTempData.loadChroma ( cTempPredBuffer );
   }
-  rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
 
-  RNOK( xCheckSkipSliceMb( rcMbTempData ) );
-  RNOK( xAdjustRewriteReconstruction( rcMbTempData ) );
+  //===== set best data ====
+  rcMbTempData.rdCost() = dMinCost;
+  rcMbTempData.setQp        ( uiBestQP );
+  rcMbTempData.setMbExtCbp  ( uiBestCBP );
+  rcMbTempData.getMbTCoeffs ().copyFrom( cBestCoeffs );
+  rcMbTempData.loadLuma     ( cBestRec );
+  rcMbTempData.loadChroma   ( cBestRec );
 
-  //===== get distortion =====
-  if(!pcMbDataAccessBase||pcMbDataAccessBase->getMbData().getSafeResPred()||rcMbTempData.getResidualPredFlag()==false)
-    uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
-  else
-    uiMbDist  += m_pcXDistortion->getLum16x16RP ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
-  uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
-  uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
+  //===== reset transform status =====
+  m_pcTransform->setQp( rcMbDataAccess, false );
 
-  if( rcMbDataAccess.getSH().getSliceType() == B_SLICE &&
-      rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
-      uiExtCbp == 0 &&
-      !rcMbDataAccess.getMbData().getResidualPredFlag() )
+  //---- correct prediction signal ----
+  if( rcRefListStruct.bMCandRClistsDiffer )
   {
-    bSkipMode = true;
-    if( rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
-    {
-      uiMbBits += 1;
-    }
+    rcYuvMbBuffer.subtract( cTempPredBuffer );
+    rcYuvMbBuffer.add     ( rcTempYuvMbBuffer );
   }
-
-  //===== get rate =====
-  if( ! bSkipMode )
-  {
-    RNOK(   BitCounter::init() );
-
-    if( ! bBLSkip )
-    {
-      RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbDataAccess/*, false*/ ) );
-      if( b8x8Mode )
-      {
-        RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbDataAccess ) );
-      }
-    }
-
-    RNOK(     MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
-
-    if( rcRefFrameList0.getActive() && !bBLSkip )
-    {
-      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, eMbMode, LIST_0 ) );
-      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_0 ) );
-      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_0 ) );
-    }
-
-    if( rcRefFrameList1.getActive() && !bBLSkip )
-    {
-      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, eMbMode, LIST_1 ) );
-      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_1 ) );
-      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_1 ) );
-    }
-
-    uiMbBits  += BitCounter::getNumberOfWrittenBits();
-  }
-
-  //===== set rd-cost =====
-  rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits+uiAdditionalBits, uiMbDist );
 
   return Err::m_nOK;
 }
@@ -4097,26 +3382,24 @@ MbEncoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess, MbTransformCoeffs& rcTCo
 ErrVal
 MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
                                   MbDataAccess*   pcMbDataAccessBaseMotion,
-                                  RefFrameList&   rcRefFrameList0,
-                                  RefFrameList&   rcRefFrameList1,
+                                  RefListStruct&  rcRefListStruct,
+                                  UInt            uiMinQP,
+                                  UInt            uiMaxQP,
                                   Bool            bBLSkip,
                                   UInt            uiAdditionalBits,
-                                  Bool            bSkipMCPrediction,
-                                  Frame*       pcBaseLayerRec
-                                  )
+                                  Frame*          pcBaseLayerRec )
 {
-  YuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
-  YuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
-  MbDataAccess&   rcMbDataAccess    = rcMbTempData.getMbDataAccess();
-  MbData&         rcMbData          = rcMbDataAccess.getMbData();
-  UInt            uiMbDist          = 0;
-  UInt            uiMbBits          = 0;
-  MbMode          eMbMode           = rcMbData.getMbMode();
-  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
-  UInt            uiFwdBwd          = 0;
+  YuvMbBuffer   cTempPredBuffer;
+  YuvMbBuffer&  rcYuvMbBuffer     = rcMbTempData;
+  YuvMbBuffer&  rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
+  MbDataAccess& rcMbDataAccess    = rcMbTempData.getMbDataAccess();
+  MbData&       rcMbData          = rcMbDataAccess.getMbData();
+  MbMode        eMbMode           = rcMbData.getMbMode();
+  Bool          b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
+  UInt          uiFwdBwd          = 0;
 
   if( pcMbDataAccessBaseMotion && !pcMbDataAccessBaseMotion->getMbData().isTransformSize8x8()
-    && ( rcMbDataAccess.isSCoeffPred() || rcMbDataAccess.isTCoeffPred() ) )
+      && ( rcMbDataAccess.isSCoeffPred() || rcMbDataAccess.isTCoeffPred() ) )
   {
     //8x8-trafo not allowed here...
     rcMbTempData.rdCost() = DOUBLE_MAX;
@@ -4124,13 +3407,11 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
   }
 
   //=== check ===
-  ROT( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isPSlice() ); // not for skip mode
-  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_0 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_0 ) != BLK_8x8 );
-  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_1 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_1 ) != BLK_8x8 );
-  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_2 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_2 ) != BLK_8x8 );
-  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_3 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_3 ) != BLK_8x8 );
-
-
+  ROT(   eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isPSlice() ); // not for skip mode
+  ROT( ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 ) && rcMbData.getBlkMode( B_8x8_0 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_0 ) != BLK_8x8 );
+  ROT( ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 ) && rcMbData.getBlkMode( B_8x8_1 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_1 ) != BLK_8x8 );
+  ROT( ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 ) && rcMbData.getBlkMode( B_8x8_2 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_2 ) != BLK_8x8 );
+  ROT( ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 ) && rcMbData.getBlkMode( B_8x8_3 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_3 ) != BLK_8x8 );
 
   //===== set forward / backward indication =====
   if( rcMbDataAccess.getSH().isBSlice() )
@@ -4153,150 +3434,217 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
   rcMbTempData.setFwdBwd( uiFwdBwd );
 
 
-  if( ! bSkipMCPrediction )
+  //===== get prediction signal (for residual coding) =====
   {
-    //===== get prediction and copy to temp buffer =====
+    RefFrameList& rcMCList0 = rcRefListStruct.acRefFrameListMC[ 0 ];
+    RefFrameList& rcMCList1 = rcRefListStruct.acRefFrameListMC[ 1 ];
     if( b8x8Mode )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcMCList0, rcMCList1,
                                                      &rcYuvMbBuffer, false, false ) );
       }
     }
     else
     {
-      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcMCList0, rcMCList1,
                                                 &rcYuvMbBuffer, false ) );
     }
-    if(pcBaseLayerRec)
+    if( bBLSkip )
     {
-      RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec));
+      ROF( pcBaseLayerRec );
+      RNOK( m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec ) );
+    }
+    cTempPredBuffer.loadLuma  ( rcYuvMbBuffer );
+    cTempPredBuffer.loadChroma( rcYuvMbBuffer );
+  }
+
+  //===== get prediction signal (for reconstruction) =====
+  if( rcRefListStruct.bMCandRClistsDiffer )
+  {
+    RefFrameList& rcMCList0 = rcRefListStruct.acRefFrameListRC[ 0 ];
+    RefFrameList& rcMCList1 = rcRefListStruct.acRefFrameListRC[ 1 ];
+    if( b8x8Mode )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcMCList0, rcMCList1,
+                                                     &rcTempYuvMbBuffer, false, false ) );
+      }
+    }
+    else
+    {
+      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcMCList0, rcMCList1,
+                                                &rcTempYuvMbBuffer, false ) );
+    }
+    if( bBLSkip )
+    {
+      ROF( pcBaseLayerRec );
+      RNOK( m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &rcTempYuvMbBuffer, pcBaseLayerRec ) );
     }
   }
-  rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
-  rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
-
-
-
-  //===== encode residual and get rate for coefficients =====
-  UInt  uiCoeffCost = 0;
-  UInt  uiExtCbp    = 0;
-  rcMbTempData.setTransformSize8x8( true );
-
-  //--- LUMA ---
-  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+  else
   {
-    xSetCoeffCost( 0 );
-    UInt  uiBits = 0;
-    UInt  uiCbp  = 0;
+    rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
+    rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
+  }
 
-    RNOK( xEncode8x8InterBlock( rcMbTempData, c8x8Idx, uiBits, uiCbp ) );
-    if( uiCbp )
+  //===== LOOP OVER QP VALUES =====
+  Double            dMinCost  = DOUBLE_MAX;
+  UInt              uiBestQP  = MSYS_UINT_MAX;
+  UInt              uiBestCBP = MSYS_UINT_MAX;
+  MbTransformCoeffs cBestCoeffs;
+  YuvMbBuffer       cBestRec;
+  for( UInt uiQP = uiMinQP; uiQP <= uiMaxQP; uiQP++ )
+  {
+    rcMbTempData  .setQp( uiQP );
+    m_pcTransform->setQp( rcMbTempData, false );
+
+    //===== encode residual and get rate for coefficients =====
+    UInt  uiMbDist    = 0;
+    UInt  uiMbBits    = 0;
+    UInt  uiCoeffCost = 0;
+    UInt  uiExtCbp    = 0;
+    rcMbTempData.setTransformSize8x8( true );
+
+    //--- LUMA ---
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
-      if( xGetCoeffCost() <= 4 )
+      xSetCoeffCost( 0 );
+      UInt  uiBits = 0;
+      UInt  uiCbp  = 0;
+      RNOK( xEncode8x8InterBlock( rcMbTempData, c8x8Idx, uiBits, uiCbp ) );
+      if( uiCbp )
       {
-        rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer, c8x8Idx );
-        rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
-
-        if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+        if( xGetCoeffCost() <= 4 )
+        {
+          rcYuvMbBuffer.loadLuma( cTempPredBuffer, c8x8Idx );
+          rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+          if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+          {
+            reCalcBlock8x8(rcMbTempData, c8x8Idx, 0);
+          }
+          else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+          {
+            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
+          }
+        }
+        else
+        {
+          uiCoeffCost += xGetCoeffCost();
+          uiExtCbp    += uiCbp;
+          uiMbBits    += uiBits;
+        }
+      }
+    }
+    if( uiExtCbp && uiCoeffCost <= 5 )
+    {
+      rcYuvMbBuffer.loadLuma( cTempPredBuffer );
+      uiExtCbp  = 0;
+      uiMbBits  = 0;
+      rcMbTempData.clearLumaLevels();
+      if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+      {
+        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
           reCalcBlock8x8(rcMbTempData, c8x8Idx, 0);
         }
-        else if( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+      }
+      else if ( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+      {
+        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
           reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
         }
       }
-      else
+    }
+    //--- CHROMA ---
+    RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
+    rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
+    RNOK( xCheckSkipSliceMb( rcMbTempData ) );
+    RNOK( xAdjustRewriteReconstruction( rcMbTempData ) );
+
+    //===== get distortion =====
+    uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+    uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
+    uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
+
+    //===== get rate =====
+    RNOK(   BitCounter::init() );
+    if( !bBLSkip )
+    {
+      RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbTempData ) );
+      if( b8x8Mode )
       {
-        uiCoeffCost += xGetCoeffCost();
-        uiExtCbp    += uiCbp;
-        uiMbBits    += uiBits;
+        RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbTempData ) );
       }
     }
-  }
-  if( uiExtCbp && uiCoeffCost <= 5 )
-  {
-    rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer );
-    uiExtCbp  = 0;
-    uiMbBits  = 0;
-
-    rcMbTempData.clearLumaLevels();
-
-    if( rcMbTempData.getMbDataAccess().isSCoeffPred() )
+    RNOK(     MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbTempData ) );
+    if( rcMbTempData.cbp() )
     {
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        reCalcBlock8x8(rcMbTempData, c8x8Idx, 0);
-      }
+      RNOK(   MbCoder::m_pcMbSymbolWriteIf->deltaQp   ( rcMbTempData ) );
     }
-    else if ( rcMbTempData.getMbDataAccess().isTCoeffPred() )
+    if( rcRefListStruct.acRefFrameListRC[ 0 ].getActive() && !bBLSkip )
     {
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-      }
+      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbTempData, eMbMode, LIST_0 ) );
+      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbTempData, eMbMode, LIST_0 ) );
+      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbTempData, eMbMode, LIST_0 ) );
     }
-  }
-
-  //--- CHROMA ---
-  RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
-
-  rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
-
-  RNOK( xCheckSkipSliceMb( rcMbTempData ) );
-  RNOK( xAdjustRewriteReconstruction( rcMbTempData ) );
-
-  //===== get distortion =====
-  uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
-  uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
-  uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
-
-  //===== get rate =====
-  Bool      bOneListOnly    = ! ( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() );
-  SliceType eRealSliceType  = rcMbDataAccess.getSH().getSliceType();
-  if( bOneListOnly )
-  {
-    rcMbDataAccess.getSH().setSliceType( P_SLICE );
-  }
-
-
-  Bool  bMbPredFlag = false;
-  RNOK(   BitCounter::init() );
-
-  if( ! bMbPredFlag && !bBLSkip )
-  {
-    RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbDataAccess/*, false*/ ) );
-    if( b8x8Mode )
+    if( rcRefListStruct.acRefFrameListRC[ 1 ].getActive() && !bBLSkip )
     {
-      RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbDataAccess ) );
+      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbTempData, eMbMode, LIST_1 ) );
+      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbTempData, eMbMode, LIST_1 ) );
+      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbTempData, eMbMode, LIST_1 ) );
     }
+
+    uiMbBits  += BitCounter::getNumberOfWrittenBits();
+
+    //===== set rd-cost =====
+    if( rcMbTempData.getSH().getTCoeffLevelPredictionFlag() &&
+        rcMbTempData.getMbCbp() == 0 &&
+        rcMbTempData.getQp   () != rcMbDataAccess.getLastQp() )
+    {
+      rcMbTempData.rdCost() = DOUBLE_MAX;
+    }
+    else
+    {
+      rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits + uiAdditionalBits, uiMbDist );
+    }
+
+    //===== check r-d cost =====
+    if( rcMbTempData.rdCost() < dMinCost )
+    {
+      dMinCost  = rcMbTempData.rdCost     ();
+      uiBestQP  = rcMbTempData.getQp      ();
+      uiBestCBP = rcMbTempData.getMbExtCbp();
+      cBestCoeffs .copyFrom   ( rcMbTempData.getMbTCoeffs() );
+      cBestRec    .loadLuma   ( rcMbTempData );
+      cBestRec    .loadChroma ( rcMbTempData );
+    }
+
+    //===== reset prediction signal =====
+    rcMbTempData.loadLuma   ( cTempPredBuffer );
+    rcMbTempData.loadChroma ( cTempPredBuffer );
   }
 
-  rcMbDataAccess.getSH().setSliceType( eRealSliceType );
+  //===== set best data =====
+  rcMbTempData.rdCost() = dMinCost;
+  rcMbTempData.setQp        ( uiBestQP );
+  rcMbTempData.setMbExtCbp  ( uiBestCBP );
+  rcMbTempData.getMbTCoeffs ().copyFrom( cBestCoeffs );
+  rcMbTempData.loadLuma     ( cBestRec );
+  rcMbTempData.loadChroma   ( cBestRec );
 
-  RNOK(   MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
+  //===== reset transform status =====
+  m_pcTransform->setQp( rcMbDataAccess, false );
 
-  if( rcRefFrameList0.getActive() && !bBLSkip )
+  //---- correct prediction signal ----
+  if( rcRefListStruct.bMCandRClistsDiffer )
   {
-    RNOK( MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, eMbMode, LIST_0 ) );
-    RNOK( MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_0 ) );
-    RNOK( MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_0 ) );
+    rcYuvMbBuffer.subtract( cTempPredBuffer );
+    rcYuvMbBuffer.add     ( rcTempYuvMbBuffer );
   }
-
-  if( rcRefFrameList1.getActive() && !bBLSkip )
-  {
-    RNOK( MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, eMbMode, LIST_1 ) );
-    RNOK( MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_1 ) );
-    RNOK( MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_1 ) );
-  }
-
-  uiMbBits  += BitCounter::getNumberOfWrittenBits();
-
-
-  //===== set rd-cost =====
-  rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits+uiAdditionalBits, uiMbDist );
 
   return Err::m_nOK;
 }
@@ -4306,36 +3654,36 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
 
 ErrVal
 MbEncoder::xSetRdCostInterSubMb( IntMbTempData&  rcMbTempData,
-                                 RefFrameList&   rcRefFrameList0,
-                                 RefFrameList&   rcRefFrameList1,
+                                 RefListStruct&  rcRefListStruct,
                                  B8x8Idx         c8x8Idx,
                                  Bool            bTrafo8x8,
                                  UInt            uiAddBits,
                                  Bool            bLowComplexity )   // JVT-V079
 {
-  YuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
-  YuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
-  MbDataAccess&   rcMbDataAccess    = rcMbTempData.getMbDataAccess();
-  UInt            uiSubMbDist       = 0;
-  UInt            uiSubMbBits       = 0;
+  YuvMbBuffer&  rcYuvMbBuffer     = rcMbTempData;
+  YuvMbBuffer&  rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
+  MbDataAccess& rcMbDataAccess    = rcMbTempData.getMbDataAccess();
+  UInt          uiSubMbDist       = 0;
+  UInt          uiSubMbBits       = 0;
+  RefFrameList& rcRefFrameList0   = rcRefListStruct.acRefFrameListMC[ 0 ];
+  RefFrameList& rcRefFrameList1   = rcRefListStruct.acRefFrameListMC[ 1 ];
 
-
-  if ( bLowComplexity )
+  if( bLowComplexity )
   {
-    if ( rcMbTempData.rdCost() == DOUBLE_MAX )
+    if( rcMbTempData.rdCost() == DOUBLE_MAX )
     {
-    //===== get prediction and copy to temp buffer =====
+      //===== get prediction and copy to temp buffer =====
       RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess,
-            rcRefFrameList0, rcRefFrameList1,
-            &rcYuvMbBuffer, false, false ) );
-      rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer, c8x8Idx );
+                                                   rcRefFrameList0, rcRefFrameList1,
+                                                   &rcYuvMbBuffer, false, false ) );
+      rcTempYuvMbBuffer.loadLuma( rcYuvMbBuffer, c8x8Idx );
 
-    //===== get distortion =====
+      //===== get distortion =====
       m_pcIntOrgMbPelData->set4x4Block( c8x8Idx );
       rcYuvMbBuffer       .set4x4Block( c8x8Idx );
       uiSubMbDist += m_pcXDistortion->getLum8x8 ( rcYuvMbBuffer.getLumBlk(), rcYuvMbBuffer.getLStride(), DF_SAD );
 
-    //===== set rd-cost =====
+      //===== set rd-cost =====
       rcMbTempData.rdCost() = uiSubMbDist;
     }
   }
@@ -4343,8 +3691,8 @@ MbEncoder::xSetRdCostInterSubMb( IntMbTempData&  rcMbTempData,
   {
     //===== get prediction and copy to temp buffer =====
     RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                &rcYuvMbBuffer, false, false ) );
-    rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer, c8x8Idx );
+                                                 &rcYuvMbBuffer, false, false ) );
+    rcTempYuvMbBuffer.loadLuma( rcYuvMbBuffer, c8x8Idx );
 
 
     //===== encode residual and get rate for coefficients =====
@@ -4427,19 +3775,23 @@ MbEncoder::xSetRdCostInterSubMb( IntMbTempData&  rcMbTempData,
 
 
 ErrVal
-MbEncoder::xEstimateMbDirect( IntMbTempData*&  rpcMbTempData,
-                              IntMbTempData*&  rpcMbBestData,
-                              RefFrameList&    rcRefFrameList0,
-                              RefFrameList&    rcRefFrameList1,
-                              MbDataAccess*    pcMbDataAccessBaseMotion,
-                              UInt             uiMaxNumMv,
-                              Bool             bResidualPred,
-                              UInt             uiQp,
-                              Bool             bSkipModeAllowed)
+MbEncoder::xEstimateMbDirect( IntMbTempData*& rpcMbTempData,
+                              IntMbTempData*& rpcMbBestData,
+                              RefListStruct&  rcRefListStruct,
+                              UInt            uiMinQP,
+                              UInt            uiMaxQP,
+                              MbDataAccess*   pcMbDataAccessBaseMotion,
+                              UInt            uiMaxNumMv,
+                              Bool            bResidualPred,
+                              UInt            uiQp,
+                              Bool            bSkipModeAllowed)
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
-  ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(),                  Err::m_nOK );
-  ROFRS( rcRefFrameList0.getActive() && rcRefFrameList1.getActive(), Err::m_nOK );
+  ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(),                   Err::m_nOK );
+  ROFRS( rcRefFrameList0.getActive() && rcRefFrameList1.getActive(),  Err::m_nOK );
+  ROFRS( m_bUseBDir,                                                  Err::m_nOK );
 
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
@@ -4474,14 +3826,11 @@ MbEncoder::xEstimateMbDirect( IntMbTempData*&  rpcMbTempData,
       uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( c8x8.b8x8Index() ) > 0 ? 1 : 0 );
     }
 	}
-
-  ROFRS( bSkipModeAllowed,      Err::m_nOK );
   ROFRS( uiNumMv <= uiMaxNumMv, Err::m_nOK );
 
   IntMbTempData* pcMbRefData = rpcMbTempData;
-
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1, false, 0, false, 0, bLowComplexMbEnable ) );
-
+  RNOK ( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable ) );
+  ROFRS( bSkipModeAllowed || rpcMbTempData->getMbCbp(), Err::m_nOK );
 
   if ( bLowComplexMbEnable )
   {
@@ -4500,8 +3849,8 @@ MbEncoder::xEstimateMbDirect( IntMbTempData*&  rpcMbTempData,
 		  Int iRefIdx[2];
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -4530,7 +3879,7 @@ MbEncoder::xEstimateMbDirect( IntMbTempData*&  rpcMbTempData,
 
   RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
 
-  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, false, pcMbDataAccessBaseMotion ) );
+  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, false, pcMbDataAccessBaseMotion ) );
 
   return Err::m_nOK;
 }
@@ -4538,10 +3887,11 @@ MbEncoder::xEstimateMbDirect( IntMbTempData*&  rpcMbTempData,
 
 
 ErrVal
-MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
-                              IntMbTempData*&   rpcIntMbBestData,
-                              RefFrameList&     rcRefFrameList0,
-                              RefFrameList&     rcRefFrameList1,
+MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcMbTempData,
+                              IntMbTempData*&   rpcMbBestData,
+                              RefListStruct&    rcRefListStruct,
+                              UInt              uiMinQP,
+                              UInt              uiMaxQP,
                               const Frame*      pcBaseLayerRec,
                               UInt              uiMaxNumMv,
                               Bool              bBiPred8x8Disable,
@@ -4550,6 +3900,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
                               MbDataAccess&     rcMbDataAccess,
                               Bool              bResidualPred )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROF  ( pcMbDataAccessBase );
   ROFRS( m_bBaseModeAllowedFlag, Err::m_nOK );
@@ -4557,7 +3909,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
   PicType eMbPicType = rcMbDataAccess.getMbPicType();
 
   //JVT-V079 Low-complexity MB mode decision
-  Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcIntMbTempData->getSH().getDependencyId()];
+  Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
 
   if( eMbPicType != FRAME && pcMbDataAccessBase->getMbPicType() == FRAME )
   {
@@ -4576,8 +3928,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 
   if( ! pcMbDataAccessBase->getMbData().isIntra() )
   {
-    ROTRS( rpcIntMbTempData->getSH().getSliceSkipFlag() && !bResidualPred, Err::m_nOK );
-    ROF( bResidualPred || rpcIntMbTempData->getSH().getAdaptiveILPred() );
+    ROTRS( rpcMbTempData->getSH().getSliceSkipFlag() && !bResidualPred, Err::m_nOK );
 
     Bool bRefIdxNotAvailable = false;
     for( UInt uiListIdx = 0; uiListIdx < 2 && !bRefIdxNotAvailable; uiListIdx++ )
@@ -4591,7 +3942,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
       }
     }
     ROTRS( bRefIdxNotAvailable, Err::m_nOK );
-    if( rpcIntMbTempData->getSH().getSliceType() == P_SLICE )
+    if( rpcMbTempData->getSH().getSliceType() == P_SLICE )
     {
       UInt   uiFwdBwd   = pcMbDataAccessBase->getMbData().getFwdBwd();
       Bool   bAvailable = ( ( uiFwdBwd & 0x1111 ) == 0x1111 );
@@ -4599,27 +3950,27 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
     }
 
     //===== BASE LAYER MODE IS INTER =====
-    rpcIntMbTempData->clear               ();
-    rpcIntMbTempData->copyMotion          ( pcMbDataAccessBase->getMbData() );
-    rpcIntMbTempData->setBLSkipFlag       ( true  );
-    rpcIntMbTempData->getMbMvdData        ( LIST_0 ).setAllMv( Mv::ZeroMv() );
-    rpcIntMbTempData->getMbMvdData        ( LIST_1 ).setAllMv( Mv::ZeroMv() );
-    rpcIntMbTempData->setResidualPredFlag ( bResidualPred );
+    rpcMbTempData->clear               ();
+    rpcMbTempData->copyMotion          ( pcMbDataAccessBase->getMbData() );
+    rpcMbTempData->setBLSkipFlag       ( true  );
+    rpcMbTempData->getMbMvdData        ( LIST_0 ).setAllMv( Mv::ZeroMv() );
+    rpcMbTempData->getMbMvdData        ( LIST_1 ).setAllMv( Mv::ZeroMv() );
+    rpcMbTempData->setResidualPredFlag ( bResidualPred );
 
     UInt  uiNumMv                         = 0;
     Bool  bBiPredForBlocksSmallerThan8x8  = false;
-    switch( rpcIntMbTempData->getMbDataAccess().getMbData().getMbMode() )
+    switch( rpcMbTempData->getMbDataAccess().getMbData().getMbMode() )
     {
     case MODE_16x16:
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_0 ).getRefIdx() > 0 ? 1 : 0 );
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_1 ).getRefIdx() > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_0 ).getRefIdx() > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx() > 0 ? 1 : 0 );
       break;
     case MODE_16x8:
     case MODE_8x16:
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_0 ).getRefIdx( PART_8x8_0 ) > 0 ? 1 : 0 );
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_0 ).getRefIdx( PART_8x8_3 ) > 0 ? 1 : 0 );
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_1 ).getRefIdx( PART_8x8_0 ) > 0 ? 1 : 0 );
-      uiNumMv += ( rpcIntMbTempData->getMbMotionData( LIST_1 ).getRefIdx( PART_8x8_3 ) > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_0 ).getRefIdx( PART_8x8_0 ) > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_0 ).getRefIdx( PART_8x8_3 ) > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( PART_8x8_0 ) > 0 ? 1 : 0 );
+      uiNumMv += ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( PART_8x8_3 ) > 0 ? 1 : 0 );
       break;
     case MODE_8x8:
     case MODE_8x8ref0:
@@ -4627,7 +3978,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
         for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
           UInt uiSListMv = 0;
-          switch( rpcIntMbTempData->getMbDataAccess().getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
+          switch( rpcMbTempData->getMbDataAccess().getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
           {
           case BLK_8x8: uiSListMv = 1;  break;
           case BLK_8x4:
@@ -4635,8 +3986,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
           case BLK_4x4: uiSListMv = 4;  break;
           default:      ROT(1);
           }
-          UInt uiNumList = ( rpcIntMbTempData->getMbMotionData( LIST_0 ).getRefIdx( c8x8Idx.b8x8Index() ) > 0 ? 1 : 0 );
-          uiNumList     += ( rpcIntMbTempData->getMbMotionData( LIST_1 ).getRefIdx( c8x8Idx.b8x8Index() ) > 0 ? 1 : 0 );
+          UInt uiNumList = ( rpcMbTempData->getMbMotionData( LIST_0 ).getRefIdx( c8x8Idx.b8x8Index() ) > 0 ? 1 : 0 );
+          uiNumList     += ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( c8x8Idx.b8x8Index() ) > 0 ? 1 : 0 );
           if( uiNumList == 2 && uiSListMv > 1 )
           {
             bBiPredForBlocksSmallerThan8x8 = true;
@@ -4651,15 +4002,14 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
     ROTRS( bBiPred8x8Disable && bBiPredForBlocksSmallerThan8x8, Err::m_nOK );
     ROFRS( uiNumMv <= uiMaxNumMv,                               Err::m_nOK );
 
-    IntMbTempData* pcMbRefData = rpcIntMbTempData;
+    IntMbTempData* pcMbRefData = rpcMbTempData;
 
-    RNOK( xSetRdCostInterMb   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, true,
-          0, false, (Frame *)pcBaseLayerRec, bLowComplexMbEnable ) ) ;
+    RNOK( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBase, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable, true, 0, (Frame*)pcBaseLayerRec ) ) ;
 
     //JVT-R057 LA-RDO{
     if(m_bLARDOEnable)
     {
-      MbDataAccess&  rcMbDataAccess1  = rpcIntMbTempData->getMbDataAccess();
+      MbDataAccess&  rcMbDataAccess1  = rpcMbTempData->getMbDataAccess();
       Int distortion1=0,distortion2=0,distortion=0;
       //Bug_Fix JVT-R057 0806{
 
@@ -4668,8 +4018,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
         Int iRefIdx[2];
         iRefIdx [0]=rcMbDataAccess1.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
         iRefIdx [1]=rcMbDataAccess1.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-        Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-        Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+        Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+        Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
         Int iMvX;
         Int iMvY;
 
@@ -4691,20 +4041,20 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
       //Bug_Fix JVT-R057 0806}
 
       setEpRef(distortion);
-      rpcIntMbTempData->rdCost()+=distortion;
+      rpcMbTempData->rdCost()+=distortion;
     }
     //JVT-R057 LA-RDO}
 
-    RNOK( xCheckBestEstimation(  rpcIntMbTempData, rpcIntMbBestData ) );
+    RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
 
-    RNOK( xCheckInterMbMode8x8(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, true, pcMbDataAccessBase,
+    RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, true, pcMbDataAccessBase,
                                 (Frame *)pcBaseLayerRec) );
   }
   else
   {
     //===== INTRA MODE =====
     if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
-	    RNOK( xEstimateMbIntraBL  (  rcMbDataAccess, rpcIntMbTempData, rpcIntMbBestData, pcBaseLayerRec, bBSlice, pcMbDataAccessBase ) );
+	    RNOK( xEstimateMbIntraBL  ( rpcMbTempData, rpcMbBestData, uiMinQP, uiMaxQP, pcBaseLayerRec, bBSlice, pcMbDataAccessBase ) );
   }
 
   return Err::m_nOK;
@@ -4714,11 +4064,14 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 ErrVal
 MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
                             IntMbTempData*&  rpcMbBestData,
-                            RefFrameList&    rcRefFrameList0,
-                            RefFrameList&    rcRefFrameList1 )
+                            RefListStruct&   rcRefListStruct,
+                            Bool             bResidualPred,
+                            Bool             bSkipModeAllowed )
 {
-  ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(), Err::m_nOK );
-  ROFRS( rpcMbTempData->getSH().getSliceType() == P_SLICE, Err::m_nOK );
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  ROFRS( bSkipModeAllowed,                                  Err::m_nOK );
+  ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(),         Err::m_nOK );
+  ROFRS( rpcMbTempData->getSH().getSliceType() == P_SLICE,  Err::m_nOK );
   ROF( rcRefFrameList0.getActive() );
 
   Int iRefIdxL0 = 1;
@@ -4727,7 +4080,7 @@ MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
   Mv  cMvPredL1;
 
   //JVT-V079 Low-complexity MB mode decision
-  Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
+  Bool   bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
 
   rpcMbTempData->clear();
   rpcMbTempData->setMbMode( MODE_SKIP );
@@ -4739,13 +4092,13 @@ MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxL1 );
   rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvPredL1 );
   rpcMbTempData->getMbMvdData   ( LIST_1 ).setAllMv ( Mv::ZeroMv() );
-  rpcMbTempData->setResidualPredFlag(false);
+  rpcMbTempData->setResidualPredFlag( bResidualPred );
 
   rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
   rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
 
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, NULL, rcRefFrameList0, rcRefFrameList1,
-        false, 0, false, 0, bLowComplexMbEnable) );
+  UInt  uiQP = rpcMbTempData->getMbDataAccess().getMbData().getQp();
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, NULL, rcRefListStruct, uiQP, uiQP, bLowComplexMbEnable) );
 
 
   //JVT-R057 LA-RDO}
@@ -4758,8 +4111,8 @@ MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
 		  Int iRefIdx[2];
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -4806,40 +4159,42 @@ getRefIdxBits( Int iRefIdx, RefFrameList& rcRefFrameList )
 ErrVal
 MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
                              IntMbTempData*&  rpcMbBestData,
-                             RefFrameList&    rcRefFrameList0,
-                             RefFrameList&    rcRefFrameList1,
+                             RefListStruct&   rcRefListStruct,
+                             UInt             uiMinQP,
+                             UInt             uiMaxQP,
                              UInt             uiMaxNumMv,
                              UInt             uiNumMaxIter,
                              UInt             uiIterSearchRange,
-                             Bool             bQPelRefinementOnly,
                              MbDataAccess*    pcMbDataAccessBase,
                              Bool             bResidualPred )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(), Err::m_nOK );
   ROF  ( rcRefFrameList0.getActive() <= 32 );
   ROF  ( rcRefFrameList1.getActive() <= 32 );
   ROF  ( rcRefFrameList0.getActive() );
 
-  Bool            bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isPSlice();
-  Double          fRdCost       = 0;
-  UInt            uiCost  [3]   = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX }, uiCostTest;
-  UInt            uiMbBits[3]   = { ( ! bPSlice ? 3 : 1 ), 3, 5 };
-  Int             iRefIdx [2]   = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
-  UInt            uiBits  [3]   = { 0, 0, 0 }, uiBitsTest;
-  Mv              cMv[2], cMvBi[2], cMvPred[2][33], cMvLastEst[2][33], cMvd[2];
-  YuvMbBuffer  cYuvMbBuffer[2];
-  Frame*       pcRefFrame;
+  Bool        bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isPSlice();
+  Double      fRdCost       = 0;
+  UInt        uiCost  [3]   = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX }, uiCostTest;
+  UInt        uiMbBits[3]   = { ( ! bPSlice ? 3 : 1 ), 3, 5 };
+  Int         iRefIdx [2]   = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
+  UInt        uiBits  [3]   = { 0, 0, 0 }, uiBitsTest;
+  Mv          cMv[2], cMvBi[2], cMvPred[2][33], cMvLastEst[2][33], cMvd[2];
+  YuvMbBuffer cYuvMbBuffer[2];
+  Frame*      pcRefFrame    = 0;
 
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
 
-  Bool            bBLPred   [2] = { false, false };
-  Bool            bBLPredBi [2] = { false, false };
-  Int             iBLRefIdx [2] = { -1, -1 };
-  Mv              cBLMvPred [2], cBLMvLastEst[2];
+  Bool        bBLPred   [2] = { false, false };
+  Bool        bBLPredBi [2] = { false, false };
+  Int         iBLRefIdx [2] = { -1, -1 };
+  Mv          cBLMvPred [2], cBLMvLastEst[2];
 
-  if( pcMbDataAccessBase )
+  if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx() >  0                           &&
         pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx() <= (Int)rcRefFrameList0.getActive()   )
@@ -4864,31 +4219,32 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
   //===== LIST 0 PREDICTION ======
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
-    rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest, LIST_0 );
-    uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
-    cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
-    pcRefFrame                  = rcRefFrameList0[iRefIdxTest];
-    Bool bQPel = ( bQPelRefinementOnly &&
-                   iRefIdxTest == iBLRefIdx[0] &&
-                   cMvPred[0][iRefIdxTest] == cBLMvPred[0] );
-    if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+    pcRefFrame = rcRefFrameList0[iRefIdxTest];
+
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
-      m_pcMotionEstimation->setEL( true );
-    }
-    RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
-                                                        cMvLastEst[0][iRefIdxTest],
-                                                        cMvPred   [0][iRefIdxTest],
-                                                        uiBitsTest, uiCostTest,
-                                                        PART_16x16, MODE_16x16, bQPel, 0,
-                                                        &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-    if( uiCostTest < uiCost[0] )
-    {
-      bBLPred   [0] = false;
-      iRefIdx   [0] = iRefIdxTest;
-      cMv       [0] = cMvLastEst[0][iRefIdxTest];
-      uiBits    [0] = uiBitsTest;
-      uiCost    [0] = uiCostTest;
+      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest, LIST_0 );
+      uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
+      cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
+      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      {
+        cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
+        m_pcMotionEstimation->setEL( true );
+      }
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                          cMvLastEst[0][iRefIdxTest],
+                                                          cMvPred   [0][iRefIdxTest],
+                                                          uiBitsTest, uiCostTest,
+                                                          PART_16x16, MODE_16x16, 0,
+                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+      if( uiCostTest < uiCost[0] )
+      {
+        bBLPred   [0] = false;
+        iRefIdx   [0] = iRefIdxTest;
+        cMv       [0] = cMvLastEst[0][iRefIdxTest];
+        uiBits    [0] = uiBitsTest;
+        uiCost    [0] = uiCostTest;
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[0] )
@@ -4902,7 +4258,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
                                                           cBLMvLastEst[0],
                                                           cBLMvPred   [0],
                                                           uiBitsTest, uiCostTest,
-                                                          PART_16x16, MODE_16x16, bQPelRefinementOnly, 0,
+                                                          PART_16x16, MODE_16x16, 0,
                                                           &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
       if( uiCostTest < uiCost[0] )
       {
@@ -4919,39 +4275,35 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
   //===== LIST 1 PREDICTION =====
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
-    rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
-                                                        LIST_1 );
-    uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
-    cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
-    pcRefFrame                  = rcRefFrameList1[iRefIdxTest];
-    Bool bQPel = ( bQPelRefinementOnly &&
-                   iRefIdxTest == iBLRefIdx[1] &&
-                   cMvPred[1][iRefIdxTest] == cBLMvPred[1] );
-    if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
-    {
-      cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
-      m_pcMotionEstimation->setEL( true );
-    }
-    RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                        cMvLastEst[1][iRefIdxTest],
-                                                        cMvPred   [1][iRefIdxTest],
-                                                        uiBitsTest,
-                                                        uiCostTest,
-                                                        PART_16x16,
-                                                        MODE_16x16,
-                                                        bQPel,
-                                                        0,
-                                                        &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-    if( uiCostTest < uiCost[1] )
-    {
-      bBLPred   [1] = false;
-      iRefIdx   [1] = iRefIdxTest;
-      cMv       [1] = cMvLastEst[1][iRefIdxTest];
-      uiBits    [1] = uiBitsTest;
-      uiCost    [1] = uiCostTest;
+    pcRefFrame = rcRefFrameList1[iRefIdxTest];
 
-      RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
-                                                        PART_16x16, MODE_16x16 ) );
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
+    {
+      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest, LIST_1 );
+      uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
+      cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
+      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+      {
+        cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
+        m_pcMotionEstimation->setEL( true );
+      }
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                          cMvLastEst[1][iRefIdxTest],
+                                                          cMvPred   [1][iRefIdxTest],
+                                                          uiBitsTest, uiCostTest,
+                                                          PART_16x16, MODE_16x16, 0,
+                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+      if( uiCostTest < uiCost[1] )
+      {
+        bBLPred   [1] = false;
+        iRefIdx   [1] = iRefIdxTest;
+        cMv       [1] = cMvLastEst[1][iRefIdxTest];
+        uiBits    [1] = uiBitsTest;
+        uiCost    [1] = uiCostTest;
+
+        RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
+          PART_16x16, MODE_16x16 ) );
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[1] )
@@ -4964,12 +4316,8 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
       RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                           cBLMvLastEst[1],
                                                           cBLMvPred   [1],
-                                                          uiBitsTest,
-                                                          uiCostTest,
-                                                          PART_16x16,
-                                                          MODE_16x16,
-                                                          bQPelRefinementOnly,
-                                                          0,
+                                                          uiBitsTest, uiCostTest,
+                                                          PART_16x16, MODE_16x16, 0,
                                                           &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
       if( uiCostTest < uiCost[1] )
       {
@@ -4985,8 +4333,11 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
     }
   }
 
+  ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+  Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
   //===== BI PREDICTION =====
-  if( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 2 )
+  if( bBiPredOk && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 2 )
   {
     //----- initialize with forward and backward estimation -----
     cMvBi           [0] = cMv     [0];
@@ -5019,30 +4370,30 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 
       for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
-        uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
-        pcRefFrame  = rcRefFrameList[iRefIdxTest];
-        Bool bQPel = ( bQPelRefinementOnly &&
-                       iRefIdxTest == iBLRefIdx[uiDir] &&
-                       cMvPred[uiDir][iRefIdxTest] == cBLMvPred[uiDir] );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
-                                                            cMvLastEst[uiDir][iRefIdxTest],
-                                                            cMvPred   [uiDir][iRefIdxTest],
-                                                            uiBitsTest, uiCostTest,
-                                                            PART_16x16, MODE_16x16, bQPel,
-                                                            uiIterSearchRange, 0, &cBSParams ) );
-
-        if( uiCostTest < uiCost[2] )
+        if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
         {
-          bChanged          = true;
-          bBLPredBi [uiDir] = false;
-          iRefIdxBi [uiDir] = iRefIdxTest;
-          cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
-          uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
-          uiBits    [2]     = uiBitsTest;
-          uiCost    [2]     = uiCostTest;
+          uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
+          pcRefFrame  = rcRefFrameList[iRefIdxTest];
+          RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                              cMvLastEst[uiDir][iRefIdxTest],
+                                                              cMvPred   [uiDir][iRefIdxTest],
+                                                              uiBitsTest, uiCostTest,
+                                                              PART_16x16, MODE_16x16, 
+                                                              uiIterSearchRange, 0, &cBSParams ) );
 
-          RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
-                                                            PART_16x16, MODE_16x16 ) );
+          if( uiCostTest < uiCost[2] )
+          {
+            bChanged          = true;
+            bBLPredBi [uiDir] = false;
+            iRefIdxBi [uiDir] = iRefIdxTest;
+            cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
+            uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
+            uiBits    [2]     = uiBitsTest;
+            uiCost    [2]     = uiCostTest;
+
+            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
+                                                              PART_16x16, MODE_16x16 ) );
+          }
         }
 
         if( iRefIdxTest == iBLRefIdx[uiDir] )
@@ -5052,7 +4403,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
                                                               cBLMvLastEst[uiDir],
                                                               cBLMvPred   [uiDir],
                                                               uiBitsTest, uiCostTest,
-                                                              PART_16x16, MODE_16x16, bQPelRefinementOnly,
+                                                              PART_16x16, MODE_16x16, 
                                                               uiIterSearchRange, 0, &cBSParams ) );
           if( uiCostTest < uiCost[2] )
           {
@@ -5133,8 +4484,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 
   IntMbTempData* pcMbRefData = rpcMbTempData;
 
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1,
-        false, 0, false, 0, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBase, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO}
@@ -5146,8 +4496,8 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 	  {
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -5176,7 +4526,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 
   RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
 
-  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, false, pcMbDataAccessBase ) );
+  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, false, pcMbDataAccessBase ) );
 
   return Err::m_nOK;
 }
@@ -5187,15 +4537,17 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 ErrVal
 MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
                              IntMbTempData*&  rpcMbBestData,
-                             RefFrameList&    rcRefFrameList0,
-                             RefFrameList&    rcRefFrameList1,
+                             RefListStruct&   rcRefListStruct,
+                             UInt             uiMinQP,
+                             UInt             uiMaxQP,
                              UInt             uiMaxNumMv,
                              UInt             uiNumMaxIter,
                              UInt             uiIterSearchRange,
-                             Bool             bQPelRefinementOnly,
                              MbDataAccess*    pcMbDataAccessBase,
                              Bool             bResidualPred )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROFRS( uiMaxNumMv >= 2,                           Err::m_nOK );
   ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(), Err::m_nOK );
@@ -5225,16 +4577,14 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     UInt            uiMbBits[3] = { 3, 0, 0 };
     UInt            uiBits  [3] = { 0, 0, 0 }, uiBitsTest;
     Mv              cMv[2], cMvBi[2], cMvPred[2][33], cMvLastEst[2][33], cMvd[2];
-    YuvMbBuffer  cYuvMbBuffer[2];
-    Frame*       pcRefFrame;
-
-
+    YuvMbBuffer     cYuvMbBuffer[2];
+    Frame*          pcRefFrame    = 0;
     Bool            bBLPred   [2] = { false, false };
     Bool            bBLPredBi [2] = { false, false };
     Int             iBLRefIdx [2] = { -1, -1 };
     Mv              cBLMvPred [2], cBLMvLastEst[2];
 
-    if( pcMbDataAccessBase )
+    if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
     {
       if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) >  0                           &&
           pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList0.getActive()   )
@@ -5261,32 +4611,33 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     //===== LIST 0 PREDICTION ======
     for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
     {
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
-                                                          LIST_0, eParIdx );
-      uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
-      cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
-      pcRefFrame                  = rcRefFrameList0[iRefIdxTest];
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[0] &&
-                     cMvPred[0][iRefIdxTest] == cBLMvPred[0] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      pcRefFrame = rcRefFrameList0[iRefIdxTest];
+
+      if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
       {
-        cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
-        m_pcMotionEstimation->setEL( true );
-      }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[0][iRefIdxTest],
-                                                          cMvPred   [0][iRefIdxTest],
-                                                          uiBitsTest, uiCostTest,
-                                                          eParIdx, MODE_16x8, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      if( uiCostTest < uiCost[0] )
-      {
-        bBLPred [0] = false;
-        iRefIdx [0] = iRefIdxTest;
-        cMv     [0] = cMvLastEst[0][iRefIdxTest];
-        uiBits  [0] = uiBitsTest;
-        uiCost  [0] = uiCostTest;
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
+                                                            LIST_0, eParIdx );
+        uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
+        cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+        {
+          cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[0][iRefIdxTest],
+                                                            cMvPred   [0][iRefIdxTest],
+                                                            uiBitsTest, uiCostTest,
+                                                            eParIdx, MODE_16x8, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        if( uiCostTest < uiCost[0] )
+        {
+          bBLPred [0] = false;
+          iRefIdx [0] = iRefIdxTest;
+          cMv     [0] = cMvLastEst[0][iRefIdxTest];
+          uiBits  [0] = uiBitsTest;
+          uiCost  [0] = uiCostTest;
+        }
       }
 
       if( iRefIdxTest == iBLRefIdx[0] )
@@ -5300,7 +4651,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
                                                             cBLMvLastEst[0],
                                                             cBLMvPred   [0],
                                                             uiBitsTest, uiCostTest,
-                                                            eParIdx, MODE_16x8, bQPelRefinementOnly, 0,
+                                                            eParIdx, MODE_16x8, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         if( uiCostTest < uiCost[0] )
         {
@@ -5317,35 +4668,36 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     //===== LIST 1 PREDICTION =====
     for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
     {
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
-                                                          LIST_1, eParIdx );
-      uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
-      cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
-      pcRefFrame                  = rcRefFrameList1[iRefIdxTest];
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[1] &&
-                     cMvPred[1][iRefIdxTest] == cBLMvPred[1] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
-      {
-        cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
-        m_pcMotionEstimation->setEL( true );
-      }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[1][iRefIdxTest],
-                                                          cMvPred   [1][iRefIdxTest],
-                                                          uiBitsTest, uiCostTest,
-                                                          eParIdx, MODE_16x8, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      if( uiCostTest < uiCost[1] )
-      {
-        bBLPred [1] = false;
-        iRefIdx [1] = iRefIdxTest;
-        cMv     [1] = cMvLastEst[1][iRefIdxTest];
-        uiBits  [1] = uiBitsTest;
-        uiCost  [1] = uiCostTest;
+      pcRefFrame = rcRefFrameList1[iRefIdxTest];
 
-        RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
-                                                          eParIdx, MODE_16x8 ) );
+      if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
+      {
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
+                                                            LIST_1, eParIdx );
+        uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
+        cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+        {
+          cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[1][iRefIdxTest],
+                                                            cMvPred   [1][iRefIdxTest],
+                                                            uiBitsTest, uiCostTest,
+                                                            eParIdx, MODE_16x8, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        if( uiCostTest < uiCost[1] )
+        {
+          bBLPred [1] = false;
+          iRefIdx [1] = iRefIdxTest;
+          cMv     [1] = cMvLastEst[1][iRefIdxTest];
+          uiBits  [1] = uiBitsTest;
+          uiCost  [1] = uiCostTest;
+
+          RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
+                                                            eParIdx, MODE_16x8 ) );
+        }
       }
 
       if( iRefIdxTest == iBLRefIdx[1] )
@@ -5359,7 +4711,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
                                                             cBLMvLastEst[1],
                                                             cBLMvPred   [1],
                                                             uiBitsTest, uiCostTest,
-                                                            eParIdx, MODE_16x8, bQPelRefinementOnly, 0,
+                                                            eParIdx, MODE_16x8, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         if( uiCostTest < uiCost[1] )
         {
@@ -5375,8 +4727,11 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
       }
     }
 
+    ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+    Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
     //===== BI PREDICTION =====
-    Bool bBiPredPossible = ( uiBlk ? uiMaxNumMv >= 2 : uiMaxNumMv >= 3 );
+    Bool bBiPredPossible = bBiPredOk && ( uiBlk ? uiMaxNumMv >= 2 : uiMaxNumMv >= 3 );
     if( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && bBiPredPossible )
     {
       //----- initialize with forward and backward estimation -----
@@ -5410,40 +4765,40 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 
         for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
         {
-          uiBitsTest        = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
-          pcRefFrame        = rcRefFrameList[iRefIdxTest];
-
-          Bool bQPel = ( bQPelRefinementOnly &&
-                         iRefIdxTest == iBLRefIdx[uiDir] &&
-                         cMvPred[uiDir][iRefIdxTest] == cBLMvPred[uiDir] );
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                              cMvLastEst[uiDir][iRefIdxTest],
-                                                              cMvPred   [uiDir][iRefIdxTest],
-                                                              uiBitsTest, uiCostTest,
-                                                              eParIdx, MODE_16x8, bQPel,
-                                                              uiIterSearchRange, 0, &cBSParams ) );
-          if( uiCostTest < uiCost[2] )
+          if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
           {
-            bChanged          = true;
-            bBLPredBi [uiDir] = false;
-            iRefIdxBi [uiDir] = iRefIdxTest;
-            cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
-            uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
-            uiBits    [2]     = uiBitsTest;
-            uiCost    [2]     = uiCostTest;
+            uiBitsTest        = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
+            pcRefFrame        = rcRefFrameList[iRefIdxTest];
 
-            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
-                                                              eParIdx, MODE_16x8 ) );
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                                cMvLastEst[uiDir][iRefIdxTest],
+                                                                cMvPred   [uiDir][iRefIdxTest],
+                                                                uiBitsTest, uiCostTest,
+                                                                eParIdx, MODE_16x8, 
+                                                                uiIterSearchRange, 0, &cBSParams ) );
+            if( uiCostTest < uiCost[2] )
+            {
+              bChanged          = true;
+              bBLPredBi [uiDir] = false;
+              iRefIdxBi [uiDir] = iRefIdxTest;
+              cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
+              uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
+              uiBits    [2]     = uiBitsTest;
+              uiCost    [2]     = uiCostTest;
+
+              RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
+                                                                eParIdx, MODE_16x8 ) );
+            }
           }
 
           if( iRefIdxTest == iBLRefIdx[uiDir] )
           {
             uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir];
-            RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                                 cBLMvLastEst[uiDir],
                                                                 cBLMvPred   [uiDir],
                                                                 uiBitsTest, uiCostTest,
-                                                                eParIdx, MODE_16x8, bQPelRefinementOnly,
+                                                                eParIdx, MODE_16x8, 
                                                                 uiIterSearchRange, 0, &cBSParams ) );
             if( uiCostTest < uiCost[2] )
             {
@@ -5530,8 +4885,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 
   IntMbTempData* pcMbRefData = rpcMbTempData;
 
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1,
-        false, 0, false, 0, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBase, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -5545,8 +4899,8 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 		  Int Tab[2]={0,8};
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(B4x4Idx(Tab[n]));
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(B4x4Idx(Tab[n]));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -5575,7 +4929,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 
   RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
 
-  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, false, pcMbDataAccessBase ) );
+  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, false, pcMbDataAccessBase ) );
 
   return Err::m_nOK;
 }
@@ -5587,15 +4941,17 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 ErrVal
 MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
                              IntMbTempData*&  rpcMbBestData,
-                             RefFrameList&    rcRefFrameList0,
-                             RefFrameList&    rcRefFrameList1,
+                             RefListStruct&   rcRefListStruct,
+                             UInt             uiMinQP,
+                             UInt             uiMaxQP,
                              UInt             uiMaxNumMv,
                              UInt             uiNumMaxIter,
                              UInt             uiIterSearchRange,
-                             Bool             bQPelRefinementOnly,
                              MbDataAccess*    pcMbDataAccessBase,
                              Bool             bResidualPred )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROFRS( uiMaxNumMv >= 2,                           Err::m_nOK );
   ROTRS( rpcMbTempData->getSH().getSliceSkipFlag(), Err::m_nOK );
@@ -5625,16 +4981,14 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     UInt            uiMbBits[3] = { 3, 0, 0 };
     UInt            uiBits  [3] = { 0, 0, 0 }, uiBitsTest;
     Mv              cMv[2], cMvBi[2], cMvPred[2][33], cMvLastEst[2][33], cMvd[2];
-    YuvMbBuffer  cYuvMbBuffer[2];
-    Frame*       pcRefFrame;
-
-
+    YuvMbBuffer     cYuvMbBuffer[2];
+    Frame*          pcRefFrame    = 0;
     Bool            bBLPred   [2] = { false, false };
     Bool            bBLPredBi [2] = { false, false };
     Int             iBLRefIdx [2] = { -1, -1 };
     Mv              cBLMvPred [2], cBLMvLastEst[2];
 
-    if( pcMbDataAccessBase )
+    if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
     {
       if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) >  0                           &&
           pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList0.getActive()   )
@@ -5661,32 +5015,33 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     //===== LIST 0 PREDICTION ======
     for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
     {
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
-                                                          LIST_0, eParIdx );
-      uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
-      cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
-      pcRefFrame                  = rcRefFrameList0[iRefIdxTest];
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[0] &&
-                     cMvPred[0][iRefIdxTest] == cBLMvPred[0] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      pcRefFrame = rcRefFrameList0[iRefIdxTest];
+
+      if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
       {
-        cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
-        m_pcMotionEstimation->setEL( true );
-      }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[0][iRefIdxTest],
-                                                          cMvPred   [0][iRefIdxTest],
-                                                          uiBitsTest, uiCostTest,
-                                                          eParIdx, MODE_8x16, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      if( uiCostTest < uiCost[0] )
-      {
-        bBLPred [0] = false;
-        iRefIdx [0] = iRefIdxTest;
-        cMv     [0] = cMvLastEst[0][iRefIdxTest];
-        uiBits  [0] = uiBitsTest;
-        uiCost  [0] = uiCostTest;
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
+                                                            LIST_0, eParIdx );
+        uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiMbBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
+        cMvLastEst[0][iRefIdxTest]  = cMvPred [0][iRefIdxTest];
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+        {
+          cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[0][iRefIdxTest],
+                                                            cMvPred   [0][iRefIdxTest],
+                                                            uiBitsTest, uiCostTest,
+                                                            eParIdx, MODE_8x16, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        if( uiCostTest < uiCost[0] )
+        {
+          bBLPred [0] = false;
+          iRefIdx [0] = iRefIdxTest;
+          cMv     [0] = cMvLastEst[0][iRefIdxTest];
+          uiBits  [0] = uiBitsTest;
+          uiCost  [0] = uiCostTest;
+        }
       }
 
       if( iRefIdxTest == iBLRefIdx[0] )
@@ -5700,7 +5055,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
                                                             cBLMvLastEst[0],
                                                             cBLMvPred   [0],
                                                             uiBitsTest, uiCostTest,
-                                                            eParIdx, MODE_8x16, bQPelRefinementOnly, 0,
+                                                            eParIdx, MODE_8x16, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         if( uiCostTest < uiCost[0] )
         {
@@ -5717,35 +5072,36 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     //===== LIST 1 PREDICTION =====
     for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
     {
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
-                                                          LIST_1, eParIdx );
-      uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
-      cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
-      pcRefFrame                  = rcRefFrameList1[iRefIdxTest];
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[1] &&
-                     cMvPred[1][iRefIdxTest] == cBLMvPred[1] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
-      {
-        cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
-        m_pcMotionEstimation->setEL( true );
-      }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[1][iRefIdxTest],
-                                                          cMvPred   [1][iRefIdxTest],
-                                                          uiBitsTest, uiCostTest,
-                                                          eParIdx, MODE_8x16, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      if( uiCostTest < uiCost[1] )
-      {
-        bBLPred [1] = false;
-        iRefIdx [1] = iRefIdxTest;
-        cMv     [1] = cMvLastEst[1][iRefIdxTest];
-        uiBits  [1] = uiBitsTest;
-        uiCost  [1] = uiCostTest;
+      pcRefFrame = rcRefFrameList1[iRefIdxTest];
 
-        RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
-                                                          eParIdx, MODE_8x16 ) );
+      if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
+      {
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
+                                                            LIST_1, eParIdx );
+        uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiMbBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
+        cMvLastEst[1][iRefIdxTest]  = cMvPred [1][iRefIdxTest];
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+        {
+          cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[1][iRefIdxTest],
+                                                            cMvPred   [1][iRefIdxTest],
+                                                            uiBitsTest, uiCostTest,
+                                                            eParIdx, MODE_8x16, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        if( uiCostTest < uiCost[1] )
+        {
+          bBLPred [1] = false;
+          iRefIdx [1] = iRefIdxTest;
+          cMv     [1] = cMvLastEst[1][iRefIdxTest];
+          uiBits  [1] = uiBitsTest;
+          uiCost  [1] = uiCostTest;
+
+          RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
+                                                            eParIdx, MODE_8x16 ) );
+        }
       }
 
       if( iRefIdxTest == iBLRefIdx[1] )
@@ -5755,11 +5111,11 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
         m_pcMotionEstimation->setEL( true );
 
         rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[1], LIST_1, eParIdx );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                             cBLMvLastEst[1],
                                                             cBLMvPred   [1],
                                                             uiBitsTest, uiCostTest,
-                                                            eParIdx, MODE_8x16, bQPelRefinementOnly, 0,
+                                                            eParIdx, MODE_8x16, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         if( uiCostTest < uiCost[1] )
         {
@@ -5775,9 +5131,11 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
       }
     }
 
+    ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+    Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
 
     //===== BI PREDICTION =====
-    Bool bBiPredPossible = ( uiBlk ? uiMaxNumMv >= 2 : uiMaxNumMv >= 3 );
+    Bool bBiPredPossible = bBiPredOk && ( uiBlk ? uiMaxNumMv >= 2 : uiMaxNumMv >= 3 );
     if( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && bBiPredPossible )
     {
       //----- initialize with forward and backward estimation -----
@@ -5811,30 +5169,30 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 
         for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
         {
-          uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
-          pcRefFrame  = rcRefFrameList[iRefIdxTest];
-
-          Bool bQPel = ( bQPelRefinementOnly &&
-                         iRefIdxTest == iBLRefIdx[uiDir] &&
-                         cMvPred[uiDir][iRefIdxTest] == cBLMvPred[uiDir] );
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                              cMvLastEst[uiDir][iRefIdxTest],
-                                                              cMvPred   [uiDir][iRefIdxTest],
-                                                              uiBitsTest, uiCostTest,
-                                                              eParIdx, MODE_8x16, bQPel,
-                                                              uiIterSearchRange, 0, &cBSParams ) );
-          if( uiCostTest < uiCost[2] )
+          if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
           {
-            bChanged          = true;
-            bBLPredBi [uiDir] = false;
-            iRefIdxBi [uiDir] = iRefIdxTest;
-            cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
-            uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
-            uiBits    [2]     = uiBitsTest;
-            uiCost    [2]     = uiCostTest;
+            uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
+            pcRefFrame  = rcRefFrameList[iRefIdxTest];
 
-            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
-                                                              eParIdx, MODE_8x16 ) );
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                                cMvLastEst[uiDir][iRefIdxTest],
+                                                                cMvPred   [uiDir][iRefIdxTest],
+                                                                uiBitsTest, uiCostTest,
+                                                                eParIdx, MODE_8x16, 
+                                                                uiIterSearchRange, 0, &cBSParams ) );
+            if( uiCostTest < uiCost[2] )
+            {
+              bChanged          = true;
+              bBLPredBi [uiDir] = false;
+              iRefIdxBi [uiDir] = iRefIdxTest;
+              cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
+              uiMotBits [uiDir] = uiBitsTest - uiMbBits[2] - uiMotBits[1-uiDir];
+              uiBits    [2]     = uiBitsTest;
+              uiCost    [2]     = uiCostTest;
+
+              RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
+                                                                eParIdx, MODE_8x16 ) );
+            }
           }
 
           if( iRefIdxTest == iBLRefIdx[uiDir] )
@@ -5844,7 +5202,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
                                                                 cBLMvLastEst[uiDir],
                                                                 cBLMvPred   [uiDir],
                                                                 uiBitsTest, uiCostTest,
-                                                                eParIdx, MODE_8x16, bQPelRefinementOnly,
+                                                                eParIdx, MODE_8x16, 
                                                                 uiIterSearchRange, 0, &cBSParams ) );
             if( uiCostTest < uiCost[2] )
             {
@@ -5931,8 +5289,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 
   IntMbTempData* pcMbRefData = rpcMbTempData;
 
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1,
-        false, 0, false, 0, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBase, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -5946,8 +5303,8 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 		  Int Tab[2]={0,2};
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(B4x4Idx(Tab[n]));
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(B4x4Idx(Tab[n]));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -5976,7 +5333,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 
   RNOK( xCheckBestEstimation(  rpcMbTempData, rpcMbBestData ) );
 
-  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, false, pcMbDataAccessBase ) );
+  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, false, pcMbDataAccessBase ) );
 
   return Err::m_nOK;
 }
@@ -5987,16 +5344,16 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 ErrVal
 MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
                             IntMbTempData*&   rpcMbBestData,
-                            RefFrameList&     rcRefFrameList0,
-                            RefFrameList&     rcRefFrameList1,
+                            RefListStruct&    rcRefListStruct,
+                            UInt              uiMinQP,
+                            UInt              uiMaxQP,
                             UInt              uiMaxNumMv,
-                            Bool              bMCBlks8x8Disable,
-                            Bool              bBiPred8x8Disable,
                             UInt              uiNumMaxIter,
                             UInt              uiIterSearchRange,
-                            Bool              bQPelRefinementOnly,
                             MbDataAccess*     pcMbDataAccessBase,
-                            Bool              bResidualPred )
+                            Bool              bResidualPred,
+                            Bool              bMCBlks8x8Disable,
+                            Bool              bBiPred8x8Disable )
 {
   ROF  ( uiMaxNumMv );
   ROFRS( uiMaxNumMv >= 4,                           Err::m_nOK );
@@ -6011,6 +5368,8 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
   rpcMbTempData->setResidualPredFlag( bResidualPred );
   rpcMbTempData->rdCost   () = 0;
 
+  m_pcTransform->setQp( rpcMbTempData->getMbDataAccess(), false );
+
   //JVT-V079 Low-complexity MB mode decision
   Bool bLowComplexMbEnable = m_bLowComplexMbEnable[rpcMbTempData->getSH().getDependencyId()];
 
@@ -6024,17 +5383,15 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
     ParIdx8x8 eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
 
     m_pcIntMbBest8x8Data->clear ();
-    if(m_bUseBDir)
-    {
-      RNOK( xEstimateSubMbDirect( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, false,                                              uiBits ) );
-    }
-    RNOK( xEstimateSubMb8x8     ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, false,             uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
+    RNOK  ( xEstimateSubMbDirect( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, false,                                              uiBits ) );
+    RNOK  ( xEstimateSubMb8x8   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, false,             uiNumMaxIter, uiIterSearchRange, uiBits, pcMbDataAccessBase ) );
     if( !bMCBlks8x8Disable )
     {
-      RNOK( xEstimateSubMb8x4   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
-      RNOK( xEstimateSubMb4x8   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
-      RNOK( xEstimateSubMb4x4   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
+      RNOK( xEstimateSubMb8x4   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, pcMbDataAccessBase ) );
+      RNOK( xEstimateSubMb4x8   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, pcMbDataAccessBase ) );
+      RNOK( xEstimateSubMb4x4   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, bBiPred8x8Disable, uiNumMaxIter, uiIterSearchRange, uiBits, pcMbDataAccessBase ) );
     }
+    ROTRS( m_pcIntMbBest8x8Data->rdCost() == DOUBLE_MAX, Err::m_nOK );
 
     //----- store parameters in MbTempData -----
     rpcMbTempData->rdCost()  += m_pcIntMbBest8x8Data->rdCost    ();
@@ -6058,8 +5415,7 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
     uiMaxNumMv        -= ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) > 0 ? uiMvsPerList : 0 );
   }
 
-  RNOK( xSetRdCostInterMb   ( *rpcMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1,
-        false, 0, false, 0, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, pcMbDataAccessBase, rcRefListStruct, uiMinQP, uiMaxQP, bLowComplexMbEnable ) );
 
 
 
@@ -6073,8 +5429,8 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
 		  Int iRefIdx[2];
 		  iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 		  iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -6109,12 +5465,12 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
 ErrVal
 MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
                                 IntMbTempData*&   rpcMbBestData,
-                                RefFrameList&     rcRefFrameList0,
-                                RefFrameList&     rcRefFrameList1,
+                                RefListStruct&    rcRefListStruct,
+                                UInt              uiMinQP,
+                                UInt              uiMaxQP,
                                 UInt              uiMaxNumMv,
                                 UInt              uiNumMaxIter,
                                 UInt              uiIterSearchRange,
-                                Bool              bQPelRefinementOnly,
                                 MbDataAccess*     pcMbDataAccessBase,
                                 Bool              bResidualPred )
 {
@@ -6132,6 +5488,8 @@ MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
   rpcMbTempData->setResidualPredFlag( bResidualPred );
   rpcMbTempData->rdCost   () = 0;
 
+  m_pcTransform->setQp( rpcMbTempData->getMbDataAccess(), false );
+
   for( Par8x8 ePar8x8 = B_8x8_0; ePar8x8 < 4; ePar8x8 = Par8x8( ePar8x8 + 1 ), uiBits = 0 )
   {
     UInt      uiRemBlocks     = 3 - (UInt)ePar8x8;
@@ -6141,12 +5499,10 @@ MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
     ParIdx8x8 aeParIdx8x8[4]  = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
     ParIdx8x8 eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
 
-    m_pcIntMbBest8x8Data->clear ();
-    if(m_bUseBDir)
-    {
-      RNOK( xEstimateSubMbDirect( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, true,                                  uiBits ) );
-    }
-    RNOK( xEstimateSubMb8x8     ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, uiMaxBlkMvs, true, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
+    m_pcIntMbBest8x8Data->clear();
+    RNOK( xEstimateSubMbDirect( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, true,                                  uiBits ) );
+    RNOK( xEstimateSubMb8x8   ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefListStruct, uiMaxBlkMvs, true, uiNumMaxIter, uiIterSearchRange, uiBits, pcMbDataAccessBase ) );
+    ROTRS( m_pcIntMbBest8x8Data->rdCost() == DOUBLE_MAX, Err::m_nOK );
 
     //----- store parameters in MbTempData -----
     rpcMbTempData->rdCost()  += m_pcIntMbBest8x8Data->rdCost    ();
@@ -6183,8 +5539,8 @@ MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
 		  Int iRefIdx[2];
 		  iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
 		  iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -6207,7 +5563,7 @@ MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
   }
   //JVT-R057 LA-RDO}
 
-  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, false, pcMbDataAccessBase ) );
+  RNOK( xCheckInterMbMode8x8(  rpcMbTempData, rpcMbBestData, pcMbRefData, rcRefListStruct, uiMinQP, uiMaxQP, false, pcMbDataAccessBase ) );
 
   return Err::m_nOK;
 }
@@ -6218,14 +5574,16 @@ ErrVal
 MbEncoder::xEstimateSubMbDirect( Par8x8            ePar8x8,
                                  IntMbTempData*&   rpcMbTempData,
                                  IntMbTempData*&   rpcMbBestData,
-                                 RefFrameList&     rcRefFrameList0,
-                                 RefFrameList&     rcRefFrameList1,
+                                 RefListStruct&    rcRefListStruct,
                                  UInt              uiMaxNumMv,
                                  Bool              bTrafo8x8,
                                  UInt              uiAddBits )
 {
+  ROFRS( m_bUseBDir, Err::m_nOK );
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
-  ROFRS( rcRefFrameList0.getActive() && rcRefFrameList1.getActive(), Err::m_nOK );
+  ROFRS( rcRefFrameList0.getActive() && rcRefFrameList1.getActive(),  Err::m_nOK );
 
   ParIdx8x8 aeParIdx8x8 [4] = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
   ParIdx8x8 eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
@@ -6252,7 +5610,7 @@ MbEncoder::xEstimateSubMbDirect( Par8x8            ePar8x8,
   UInt   uiNumMv = ( rpcMbTempData->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) > 0 ? 1 : 0 ) + ( rpcMbTempData->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) > 0 ? 1 : 0 );
   ROFRS( uiNumMv <= uiMaxNumMv, Err::m_nOK );
 
-  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefFrameList0, rcRefFrameList1, B8x8Idx( ePar8x8 ), bTrafo8x8, 1+uiAddBits, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefListStruct, B8x8Idx( ePar8x8 ), bTrafo8x8, 1+uiAddBits, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -6263,8 +5621,8 @@ MbEncoder::xEstimateSubMbDirect( Par8x8            ePar8x8,
 	  Int iRefIdx[2];
 	  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(eParIdx8x8);
 	  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(eParIdx8x8);
-	  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-	  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+	  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+	  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 	  Int iMvX;
 	  Int iMvY;
 
@@ -6300,16 +5658,16 @@ ErrVal
 MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
                               IntMbTempData*&   rpcMbTempData,
                               IntMbTempData*&   rpcMbBestData,
-                              RefFrameList&     rcRefFrameList0,
-                              RefFrameList&     rcRefFrameList1,
+                              RefListStruct&    rcRefListStruct,
                               UInt              uiMaxNumMv,
                               Bool              bTrafo8x8,
                               UInt              uiNumMaxIter,
                               UInt              uiIterSearchRange,
                               UInt              uiAddBits,
-                              Bool              bQPelRefinementOnly,
                               MbDataAccess*     pcMbDataAccessBase )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF( uiMaxNumMv );
   ROF( rcRefFrameList0.getActive() <= 32 );
   ROF( rcRefFrameList1.getActive() <= 32 );
@@ -6328,16 +5686,14 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   Int             iRefIdx     [2] = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
   UInt            uiBits      [3] = { 0, 0, 0 }, uiBitsTest;
   Mv              cMv[2], cMvBi[2], cMvPred[2][33], cMvLastEst[2][33], cMvd[2];
-  YuvMbBuffer  cYuvMbBuffer[2];
-  Frame*       pcRefFrame;
-
-
+  YuvMbBuffer     cYuvMbBuffer[2];
+  Frame*          pcRefFrame    = 0;
   Bool            bBLPred   [2] = { false, false };
   Bool            bBLPredBi [2] = { false, false };
   Int             iBLRefIdx [2] = { -1, -1 };
   Mv              cBLMvPred [2], cBLMvLastEst[2];
 
-  if( pcMbDataAccessBase )
+  if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
         pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
@@ -6360,32 +5716,33 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   //===== LIST 0 PREDICTION ======
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
-    rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
-                                                        LIST_0, eParIdx8x8);
-    uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiBlkBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
-    cMvLastEst[0][iRefIdxTest]  = cMvPred   [0][iRefIdxTest];
-    pcRefFrame                  = rcRefFrameList0[iRefIdxTest];
-    Bool bQPel = ( bQPelRefinementOnly &&
-                   iRefIdxTest == iBLRefIdx[0] &&
-                   cMvPred[0][iRefIdxTest] == cBLMvPred[0] );
-    if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+    pcRefFrame = rcRefFrameList0[iRefIdxTest];
+
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
-      m_pcMotionEstimation->setEL( true );
-    }
-    RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                        cMvLastEst[0][iRefIdxTest],
-                                                        cMvPred   [0][iRefIdxTest],
-                                                        uiBitsTest, uiCostTest,
-                                                        eParIdx8x8+SPART_8x8, BLK_8x8, bQPel, 0,
-                                                        &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-    if( uiCostTest < uiCost[0] )
-    {
-      bBLPred [0] = false;
-      iRefIdx [0] = iRefIdxTest;
-      cMv     [0] = cMvLastEst[0][iRefIdxTest];
-      uiBits  [0] = uiBitsTest;
-      uiCost  [0] = uiCostTest;
+      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
+                                                          LIST_0, eParIdx8x8);
+      uiBitsTest                  = ( uiBasePredType == 0 ? 0 : uiBlkBits[0] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList0 );
+      cMvLastEst[0][iRefIdxTest]  = cMvPred   [0][iRefIdxTest];
+      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      {
+        cMvLastEst[0][iRefIdxTest] = cBLMvPred[0];
+        m_pcMotionEstimation->setEL( true );
+      }
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                          cMvLastEst[0][iRefIdxTest],
+                                                          cMvPred   [0][iRefIdxTest],
+                                                          uiBitsTest, uiCostTest,
+                                                          eParIdx8x8+SPART_8x8, BLK_8x8, 0,
+                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+      if( uiCostTest < uiCost[0] )
+      {
+        bBLPred [0] = false;
+        iRefIdx [0] = iRefIdxTest;
+        cMv     [0] = cMvLastEst[0][iRefIdxTest];
+        uiBits  [0] = uiBitsTest;
+        uiCost  [0] = uiCostTest;
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[0] )
@@ -6395,11 +5752,11 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
       m_pcMotionEstimation->setEL( true );
 
       rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[0], LIST_0, eParIdx8x8 );
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                           cBLMvLastEst[0],
                                                           cBLMvPred   [0],
                                                           uiBitsTest, uiCostTest,
-                                                          eParIdx8x8+SPART_8x8, BLK_8x8, bQPelRefinementOnly, 0,
+                                                          eParIdx8x8+SPART_8x8, BLK_8x8, 0,
                                                           &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
       if( uiCostTest < uiCost[0] )
       {
@@ -6416,35 +5773,36 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   //===== LIST 1 PREDICTION =====
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
-    rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
-                                                        LIST_1, eParIdx8x8 );
-    uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiBlkBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
-    cMvLastEst[1][iRefIdxTest]  = cMvPred   [1][iRefIdxTest];
-    pcRefFrame                  = rcRefFrameList1[iRefIdxTest];
-    Bool bQPel = ( bQPelRefinementOnly &&
-                   iRefIdxTest == iBLRefIdx[1] &&
-                   cMvPred[1][iRefIdxTest] == cBLMvPred[1] );
-    if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
-    {
-      cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
-      m_pcMotionEstimation->setEL( true );
-    }
-    RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                        cMvLastEst[1][iRefIdxTest],
-                                                        cMvPred   [1][iRefIdxTest],
-                                                        uiBitsTest, uiCostTest,
-                                                        eParIdx8x8+SPART_8x8, BLK_8x8, bQPel, 0,
-                                                        &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-    if( uiCostTest < uiCost[1] )
-    {
-      bBLPred [1] = false;
-      iRefIdx [1] = iRefIdxTest;
-      cMv     [1] = cMvLastEst[1][iRefIdxTest];
-      uiBits  [1] = uiBitsTest;
-      uiCost  [1] = uiCostTest;
+    pcRefFrame = rcRefFrameList1[iRefIdxTest];
 
-      RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
-                                                        eParIdx8x8+SPART_8x8, BLK_8x8 ) );
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
+    {
+      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
+                                                          LIST_1, eParIdx8x8 );
+      uiBitsTest                  = ( uiBasePredType == 1 ? 0 : uiBlkBits[1] ) + getRefIdxBits( iRefIdxTest, rcRefFrameList1 );
+      cMvLastEst[1][iRefIdxTest]  = cMvPred   [1][iRefIdxTest];
+      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+      {
+        cMvLastEst[1][iRefIdxTest] = cBLMvPred[1];
+        m_pcMotionEstimation->setEL( true );
+      }
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                          cMvLastEst[1][iRefIdxTest],
+                                                          cMvPred   [1][iRefIdxTest],
+                                                          uiBitsTest, uiCostTest,
+                                                          eParIdx8x8+SPART_8x8, BLK_8x8, 0,
+                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+      if( uiCostTest < uiCost[1] )
+      {
+        bBLPred [1] = false;
+        iRefIdx [1] = iRefIdxTest;
+        cMv     [1] = cMvLastEst[1][iRefIdxTest];
+        uiBits  [1] = uiBitsTest;
+        uiCost  [1] = uiCostTest;
+
+        RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
+                                                          eParIdx8x8+SPART_8x8, BLK_8x8 ) );
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[1] )
@@ -6454,11 +5812,11 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
       m_pcMotionEstimation->setEL( true );
 
       rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[1], LIST_1, eParIdx8x8 );
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                           cBLMvLastEst[1],
                                                           cBLMvPred   [1],
                                                           uiBitsTest, uiCostTest,
-                                                          eParIdx8x8+SPART_8x8, BLK_8x8, bQPelRefinementOnly, 0,
+                                                          eParIdx8x8+SPART_8x8, BLK_8x8, 0,
                                                           &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
       if( uiCostTest < uiCost[1] )
       {
@@ -6474,8 +5832,11 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
     }
   }
 
+  ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+  Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
   //===== BI PREDICTION =====
-  if( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 2 )
+  if( bBiPredOk && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 2 )
   {
     //----- initialize with forward and backward estimation -----
     iRefIdxBi [0]       = iRefIdx [0];
@@ -6508,40 +5869,40 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
 
       for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
-        uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiBlkBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
-        pcRefFrame  = rcRefFrameList[iRefIdxTest];
-
-        Bool bQPel = ( bQPelRefinementOnly &&
-                       iRefIdxTest == iBLRefIdx[uiDir] &&
-                       cMvPred[uiDir][iRefIdxTest] == cBLMvPred[uiDir] );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                            cMvLastEst[uiDir][iRefIdxTest],
-                                                            cMvPred   [uiDir][iRefIdxTest],
-                                                            uiBitsTest, uiCostTest,
-                                                            eParIdx8x8+SPART_8x8, BLK_8x8, bQPel,
-                                                            uiIterSearchRange, 0, &cBSParams ) );
-        if( uiCostTest < uiCost[2] )
+        if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
         {
-          bChanged          = true;
-          bBLPredBi [uiDir] = false;
-          iRefIdxBi [uiDir] = iRefIdxTest;
-          cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
-          uiMotBits [uiDir] = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
-          uiBits    [2]     = uiBitsTest;
-          uiCost    [2]     = uiCostTest;
+          uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiBlkBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
+          pcRefFrame  = rcRefFrameList[iRefIdxTest];
 
-          RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
-                                                            eParIdx8x8+SPART_8x8, BLK_8x8 ) );
+          RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                              cMvLastEst[uiDir][iRefIdxTest],
+                                                              cMvPred   [uiDir][iRefIdxTest],
+                                                              uiBitsTest, uiCostTest,
+                                                              eParIdx8x8+SPART_8x8, BLK_8x8, 
+                                                              uiIterSearchRange, 0, &cBSParams ) );
+          if( uiCostTest < uiCost[2] )
+          {
+            bChanged          = true;
+            bBLPredBi [uiDir] = false;
+            iRefIdxBi [uiDir] = iRefIdxTest;
+            cMvBi     [uiDir] = cMvLastEst[uiDir][iRefIdxTest];
+            uiMotBits [uiDir] = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
+            uiBits    [2]     = uiBitsTest;
+            uiCost    [2]     = uiCostTest;
+
+            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
+                                                              eParIdx8x8+SPART_8x8, BLK_8x8 ) );
+          }
         }
 
         if( iRefIdxTest == iBLRefIdx[uiDir] )
         {
           uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiBlkBits[2] ) + uiMotBits[1-uiDir];
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+          RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                               cBLMvLastEst[uiDir],
                                                               cBLMvPred   [uiDir],
                                                               uiBitsTest, uiCostTest,
-                                                              eParIdx8x8+SPART_8x8, BLK_8x8, bQPelRefinementOnly,
+                                                              eParIdx8x8+SPART_8x8, BLK_8x8, 
                                                               uiIterSearchRange, 0, &cBSParams ) );
           if( uiCostTest < uiCost[2] )
           {
@@ -6622,7 +5983,7 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   ROT( bBLPred[0] && iRefIdx[0] != iBLRefIdx[0] );
   ROT( bBLPred[1] && iRefIdx[1] != iBLRefIdx[1] );
 
-  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefFrameList0, rcRefFrameList1, B8x8Idx( ePar8x8 ), bTrafo8x8, uiSubMbBits, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefListStruct, B8x8Idx( ePar8x8 ), bTrafo8x8, uiSubMbBits, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -6634,8 +5995,8 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
 	  {
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(eParIdx8x8);
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(eParIdx8x8);
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -6671,16 +6032,16 @@ ErrVal
 MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
                               IntMbTempData*&   rpcMbTempData,
                               IntMbTempData*&   rpcMbBestData,
-                              RefFrameList&     rcRefFrameList0,
-                              RefFrameList&     rcRefFrameList1,
+                              RefListStruct&    rcRefListStruct,
                               UInt              uiMaxNumMv,
                               Bool              bBiPred8x8Disable,
                               UInt              uiNumMaxIter,
                               UInt              uiIterSearchRange,
                               UInt              uiAddBits,
-                              Bool              bQPelRefinementOnly,
                               MbDataAccess*     pcMbDataAccessBase )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROFRS( uiMaxNumMv >= 2, Err::m_nOK );
   ROF  ( rcRefFrameList0.getActive() <= 32 );
@@ -6701,16 +6062,14 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   Int             iRefIdx     [2] = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
   UInt            uiBits      [3] = { 0, 0, 0 }, uiBitsTest;
   Mv              cMv[2][2], cMvBi[2][2], cMvd[2][2], cMvLastEst[2][33][2], cMvPred[2][33][2], cMvPredBi[2][2];
-  YuvMbBuffer  cYuvMbBuffer[2], cTmpYuvMbBuffer;
-  Frame*       pcRefFrame;
-
-
+  YuvMbBuffer     cYuvMbBuffer[2], cTmpYuvMbBuffer;
+  Frame*          pcRefFrame;
   Bool            bBLPred   [2] = { false, false };
   Bool            bBLPredBi [2] = { false, false };
   Int             iBLRefIdx [2] = { -1, -1 };
   Mv              cBLMvPred [2][2], cBLMvLastEst[2][2];
 
-  if( pcMbDataAccessBase )
+  if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
         pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
@@ -6738,50 +6097,50 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList0[iRefIdxTest];
 
-    for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_0, eParIdx8x8, eSubParIdx );
-      cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[0] &&
-                     cMvPred[0][iRefIdxTest][uiBlk] == cBLMvPred[0][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
       {
-        cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_0, eParIdx8x8, eSubParIdx );
+        cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+        {
+          cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[0][iRefIdxTest][uiBlk],
+                                                            cMvPred   [0][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_8x4, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[0][iRefIdxTest][uiBlk],
-                                                          cMvPred   [0][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_8x4, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
+      if( uiCostTest < uiCost[0] )
+      {
+        bBLPred [0]     = false;
+        iRefIdx [0]     = iRefIdxTest;
+        cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
+        cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
+        uiBits  [0]     = uiBitsTest;
+        uiCost  [0]     = uiCostTest;
+      }
     }
-
-    if( uiCostTest < uiCost[0] )
-    {
-      bBLPred [0]     = false;
-      iRefIdx [0]     = iRefIdxTest;
-      cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
-      cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
-      uiBits  [0]     = uiBitsTest;
-      uiCost  [0]     = uiCostTest;
-    }
-
 
     if( iRefIdxTest == iBLRefIdx[0] )
     {
@@ -6796,11 +6155,11 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
         m_pcMotionEstimation->setEL( true );
 
         rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[0][uiBlk], LIST_0, eParIdx8x8, eSubParIdx );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                             cBLMvLastEst[0][uiBlk],
                                                             cBLMvPred   [0][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_8x4, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_8x4, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cBLMvLastEst[0][uiBlk], eParIdx8x8, eSubParIdx );
         uiBitsTest  += uiTmpBits;
@@ -6824,54 +6183,54 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList1[iRefIdxTest];
-
-    for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+ 
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_1, eParIdx8x8, eSubParIdx );
-      cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[1] &&
-                     cMvPred[1][iRefIdxTest][uiBlk] == cBLMvPred[1][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+      for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
       {
-        cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_1, eParIdx8x8, eSubParIdx );
+        cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+        {
+          cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[1][iRefIdxTest][uiBlk],
+                                                            cMvPred   [1][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_8x4, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
+                                                            eParIdx8x8+eSubParIdx, BLK_8x4 ) );
+        rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[1][iRefIdxTest][uiBlk],
-                                                          cMvPred   [1][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_8x4, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
-                                                          eParIdx8x8+eSubParIdx, BLK_8x4 ) );
-      rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
+      if( uiCostTest < uiCost[1] )
+      {
+        bBLPred [1]     = false;
+        iRefIdx [1]     = iRefIdxTest;
+        cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
+        cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
+        uiBits  [1]     = uiBitsTest;
+        uiCost  [1]     = uiCostTest;
+
+        cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+      }
     }
-
-    if( uiCostTest < uiCost[1] )
-    {
-      bBLPred [1]     = false;
-      iRefIdx [1]     = iRefIdxTest;
-      cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
-      cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
-      uiBits  [1]     = uiBitsTest;
-      uiCost  [1]     = uiCostTest;
-
-      cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
-    }
-
 
     if( iRefIdxTest == iBLRefIdx[1] )
     {
@@ -6886,11 +6245,11 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
         m_pcMotionEstimation->setEL( true );
 
         rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[1][uiBlk], LIST_1, eParIdx8x8, eSubParIdx );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                             cBLMvLastEst[1][uiBlk],
                                                             cBLMvPred   [1][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_8x4, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_8x4, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag() ) ) );
         RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
                                                             eParIdx8x8+eSubParIdx, BLK_8x4 ) );
@@ -6912,8 +6271,11 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
     }
   }
 
+  ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+  Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
   //===== BI PREDICTION =====
-  if( !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 4 )
+  if( bBiPredOk && !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 4 )
   {
     //----- initialize with forward and backward estimation -----
     iRefIdxBi [0] = iRefIdx [0];
@@ -6953,53 +6315,52 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
       for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[2];
-
         rpcMbTempData->getMbMotionData( eListIdx ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-        uiBitsTest  = 0;
-        uiCostTest  = 0;
         pcRefFrame  = rcRefFrameList[iRefIdxTest];
 
-        for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+        if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
         {
-          SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
-          UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
-          UInt        uiTmpCost;
+          uiBitsTest  = 0;
+          uiCostTest  = 0;
 
-          rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
-                                                                eListIdx, eParIdx8x8, eSubParIdx );
-          Bool bQPel = ( bQPelRefinementOnly &&
-                         iRefIdxTest == iBLRefIdx[uiDir] &&
-                         cMvPredTest[uiBlk] == cBLMvPred[uiDir][uiBlk] );
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart  (  *rpcMbTempData, *pcRefFrame,
-                                                                cMvLastEst[uiDir][iRefIdxTest][uiBlk],
-                                                                cMvPredTest                   [uiBlk],
-                                                                uiTmpBits, uiTmpCost,
-                                                                eParIdx8x8+eSubParIdx, BLK_8x4, bQPel,
-                                                                uiIterSearchRange, 0, &cBSParams ) );
-          RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
-                                                                eParIdx8x8+eSubParIdx, BLK_8x4 ) );
-          rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+          for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+          {
+            SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
+            UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
+            UInt        uiTmpCost;
 
-          uiBitsTest  += uiTmpBits;
-          uiCostTest  += uiTmpCost;
+            rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
+                                                                  eListIdx, eParIdx8x8, eSubParIdx );
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart  ( *rpcMbTempData, *pcRefFrame,
+                                                                  cMvLastEst[uiDir][iRefIdxTest][uiBlk],
+                                                                  cMvPredTest                   [uiBlk],
+                                                                  uiTmpBits, uiTmpCost,
+                                                                  eParIdx8x8+eSubParIdx, BLK_8x4, 
+                                                                  uiIterSearchRange, 0, &cBSParams ) );
+            RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
+                                                                  eParIdx8x8+eSubParIdx, BLK_8x4 ) );
+            rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+            uiBitsTest  += uiTmpBits;
+            uiCostTest  += uiTmpCost;
+          }
+
+          if( uiCostTest < uiCost[2] )
+          {
+            bChanged              = true;
+            bBLPredBi [uiDir]     = false;
+            iRefIdxBi [uiDir]     = iRefIdxTest;
+            cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
+            cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
+            cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
+            cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
+            uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
+            uiBits    [2]         = uiBitsTest;
+            uiCost    [2]         = uiCostTest;
+
+            cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+          }
         }
-
-        if( uiCostTest < uiCost[2] )
-        {
-          bChanged              = true;
-          bBLPredBi [uiDir]     = false;
-          iRefIdxBi [uiDir]     = iRefIdxTest;
-          cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
-          cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
-          cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
-          cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
-          uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
-          uiBits    [2]         = uiBitsTest;
-          uiCost    [2]         = uiCostTest;
-
-          cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
-        }
-
 
         if( iRefIdxTest == iBLRefIdx[uiDir] )
         {
@@ -7010,11 +6371,11 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
             SParIdx8x4  eSubParIdx  = aeParIdx8x4[ uiBlk ];
             UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] );
             UInt        uiTmpCost;
-            RNOK( m_pcMotionEstimation->estimateBlockWithStart  (  *rpcMbTempData, *pcRefFrame,
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart  ( *rpcMbTempData, *pcRefFrame,
                                                                   cBLMvLastEst[uiDir][uiBlk],
                                                                   cBLMvPred   [uiDir][uiBlk],
                                                                   uiTmpBits, uiTmpCost,
-                                                                  eParIdx8x8+eSubParIdx, BLK_8x4, bQPelRefinementOnly,
+                                                                  eParIdx8x8+eSubParIdx, BLK_8x4, 
                                                                   uiIterSearchRange, 0, &cBSParams ) );
             RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
                                                                   eParIdx8x8+eSubParIdx, BLK_8x4 ) );
@@ -7114,7 +6475,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   ROT( bBLPred[0] && iRefIdx[0] != iBLRefIdx[0] );
   ROT( bBLPred[1] && iRefIdx[1] != iBLRefIdx[1] );
 
-  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefFrameList0, rcRefFrameList1, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefListStruct, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -7126,8 +6487,8 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
 	  {
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(eParIdx8x8);
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(eParIdx8x8);
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -7162,16 +6523,16 @@ ErrVal
 MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
                               IntMbTempData*&   rpcMbTempData,
                               IntMbTempData*&   rpcMbBestData,
-                              RefFrameList&     rcRefFrameList0,
-                              RefFrameList&     rcRefFrameList1,
+                              RefListStruct&    rcRefListStruct,
                               UInt              uiMaxNumMv,
                               Bool              bBiPred8x8Disable,
                               UInt              uiNumMaxIter,
                               UInt              uiIterSearchRange,
                               UInt              uiAddBits,
-                              Bool              bQPelRefinementOnly,
                               MbDataAccess*     pcMbDataAccessBase )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF   ( uiMaxNumMv );
   ROFRS ( uiMaxNumMv >= 2, Err::m_nOK );
   ROF   ( rcRefFrameList0.getActive() <= 32 );
@@ -7192,16 +6553,14 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   Int             iRefIdx     [2] = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
   UInt            uiBits      [3] = { 0, 0, 0 }, uiBitsTest;
   Mv              cMv[2][2], cMvBi[2][2], cMvd[2][2], cMvLastEst[2][33][2], cMvPred[2][33][2], cMvPredBi[2][2];
-  YuvMbBuffer  cYuvMbBuffer[2], cTmpYuvMbBuffer;
-  Frame*       pcRefFrame;
-
-
+  YuvMbBuffer     cYuvMbBuffer[2], cTmpYuvMbBuffer;
+  Frame*          pcRefFrame;
   Bool            bBLPred   [2] = { false, false };
   Bool            bBLPredBi [2] = { false, false };
   Int             iBLRefIdx [2] = { -1, -1 };
   Mv              cBLMvPred [2][2], cBLMvLastEst[2][2];
 
-  if( pcMbDataAccessBase )
+  if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
         pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
@@ -7229,50 +6588,50 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList0[iRefIdxTest];
 
-    for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_0, eParIdx8x8, eSubParIdx );
-      cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[0] &&
-                     cMvPred[0][iRefIdxTest][uiBlk] == cBLMvPred[0][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
       {
-        cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_0, eParIdx8x8, eSubParIdx );
+        cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+        {
+          cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[0][iRefIdxTest][uiBlk],
+                                                            cMvPred   [0][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x8, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[0][iRefIdxTest][uiBlk],
-                                                          cMvPred   [0][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x8, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
+      if( uiCostTest < uiCost[0] )
+      {
+        bBLPred [0]     = false;
+        iRefIdx [0]     = iRefIdxTest;
+        cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
+        cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
+        uiBits  [0]     = uiBitsTest;
+        uiCost  [0]     = uiCostTest;
+      }
     }
-
-    if( uiCostTest < uiCost[0] )
-    {
-      bBLPred [0]     = false;
-      iRefIdx [0]     = iRefIdxTest;
-      cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
-      cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
-      uiBits  [0]     = uiBitsTest;
-      uiCost  [0]     = uiCostTest;
-    }
-
 
     if( iRefIdxTest == iBLRefIdx[0] )
     {
@@ -7291,7 +6650,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
                                                             cBLMvLastEst[0][uiBlk],
                                                             cBLMvPred   [0][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_4x8, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x8, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cBLMvLastEst[0][uiBlk], eParIdx8x8, eSubParIdx );
         uiBitsTest  += uiTmpBits;
@@ -7315,52 +6674,53 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList1[iRefIdxTest];
 
-    for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_1, eParIdx8x8, eSubParIdx );
-      cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[1] &&
-                     cMvPred[1][iRefIdxTest][uiBlk] == cBLMvPred[1][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+      for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
       {
-        cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_1, eParIdx8x8, eSubParIdx );
+        cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+        {
+          cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[1][iRefIdxTest][uiBlk],
+                                                            cMvPred   [1][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x8, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x8 ) );
+        rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[1][iRefIdxTest][uiBlk],
-                                                          cMvPred   [1][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x8, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x8 ) );
-      rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
-    }
+      if( uiCostTest < uiCost[1] )
+      {
+        bBLPred [1]     = false;
+        iRefIdx [1]     = iRefIdxTest;
+        cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
+        cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
+        uiBits  [1]     = uiBitsTest;
+        uiCost  [1]     = uiCostTest;
 
-    if( uiCostTest < uiCost[1] )
-    {
-      bBLPred [1]     = false;
-      iRefIdx [1]     = iRefIdxTest;
-      cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
-      cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
-      uiBits  [1]     = uiBitsTest;
-      uiCost  [1]     = uiCostTest;
-
-      cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+        cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[1] )
@@ -7376,11 +6736,11 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
         m_pcMotionEstimation->setEL( true );
 
         rpcMbTempData->getMbDataAccess().setMvPredictorsBL( cBLMvPred[1][uiBlk], LIST_1, eParIdx8x8, eSubParIdx );
-        RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
                                                             cBLMvLastEst[1][uiBlk],
                                                             cBLMvPred   [1][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_4x8, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x8, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
                                                             eParIdx8x8+eSubParIdx, BLK_4x8 ) );
@@ -7403,8 +6763,11 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
     }
   }
 
+  ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+  Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
   //===== BI PREDICTION =====
-  if( !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 4 )
+  if( bBiPredOk && !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 4 )
   {
     //----- initialize with forward and backward estimation -----
     iRefIdxBi [0] = iRefIdx [0];
@@ -7444,53 +6807,52 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
       for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[2];
-
         rpcMbTempData->getMbMotionData( eListIdx ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-        uiBitsTest  = 0;
-        uiCostTest  = 0;
         pcRefFrame  = rcRefFrameList[iRefIdxTest];
 
-        for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+        if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
         {
-          SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
-          UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
-          UInt        uiTmpCost;
+          uiBitsTest  = 0;
+          uiCostTest  = 0;
 
-          rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
-                                                                eListIdx, eParIdx8x8, eSubParIdx );
-          Bool bQPel = ( bQPelRefinementOnly &&
-                         iRefIdxTest == iBLRefIdx[uiDir] &&
-                         cMvPredTest[uiBlk] == cBLMvPred[uiDir][uiBlk] );
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart  (  *rpcMbTempData, *pcRefFrame,
-                                                                cMvLastEst[uiDir][iRefIdxTest][uiBlk],
-                                                                cMvPredTest                   [uiBlk],
-                                                                uiTmpBits, uiTmpCost,
-                                                                eParIdx8x8+eSubParIdx, BLK_4x8, bQPel,
-                                                                uiIterSearchRange, 0, &cBSParams ) );
-          RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
-                                                                eParIdx8x8+eSubParIdx, BLK_4x8 ) );
-          rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+          for( UInt uiBlk = 0; uiBlk < 2; uiBlk++ )
+          {
+            SParIdx4x8  eSubParIdx  = aeParIdx4x8[ uiBlk ];
+            UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
+            UInt        uiTmpCost;
 
-          uiBitsTest += uiTmpBits;
-          uiCostTest += uiTmpCost;
+            rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
+                                                                  eListIdx, eParIdx8x8, eSubParIdx );
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart  ( *rpcMbTempData, *pcRefFrame,
+                                                                  cMvLastEst[uiDir][iRefIdxTest][uiBlk],
+                                                                  cMvPredTest                   [uiBlk],
+                                                                  uiTmpBits, uiTmpCost,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x8, 
+                                                                  uiIterSearchRange, 0, &cBSParams ) );
+            RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x8 ) );
+            rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+            uiBitsTest += uiTmpBits;
+            uiCostTest += uiTmpCost;
+          }
+
+          if( uiCostTest < uiCost[2] )
+          {
+            bChanged              = true;
+            bBLPredBi [uiDir]     = false;
+            iRefIdxBi [uiDir]     = iRefIdxTest;
+            cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
+            cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
+            cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
+            cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
+            uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
+            uiBits    [2]         = uiBitsTest;
+            uiCost    [2]         = uiCostTest;
+
+            cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+          }
         }
-
-        if( uiCostTest < uiCost[2] )
-        {
-          bChanged              = true;
-          bBLPredBi [uiDir]     = false;
-          iRefIdxBi [uiDir]     = iRefIdxTest;
-          cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
-          cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
-          cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
-          cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
-          uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
-          uiBits    [2]         = uiBitsTest;
-          uiCost    [2]         = uiCostTest;
-
-          cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
-        }
-
 
         if( iRefIdxTest == iBLRefIdx[uiDir] )
         {
@@ -7505,7 +6867,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
                                                                   cBLMvLastEst[uiDir][uiBlk],
                                                                   cBLMvPred   [uiDir][uiBlk],
                                                                   uiTmpBits, uiTmpCost,
-                                                                  eParIdx8x8+eSubParIdx, BLK_4x8, bQPelRefinementOnly,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x8, 
                                                                   uiIterSearchRange, 0, &cBSParams ) );
             RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
                                                                   eParIdx8x8+eSubParIdx, BLK_4x8 ) );
@@ -7605,7 +6967,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   ROT( bBLPred[0] && iRefIdx[0] != iBLRefIdx[0] );
   ROT( bBLPred[1] && iRefIdx[1] != iBLRefIdx[1] );
 
-  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefFrameList0, rcRefFrameList1, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefListStruct, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -7617,8 +6979,8 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
 	  {
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(eParIdx8x8);
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(eParIdx8x8);
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 
@@ -7657,16 +7019,16 @@ ErrVal
 MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
                               IntMbTempData*&   rpcMbTempData,
                               IntMbTempData*&   rpcMbBestData,
-                              RefFrameList&     rcRefFrameList0,
-                              RefFrameList&     rcRefFrameList1,
+                              RefListStruct&    rcRefListStruct,
                               UInt              uiMaxNumMv,
                               Bool              bBiPred8x8Disable,
                               UInt              uiNumMaxIter,
                               UInt              uiIterSearchRange,
                               UInt              uiAddBits,
-                              Bool              bQPelRefinementOnly,
                               MbDataAccess*     pcMbDataAccessBase )
 {
+  RefFrameList& rcRefFrameList0 = rcRefListStruct.acRefFrameListME[ 0 ];
+  RefFrameList& rcRefFrameList1 = rcRefListStruct.acRefFrameListME[ 1 ];
   ROF  ( uiMaxNumMv );
   ROFRS( uiMaxNumMv >= 4, Err::m_nOK );
   ROF  ( rcRefFrameList0.getActive() <= 32 );
@@ -7687,16 +7049,14 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
   Int             iRefIdx     [2] = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
   UInt            uiBits      [3] = { 0, 0, 0 }, uiBitsTest;
   Mv              cMv[2][4], cMvBi[2][4], cMvd[2][4], cMvLastEst[2][33][4], cMvPred[2][33][4], cMvPredBi[2][4];
-  YuvMbBuffer  cYuvMbBuffer[2], cTmpYuvMbBuffer;
-  Frame*       pcRefFrame;
-
-
+  YuvMbBuffer     cYuvMbBuffer[2], cTmpYuvMbBuffer;
+  Frame*          pcRefFrame;
   Bool            bBLPred   [2] = { false, false };
   Bool            bBLPredBi [2] = { false, false };
   Int             iBLRefIdx [2] = { -1, -1 };
   Mv              cBLMvPred [2][4], cBLMvLastEst[2][4];
 
-  if( pcMbDataAccessBase )
+  if( pcMbDataAccessBase && m_bBaseMotionPredAllowed )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
         pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
@@ -7728,50 +7088,51 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList0[iRefIdxTest];
 
-    for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_0, eParIdx8x8, eSubParIdx );
-      cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[0] &&
-                     cMvPred[0][iRefIdxTest][uiBlk] == cBLMvPred[0][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+      for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
       {
-        cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 0 ? 0 : uiBlkBits[0] + getRefIdxBits( iRefIdxTest, rcRefFrameList0 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_0, eParIdx8x8, eSubParIdx );
+        cMvLastEst[0][iRefIdxTest][uiBlk] = cMvPred[0][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[0] )
+        {
+          cMvLastEst[0][iRefIdxTest][uiBlk] = cBLMvPred[0][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[0][iRefIdxTest][uiBlk],
+                                                            cMvPred   [0][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x4, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart(  *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[0][iRefIdxTest][uiBlk],
-                                                          cMvPred   [0][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x4, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cMvLastEst[0][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
-    }
-
-    if( uiCostTest < uiCost[0] )
-    {
-      bBLPred [0]     = false;
-      iRefIdx [0]     = iRefIdxTest;
-      cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
-      cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
-      cMv     [0][2]  = cMvLastEst[0][iRefIdxTest][2];
-      cMv     [0][3]  = cMvLastEst[0][iRefIdxTest][3];
-      uiBits  [0]     = uiBitsTest;
-      uiCost  [0]     = uiCostTest;
+      if( uiCostTest < uiCost[0] )
+      {
+        bBLPred [0]     = false;
+        iRefIdx [0]     = iRefIdxTest;
+        cMv     [0][0]  = cMvLastEst[0][iRefIdxTest][0];
+        cMv     [0][1]  = cMvLastEst[0][iRefIdxTest][1];
+        cMv     [0][2]  = cMvLastEst[0][iRefIdxTest][2];
+        cMv     [0][3]  = cMvLastEst[0][iRefIdxTest][3];
+        uiBits  [0]     = uiBitsTest;
+        uiCost  [0]     = uiCostTest;
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[0] )
@@ -7791,7 +7152,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
                                                             cBLMvLastEst[0][uiBlk],
                                                             cBLMvPred   [0][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_4x4, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x4, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_0, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         rpcMbTempData->getMbMotionData( LIST_0 ).setAllMv ( cBLMvLastEst[0][uiBlk], eParIdx8x8, eSubParIdx );
         uiBitsTest  += uiTmpBits;
@@ -7817,54 +7178,55 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
   for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-    uiBitsTest  = 0;
-    uiCostTest  = 0;
     pcRefFrame  = rcRefFrameList1[iRefIdxTest];
 
-    for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
+    if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
     {
-      SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
-      UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
-      UInt        uiTmpCost;
+      uiBitsTest  = 0;
+      uiCostTest  = 0;
 
-      rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
-                                                          LIST_1, eParIdx8x8, eSubParIdx );
-      cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
-
-      Bool bQPel = ( bQPelRefinementOnly &&
-                     iRefIdxTest == iBLRefIdx[1] &&
-                     cMvPred[1][iRefIdxTest][uiBlk] == cBLMvPred[1][uiBlk] );
-      if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+      for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
       {
-        cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
-        m_pcMotionEstimation->setEL( true );
+        SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
+        UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 1 ? 0 : uiBlkBits[1] + getRefIdxBits( iRefIdxTest, rcRefFrameList1 ) );
+        UInt        uiTmpCost;
+
+        rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest][uiBlk], iRefIdxTest,
+                                                            LIST_1, eParIdx8x8, eSubParIdx );
+        cMvLastEst[1][iRefIdxTest][uiBlk] = cMvPred[1][iRefIdxTest][uiBlk];
+
+        if( m_pcMotionEstimation->getELSearch() && iRefIdxTest == iBLRefIdx[1] )
+        {
+          cMvLastEst[1][iRefIdxTest][uiBlk] = cBLMvPred[1][uiBlk];
+          m_pcMotionEstimation->setEL( true );
+        }
+        RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
+                                                            cMvLastEst[1][iRefIdxTest][uiBlk],
+                                                            cMvPred   [1][iRefIdxTest][uiBlk],
+                                                            uiTmpBits, uiTmpCost,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x4, 0,
+                                                            &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
+        RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x4 ) );
+        rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+        uiBitsTest  += uiTmpBits;
+        uiCostTest  += uiTmpCost;
       }
-      RNOK( m_pcMotionEstimation->estimateBlockWithStart( *rpcMbTempData, *pcRefFrame,
-                                                          cMvLastEst[1][iRefIdxTest][uiBlk],
-                                                          cMvPred   [1][iRefIdxTest][uiBlk],
-                                                          uiTmpBits, uiTmpCost,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x4, bQPel, 0,
-                                                          &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
-      RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
-                                                          eParIdx8x8+eSubParIdx, BLK_4x4 ) );
-      rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvLastEst[1][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
 
-      uiBitsTest  += uiTmpBits;
-      uiCostTest  += uiTmpCost;
-    }
+      if( uiCostTest < uiCost[1] )
+      {
+        bBLPred [1]     = false;
+        iRefIdx [1]     = iRefIdxTest;
+        cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
+        cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
+        cMv     [1][2]  = cMvLastEst[1][iRefIdxTest][2];
+        cMv     [1][3]  = cMvLastEst[1][iRefIdxTest][3];
+        uiBits  [1]     = uiBitsTest;
+        uiCost  [1]     = uiCostTest;
 
-    if( uiCostTest < uiCost[1] )
-    {
-      bBLPred [1]     = false;
-      iRefIdx [1]     = iRefIdxTest;
-      cMv     [1][0]  = cMvLastEst[1][iRefIdxTest][0];
-      cMv     [1][1]  = cMvLastEst[1][iRefIdxTest][1];
-      cMv     [1][2]  = cMvLastEst[1][iRefIdxTest][2];
-      cMv     [1][3]  = cMvLastEst[1][iRefIdxTest][3];
-      uiBits  [1]     = uiBitsTest;
-      uiCost  [1]     = uiCostTest;
-
-      cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+        cYuvMbBuffer[1].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+      }
     }
 
     if( iRefIdxTest == iBLRefIdx[1] )
@@ -7884,7 +7246,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
                                                             cBLMvLastEst[1][uiBlk],
                                                             cBLMvPred   [1][uiBlk],
                                                             uiTmpBits, uiTmpCost,
-                                                            eParIdx8x8+eSubParIdx, BLK_4x4, bQPelRefinementOnly, 0,
+                                                            eParIdx8x8+eSubParIdx, BLK_4x4, 0,
                                                             &rpcMbTempData->getMbDataAccess().getSH().getPredWeight( LIST_1, iRefIdxTest, rpcMbTempData->getFieldFlag()) ) );
         RNOK( m_pcMotionEstimation->compensateBlock       ( &cTmpYuvMbBuffer,
                                                             eParIdx8x8+eSubParIdx, BLK_4x4 ) );
@@ -7909,8 +7271,11 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
     }
   }
 
+  ROTRS( uiCost[0] == MSYS_UINT_MAX && uiCost[1] == MSYS_UINT_MAX, Err::m_nOK );
+  Bool bBiPredOk = ( uiCost[0] != MSYS_UINT_MAX && uiCost[1] != MSYS_UINT_MAX );
+
   //===== BI PREDICTION =====
-  if( !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 8 )
+  if( bBiPredOk && !bBiPred8x8Disable && rcRefFrameList0.getActive() && rcRefFrameList1.getActive() && uiMaxNumMv >= 8 )
   {
     //----- initialize with forward and backward estimation -----
     iRefIdxBi [0] = iRefIdx [0];
@@ -7954,57 +7319,56 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
       for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[4];
-
         rpcMbTempData->getMbMotionData( eListIdx ).setRefIdx( iRefIdxTest, eParIdx8x8 );
-        uiBitsTest  = 0;
-        uiCostTest  = 0;
         pcRefFrame  = rcRefFrameList[iRefIdxTest];
 
-        for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
+        if( !pcMbDataAccessBase || !rpcMbTempData->getMbDataAccess().getSH().getDefaultMotionPredictionFlag() )
         {
-          SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
-          UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
-          UInt        uiTmpCost;
+          uiBitsTest  = 0;
+          uiCostTest  = 0;
 
-          rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
-                                                                eListIdx, eParIdx8x8, eSubParIdx );
-          Bool bQPel = ( bQPelRefinementOnly &&
-                         iRefIdxTest == iBLRefIdx[uiDir] &&
-                         cMvPredTest[uiBlk] == cBLMvPred[uiDir][uiBlk] );
-          RNOK( m_pcMotionEstimation->estimateBlockWithStart  (  *rpcMbTempData, *pcRefFrame,
-                                                                cMvLastEst[uiDir][iRefIdxTest][uiBlk],
-                                                                cMvPredTest                   [uiBlk],
-                                                                uiTmpBits, uiTmpCost,
-                                                                eParIdx8x8+eSubParIdx, BLK_4x4, bQPel,
-                                                                uiIterSearchRange, 0, &cBSParams ) );
-          RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
-                                                                eParIdx8x8+eSubParIdx, BLK_4x4 ) );
-          rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+          for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
+          {
+            SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
+            UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList ) );
+            UInt        uiTmpCost;
 
-          uiBitsTest += uiTmpBits;
-          uiCostTest += uiTmpCost;
+            rpcMbTempData->getMbDataAccess().getMvPredictor     ( cMvPredTest[uiBlk], iRefIdxTest,
+                                                                  eListIdx, eParIdx8x8, eSubParIdx );
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart  ( *rpcMbTempData, *pcRefFrame,
+                                                                  cMvLastEst[uiDir][iRefIdxTest][uiBlk],
+                                                                  cMvPredTest                   [uiBlk],
+                                                                  uiTmpBits, uiTmpCost,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x4, 
+                                                                  uiIterSearchRange, 0, &cBSParams ) );
+            RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x4 ) );
+            rpcMbTempData->getMbMotionData( eListIdx ).setAllMv ( cMvLastEst[uiDir][iRefIdxTest][uiBlk], eParIdx8x8, eSubParIdx );
+
+            uiBitsTest += uiTmpBits;
+            uiCostTest += uiTmpCost;
+          }
+
+          if( uiCostTest < uiCost[2] )
+          {
+            bChanged              = true;
+            bBLPredBi [uiDir]     = false;
+            iRefIdxBi [uiDir]     = iRefIdxTest;
+            cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
+            cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
+            cMvBi     [uiDir][2]  = cMvLastEst[uiDir][iRefIdxTest][2];
+            cMvBi     [uiDir][3]  = cMvLastEst[uiDir][iRefIdxTest][3];
+            cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
+            cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
+            cMvPredBi [uiDir][2]  = cMvPredTest                   [2];
+            cMvPredBi [uiDir][3]  = cMvPredTest                   [3];
+            uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
+            uiBits    [2]         = uiBitsTest;
+            uiCost    [2]         = uiCostTest;
+
+            cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
+          }
         }
-
-        if( uiCostTest < uiCost[2] )
-        {
-          bChanged              = true;
-          bBLPredBi [uiDir]     = false;
-          iRefIdxBi [uiDir]     = iRefIdxTest;
-          cMvBi     [uiDir][0]  = cMvLastEst[uiDir][iRefIdxTest][0];
-          cMvBi     [uiDir][1]  = cMvLastEst[uiDir][iRefIdxTest][1];
-          cMvBi     [uiDir][2]  = cMvLastEst[uiDir][iRefIdxTest][2];
-          cMvBi     [uiDir][3]  = cMvLastEst[uiDir][iRefIdxTest][3];
-          cMvPredBi [uiDir][0]  = cMvPredTest                   [0];
-          cMvPredBi [uiDir][1]  = cMvPredTest                   [1];
-          cMvPredBi [uiDir][2]  = cMvPredTest                   [2];
-          cMvPredBi [uiDir][3]  = cMvPredTest                   [3];
-          uiMotBits [uiDir]     = uiBitsTest - uiBlkBits[2] - uiMotBits[1-uiDir];
-          uiBits    [2]         = uiBitsTest;
-          uiCost    [2]         = uiCostTest;
-
-          cYuvMbBuffer[uiDir].loadLuma( cTmpYuvMbBuffer, B8x8Idx( ePar8x8 ) );
-        }
-
 
         if( iRefIdxTest == iBLRefIdx[uiDir] )
         {
@@ -8015,11 +7379,11 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
             SParIdx4x4  eSubParIdx  = aeParIdx4x4[ uiBlk ];
             UInt        uiTmpBits   = ( uiBlk || uiBasePredType == 2 ? 0 : uiBlkBits[2] + uiMotBits[1-uiDir] );
             UInt        uiTmpCost;
-            RNOK( m_pcMotionEstimation->estimateBlockWithStart  (  *rpcMbTempData, *pcRefFrame,
+            RNOK( m_pcMotionEstimation->estimateBlockWithStart  ( *rpcMbTempData, *pcRefFrame,
                                                                   cBLMvLastEst[uiDir][uiBlk],
                                                                   cBLMvPred   [uiDir][uiBlk],
                                                                   uiTmpBits, uiTmpCost,
-                                                                  eParIdx8x8+eSubParIdx, BLK_4x4, bQPelRefinementOnly,
+                                                                  eParIdx8x8+eSubParIdx, BLK_4x4, 
                                                                   uiIterSearchRange, 0, &cBSParams ) );
             RNOK( m_pcMotionEstimation->compensateBlock         ( &cTmpYuvMbBuffer,
                                                                   eParIdx8x8+eSubParIdx, BLK_4x4 ) );
@@ -8169,7 +7533,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
   ROT( bBLPred[0] && iRefIdx[0] != iBLRefIdx[0] );
   ROT( bBLPred[1] && iRefIdx[1] != iBLRefIdx[1] );
 
-  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefFrameList0, rcRefFrameList1, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
+  RNOK( xSetRdCostInterSubMb( *rpcMbTempData, rcRefListStruct, B8x8Idx( ePar8x8 ), false, uiSubMbBits, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO{
@@ -8181,8 +7545,8 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
 	  {
 		  iRefIdx [0]=rpcMbTempData->getMbMotionData(LIST_0).getRefIdx(eParIdx8x8);
 		  iRefIdx [1]=rpcMbTempData->getMbMotionData(LIST_1).getRefIdx(eParIdx8x8);
-		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
-		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+		  Frame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefListStruct.acRefFrameListMC[0][ iRefIdx [0] ] : NULL );
+		  Frame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefListStruct.acRefFrameListMC[1][ iRefIdx [1] ] : NULL );
 		  Int iMvX;
 		  Int iMvY;
 

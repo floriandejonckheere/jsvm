@@ -75,7 +75,7 @@ Bool MbData::calcBCBP( UInt uiStart, UInt uiStop, UInt uiPos ) const
   {
     // Chroma AC 4x4 block
     AOF( uiStop > 1 );
-    uiStart = max( 1, uiStart );
+    uiStart = gMax( 1, uiStart );
     const UChar  *pucScan = getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
     const TCoeff *piCoeff = getMbTCoeffs().get( CIdx(uiPos - 16) );
     for( UInt ui = uiStart; ui < uiStop; ui++ )

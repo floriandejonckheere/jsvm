@@ -113,7 +113,7 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
   //===== check for empty NAL unit packet =====
   if( ! rpcBinData || ! rpcBinData->data() || ! rpcBinData->size() )
   {
-    RNOK( rcAccessUnit.update() );
+    RNOK( rcAccessUnit.update( 0, false, false, false ) );
     return Err::m_nOK;
   }
 
@@ -126,8 +126,11 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
   pcBinDataCopy->set( pucBuffer, rpcBinData->size() );
 
   //===== parse required part of the NAL unit =====
-  PrefixHeader* pcPrefixHeader  = 0;
-  SliceHeader*  pcSliceHeader   = 0;
+  PrefixHeader* pcPrefixHeader    = 0;
+  SliceHeader*  pcSliceHeader     = 0;
+  Bool          bSEI              = false;
+  Bool          bScalableSEI      = false;
+  Bool          bBufferingPeriod  = false;
   {
     DTRACE_OFF;
     Bool            bCompletelyParsed = false;
@@ -189,6 +192,25 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
         RNOK( pcSliceHeader->read( *m_pcParameterSetMngAUInit, *m_pcHeaderSymbolReadIf ) );
         break;
       }
+    case NAL_UNIT_SEI:
+      {
+        bSEI = true;
+        SEI::MessageList cSEIMessageList;
+        RNOK( SEI::read( m_pcHeaderSymbolReadIf, cSEIMessageList, m_pcParameterSetMngAUInit ) );
+        bScalableSEI      = ( (*cSEIMessageList.begin())->getMessageType() == h264::SEI::SCALABLE_SEI );
+        bBufferingPeriod  = ( (*cSEIMessageList.begin())->getMessageType() == h264::SEI::BUFFERING_PERIOD );
+        if( (*cSEIMessageList.begin())->getMessageType() == h264::SEI::SCALABLE_NESTING_SEI )
+        {
+          SEI::SEIMessage*          pcSEI   = *cSEIMessageList.begin();
+          SEI::ScalableNestingSei*  pcSNSEI = static_cast<SEI::ScalableNestingSei*>( pcSEI );
+          bBufferingPeriod                  = pcSNSEI->bHasBufferingPeriod();
+        }
+        for( SEI::MessageList::iterator iter = cSEIMessageList.begin(); iter != cSEIMessageList.end(); iter++ )
+        {
+          delete (*iter);
+        }
+        break;
+      }
     default:
       {
         // no parsing required
@@ -223,7 +245,7 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
     }
   default:
     {
-      RNOK( rcAccessUnit.update( pcBinDataCopy ) );
+      RNOK( rcAccessUnit.update( pcBinDataCopy, bSEI, bScalableSEI, bBufferingPeriod ) );
       break;
     }
   }
@@ -286,7 +308,9 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
   //===== parse NAL unit =====
   BinDataAccessor cBinDataAccessor;
   rcNonVCLNALUnit.getBinData()->setMemAccessor( cBinDataAccessor );
-  RNOK  ( m_pcNalUnitParser   ->initNalUnit   ( cBinDataAccessor )  );
+  RNOK  ( m_pcNalUnitParser   ->initNalUnit   ( cBinDataAccessor, ( rcNonVCLNALUnit.isScalableSEI     () ? -3 : 
+                                                                    rcNonVCLNALUnit.isBufferingPeriod () ? -2 :
+                                                                    rcNonVCLNALUnit.isSEI             () ? -1 : 0 ) ) );
   switch( m_pcNalUnitParser   ->getNalUnitType() )
   {
   case NAL_UNIT_SPS:
@@ -320,11 +344,13 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
     {
       SEI::MessageList cSEIMessageList;
       RNOK( SEI::read( m_pcHeaderSymbolReadIf, cSEIMessageList, m_pcParameterSetMngDecode ) );
-      printf("  NON-VCL: SEI NAL UNIT\n" );
+      printf("  NON-VCL: SEI NAL UNIT [message(s):" );
       for( SEI::MessageList::iterator iter = cSEIMessageList.begin(); iter != cSEIMessageList.end(); iter++ )
       {
+        printf(" %d", (*iter)->getMessageType() );
         delete (*iter);
       }
+      printf("]\n" );
       break;
     }
   case NAL_UNIT_ACCESS_UNIT_DELIMITER: // just read, but ignore

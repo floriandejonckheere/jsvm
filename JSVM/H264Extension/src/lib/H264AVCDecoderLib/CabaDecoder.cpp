@@ -90,8 +90,8 @@ CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
   UInt uiRange = m_uiRange-2;
   UInt uiValue = m_uiValue;
 
-  DTRACE_V (g_nSymbolCounter[g_nLayer]++);
-  DTRACE_T ("  ");
+  DTRACE_SC;
+  DTRACE_TH("  ");
   DTRACE_X (m_uiRange);
 
   if( uiValue >= uiRange )
@@ -112,7 +112,7 @@ CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
     m_uiValue = uiValue;
   }
 
-  DTRACE_T ("  -  ");
+  DTRACE_TH ("  -  ");
   DTRACE_V (ruiBit);
   DTRACE_N;
   return Err::m_nOK;
@@ -133,12 +133,12 @@ CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
   UInt uiRange = m_uiRange;
   UInt uiValue = m_uiValue;
 
-  DTRACE_V (g_nSymbolCounter[g_nLayer]++);
-  DTRACE_T ("  ");
+  DTRACE_SC;
+  DTRACE_TH ("  ");
   DTRACE_X (m_uiRange);
-  DTRACE_T ("  ");
+  DTRACE_TH ("  ");
   DTRACE_V (rcCCModel.getState());
-  DTRACE_T ("  ");
+  DTRACE_TH ("  ");
   DTRACE_V (rcCCModel.getMps());
 
   {
@@ -168,7 +168,7 @@ CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
     }
   }
 
-  DTRACE_T ("  -  ");
+  DTRACE_TH ("  -  ");
   DTRACE_V (ruiSymbol);
   DTRACE_N;
 
@@ -188,8 +188,8 @@ CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
 ErrVal
 CabaDecoder::getEpSymbol( UInt& ruiSymbol )
 {
-  DTRACE_V (g_nSymbolCounter[g_nLayer]++);
-  DTRACE_T ("  ");
+  DTRACE_SC;
+  DTRACE_TH ("  ");
   DTRACE_X (m_uiRange);
 
   UInt uiValue = m_uiValue;
@@ -206,7 +206,7 @@ CabaDecoder::getEpSymbol( UInt& ruiSymbol )
     ruiSymbol = 0;
   }
 
-  DTRACE_T ("  -  ");
+  DTRACE_TH ("  -  ");
   DTRACE_V (ruiSymbol);
   DTRACE_N;
 

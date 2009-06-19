@@ -35,40 +35,41 @@ public:
   const Int getLStride    ()                const { return MB_BUFFER_WIDTH;}
   const Int getCStride    ()                const { return MB_BUFFER_WIDTH;}
 
-  XPel*     getYBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)]; }
-  XPel*     getUBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
-  XPel*     getVBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
-  XPel*     getCBlk       ( ChromaIdx cIdx )      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2) + 12*cIdx.plane()]; }
-
-  const XPel*     getMbLumAddr  ()          const { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
-  const XPel*     getMbCbAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
-  const XPel*     getMbCrAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
-
-  XPel*     getMbLumAddr  ()                      { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
-  XPel*     getMbCbAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
-  XPel*     getMbCrAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
+  const XPel* getYBlk     ( LumaIdx   cIdx )  const { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)]; }
+  const XPel* getUBlk     ( LumaIdx   cIdx )  const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  const XPel* getVBlk     ( LumaIdx   cIdx )  const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  const XPel* getCBlk     ( ChromaIdx cIdx )  const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2) + 12*cIdx.plane()]; }
+  XPel*       getYBlk     ( LumaIdx   cIdx )        { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)]; }
+  XPel*       getUBlk     ( LumaIdx   cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  XPel*       getVBlk     ( LumaIdx   cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  XPel*       getCBlk     ( ChromaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2) + 12*cIdx.plane()]; }
+  const XPel* getMbLumAddr()                  const { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
+  const XPel* getMbCbAddr ()                  const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
+  const XPel* getMbCrAddr ()                  const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
+  XPel*       getMbLumAddr()                        { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
+  XPel*       getMbCbAddr ()                        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
+  XPel*       getMbCrAddr ()                        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
 
   const Int getLWidth     ()                const { return 16; }
   const Int getLHeight    ()                const { return 16; }
   const Int getCWidth     ()                const { return 8; }
   const Int getCHeight    ()                const { return 8; }
 
-  Void loadBuffer           ( YuvPicBuffer*  pcSrcBuffer );
+  Void  loadBuffer         ( const YuvPicBuffer*  pcSrcBuffer );
+  Void  loadLuma           ( const YuvMbBuffer&   rcSrcBuffer, LumaIdx c4x4Idx);
+  Void  loadLuma           ( const YuvMbBuffer&   rcSrcBuffer, B8x8Idx c8x8Idx);
+  Void  loadLuma           ( const YuvMbBuffer&   rcSrcBuffer );
+  Void  loadChroma         ( const YuvMbBuffer&   rcSrcBuffer );
+  Void  loadIntraPredictors( const YuvPicBuffer*  pcSrcBuffer );
+  Void  setAllSamplesToZero();
 
-  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer, LumaIdx c4x4Idx);
-  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer, B8x8Idx c8x8Idx);
-  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer );
-  Void loadChroma           ( YuvMbBuffer&   rcSrcBuffer );
-
-  Void loadIntraPredictors  ( YuvPicBuffer*  pcSrcBuffer );
-
-  Void setAllSamplesToZero  ();
-
-  Void  add         ( YuvMbBuffer& rcIntYuvMbBuffer );
-  Void  subtract    ( YuvMbBuffer& rcIntYuvMbBuffer );
-  Void  clip        ();
-  Bool  isZero      ();
-	Void  setZero     ();
+  Void  add     ( const YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  addRes  ( const YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  addClip ( const YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  subtract( const YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  clip    ();
+  Bool  isZero  ();
+	Void  setZero ();
 
 protected:
   XPel* m_pPelCurrY;
@@ -80,8 +81,8 @@ protected:
 class H264AVCCOMMONLIB_API YuvMbBufferExtension : public YuvMbBuffer
 {
 public:
-  Void loadSurrounding      ( YuvPicBuffer* pcSrcBuffer,              Int iMbXOffset = 0, Int iMbYOffset = 0 );
-  Void loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset = 0, Int iMbYOffset = 0 ); //TMM_INTERLACE
+  Void loadSurrounding      ( const YuvPicBuffer* pcSrcBuffer,              Int iMbXOffset = 0, Int iMbYOffset = 0 );
+  Void loadSurrounding_MbAff( const YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset = 0, Int iMbYOffset = 0 ); //TMM_INTERLACE
 
   Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
   Void mergeFromRightBelow( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );

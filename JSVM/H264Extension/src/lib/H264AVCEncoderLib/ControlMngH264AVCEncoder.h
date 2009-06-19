@@ -81,8 +81,7 @@ public:
   ErrVal initSPS          ( SequenceParameterSet&       rcSPS, UInt  uiLayer   ) { return Err::m_nERR; }
 
   ErrVal initParameterSets( const SequenceParameterSet& rcSPS,
-                            const PictureParameterSet&  rcPPSLP,
-                            const PictureParameterSet&  rcPPSHP );
+                            const PictureParameterSet&  rcPPS );
 
   ErrVal initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
 

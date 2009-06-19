@@ -284,8 +284,9 @@ public:
                               ResizeParameters*     pcParameters,
                               MbDataCtrl*           pcMbDataCtrlBase );
 
-  YuvPicBuffer*  getFullPelYuvBuffer     ()        { return &m_cFullPelYuvBuffer; }
-  YuvPicBuffer*  getHalfPelYuvBuffer     ()        { return &m_cHalfPelYuvBuffer; }
+  const YuvPicBuffer* getFullPelYuvBuffer() const  { return &m_cFullPelYuvBuffer; }
+  YuvPicBuffer*       getFullPelYuvBuffer()        { return &m_cFullPelYuvBuffer; }
+  YuvPicBuffer*       getHalfPelYuvBuffer()        { return &m_cHalfPelYuvBuffer; }
 
 	Bool  isPocAvailable()           const { return m_bPocIsSet; }
 	Int   getPoc        ()           const { return m_iPoc; }
@@ -320,7 +321,7 @@ public:
       if( m_pcFrameTopField && m_pcFrameBotField )
       {
         m_pcFrameTopField->setPoc( m_iTopFieldPoc );
-        setPoc( m_pcFrameBotField->isPocAvailable() ? max( m_pcFrameBotField->getPoc(), m_iTopFieldPoc ) : m_iTopFieldPoc );
+        setPoc( m_pcFrameBotField->isPocAvailable() ? gMax( m_pcFrameBotField->getPoc(), m_iTopFieldPoc ) : m_iTopFieldPoc );
       }
     }
     if( ePicType & BOT_FIELD )
@@ -329,12 +330,12 @@ public:
       if( m_pcFrameTopField && m_pcFrameBotField )
       {
         m_pcFrameBotField->setPoc( m_iBotFieldPoc );
-        setPoc( m_pcFrameTopField->isPocAvailable() ? min( m_pcFrameTopField->getPoc(), m_iBotFieldPoc ) : m_iBotFieldPoc );
+        setPoc( m_pcFrameTopField->isPocAvailable() ? gMin( m_pcFrameTopField->getPoc(), m_iBotFieldPoc ) : m_iBotFieldPoc );
       }
     }
     if( ! m_pcFrameTopField || ! m_pcFrameBotField )
     {
-      setPoc( max( m_iTopFieldPoc, m_iBotFieldPoc ) );
+      setPoc( gMax( m_iTopFieldPoc, m_iBotFieldPoc ) );
     }
   }
 
@@ -356,7 +357,8 @@ public:
 	  if(m_piChannelDistortion)
 		  delete[] m_piChannelDistortion;
   }
-  UInt*   getChannelDistortion()   { return  m_piChannelDistortion;}
+  const UInt* getChannelDistortion()  const { return m_piChannelDistortion; }
+  UInt*       getChannelDistortion()        { return m_piChannelDistortion; }
   Void   copyChannelDistortion(Frame*p1);
   Void   zeroChannelDistortion();
   Void   setChannelDistortion(Frame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
@@ -395,14 +397,12 @@ protected:
   Bool      m_bUnvalid;
 };
 
-H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldLists ( RefFrameList& rcTopFieldList, RefFrameList& rcBotFieldList, RefFrameList& rcRefFrameList )
+H264AVCCOMMONLIB_API extern __inline 
+ErrVal gSetFrameFieldLists ( RefFrameList& rcTopFieldList, RefFrameList& rcBotFieldList, RefFrameList& rcRefFrameList )
 {
-  ROTRS( NULL == &rcRefFrameList, Err::m_nOK );
-
   rcTopFieldList.reset();
   rcBotFieldList.reset();
-
-  const Int iMaxEntries = min( rcRefFrameList.getSize(), rcRefFrameList.getActive() );
+  const Int iMaxEntries = gMin( rcRefFrameList.getSize(), rcRefFrameList.getActive() );
   for( Int iFrmIdx = 0; iFrmIdx < iMaxEntries; iFrmIdx++ )
   {
     Frame* pcTopField = rcRefFrameList.getEntry( iFrmIdx )->getPic( TOP_FIELD );
@@ -412,10 +412,23 @@ H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldLists ( RefFrameList& 
     rcBotFieldList.add( pcBotField );
     rcBotFieldList.add( pcTopField );
   }
-
   return Err::m_nOK;
 }
 
+
+H264AVCCOMMONLIB_API extern __inline 
+ErrVal gSetFrameFieldLists ( RefListStruct& rcTopFieldStruct, RefListStruct& rcBotFieldStruct, RefListStruct& rcRefFrameStruct )
+{
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListME[0], rcBotFieldStruct.acRefFrameListME[0], rcRefFrameStruct.acRefFrameListME[0] ) );
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListME[1], rcBotFieldStruct.acRefFrameListME[1], rcRefFrameStruct.acRefFrameListME[1] ) );
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListMC[0], rcBotFieldStruct.acRefFrameListMC[0], rcRefFrameStruct.acRefFrameListMC[0] ) );
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListMC[1], rcBotFieldStruct.acRefFrameListMC[1], rcRefFrameStruct.acRefFrameListMC[1] ) );
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListRC[0], rcBotFieldStruct.acRefFrameListRC[0], rcRefFrameStruct.acRefFrameListRC[0] ) );
+  RNOK( gSetFrameFieldLists( rcTopFieldStruct.acRefFrameListRC[1], rcBotFieldStruct.acRefFrameListRC[1], rcRefFrameStruct.acRefFrameListRC[1] ) );
+  rcTopFieldStruct.bMCandRClistsDiffer  = rcRefFrameStruct.bMCandRClistsDiffer;
+  rcBotFieldStruct.bMCandRClistsDiffer  = rcRefFrameStruct.bMCandRClistsDiffer;
+  return Err::m_nOK;
+}
 
 
 H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldArrays( Frame* apcFrame[4], Frame* pcFrame )

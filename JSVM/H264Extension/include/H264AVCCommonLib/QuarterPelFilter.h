@@ -26,9 +26,6 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
-  Bool getClipMode    ()        { return m_bClip; }
-  Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }
-
   virtual ErrVal filterFrame( YuvPicBuffer* pcPelBuffer, YuvPicBuffer* pcHalfPelBuffer );
   Void filterBlock( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
   {
@@ -60,10 +57,7 @@ protected:
   static Void xXFilter3( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
   static Void xXFilter4( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
 
-  Int xClip( Int iPel ) { return ( m_bClip ? gClip( iPel ) : iPel); }
-
 protected:
-  Bool m_bClip;
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
 };
 

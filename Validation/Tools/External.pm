@@ -101,8 +101,6 @@ sub Encode($;$)
 		
 	 ::PrintLog(" Encode                    .......... ");
 		
-	my $MotConf="";
-	my $MotConfCGS="";
 	my $cmd ;
 	my $ret;
 	
@@ -113,16 +111,9 @@ sub Encode($;$)
 	{
 		$l++;
 		$lp1++;	
-		#if($layer->{bitrate}==0)
-		{
-			#cgs layer
-			#motion for this layer wil have to be computed later
-			$MotConf	.= " -mfile $l 2 ".$layer->{motionname};
-			$MotConfCGS	.= " -mfile $l 1 ".$layer->{motionname};
-		}	
 	}	
 	
-	$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1 $MotConf ".$simu->{singleloopflag};
+	$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1 ".$simu->{singleloopflag};
  	$ret = run($cmd,$simu->{logname},0);
   ($ret == 0) or die "problem while executing the command:\n$cmd\n";
   	

@@ -8,16 +8,12 @@
 
 
 
-
-
 #include "H264AVCCommonLib/TraceFile.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/Frame.h"
-// JVT-V068 HRD {
 #include "H264AVCCommonLib/ParameterSetMng.h"
-// JVT-V068 HRD }
 #include "DownConvert.h"
-#include "H264AVCCommonLib/Sei.h"  //NonRequired JVT-Q066 (06-04-08)
+#include "H264AVCCommonLib/Sei.h"
 
 #include <algorithm>
 #include <list>
@@ -45,44 +41,39 @@ class ParameterSetMng;
 class ControlMngH264AVCEncoder;
 class MotionEstimation;
 class Frame;
-//JVT-U106 Behaviour at slice boundaries{
 class ReconstructionBypass;
-//JVT-U106 Behaviour at slice boundaries}
-
-// JVT-V068 {
 class Scheduler;
-// JVT-V068 }
 
-typedef MyList<UInt>        UIntList;
+typedef MyList<UInt> UIntList;
 
 
 class H264AVCENCODERLIB_API AccessUnitData
 {
 public:
-  AccessUnitData  ( UInt uiAUIndex ) : m_uiAUIndex( uiAUIndex )
-  , m_pcNonRequiredSei ( NULL )  //NonRequired JVT-Q066 (06-04-08)
+  AccessUnitData( UInt uiAUIndex )
+    : m_uiAUIndex       ( uiAUIndex )
+    , m_pcNonRequiredSei( 0 )
   {}
-  ~AccessUnitData ()                                            {}
+  ~AccessUnitData() {}
 
-  UInt                    getAUIndex        () const          { return m_uiAUIndex; }
-  ExtBinDataAccessorList& getNalUnitList    ()                { return m_cNalUnitList; }
-  ExtBinDataAccessorList& getRedNalUnitList ()                { return m_cRedNalUnitList; }
-  //NonRequired JVT-Q066 (06-04-08){{
-  ErrVal				  CreatNonRequiredSei()				{ RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
-  SEI::NonRequiredSei*	  getNonRequiredSei()				{ return m_pcNonRequiredSei; }
-  //NonRequired JVT-Q066 (06-04-08)}}
-
-	//JVT-W052 wxwan
-	ErrVal					CreatIntegrityCheckSei()    { RNOK(SEI::IntegrityCheckSEI::create( m_pcIntegrityCheckSei)) return Err::m_nOK; }
-	SEI::IntegrityCheckSEI* getIntegrityCheckSei()    { return m_pcIntegrityCheckSei; }
-	//JVT-W052 wxwan
+  UInt                    getAUIndex            () const  { return m_uiAUIndex; }
+  ExtBinDataAccessorList& getBPSEINalUnitList   ()        { return m_cBPSEINalUnitList; }
+  ExtBinDataAccessorList& getSEINalUnitList     ()        { return m_cSEINalUnitList; }
+  ExtBinDataAccessorList& getNalUnitList        ()        { return m_cNalUnitList; }
+  ExtBinDataAccessorList& getRedNalUnitList     ()        { return m_cRedNalUnitList; }
+  SEI::NonRequiredSei*	  getNonRequiredSei     ()				{ return m_pcNonRequiredSei; }
+  SEI::IntegrityCheckSEI* getIntegrityCheckSei  ()        { return m_pcIntegrityCheckSei; }
+  ErrVal				          CreatNonRequiredSei   ()				{ RNOK( SEI::NonRequiredSei::   create( m_pcNonRequiredSei    ) ); return Err::m_nOK; }
+	ErrVal					        CreatIntegrityCheckSei()        { RNOK( SEI::IntegrityCheckSEI::create( m_pcIntegrityCheckSei ) ); return Err::m_nOK; }
 
 private:
   UInt                    m_uiAUIndex;
+  ExtBinDataAccessorList  m_cBPSEINalUnitList;
+  ExtBinDataAccessorList  m_cSEINalUnitList;
   ExtBinDataAccessorList  m_cNalUnitList;
   ExtBinDataAccessorList  m_cRedNalUnitList;
-  SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
-	SEI::IntegrityCheckSEI* m_pcIntegrityCheckSei;//JVT-W052
+  SEI::NonRequiredSei*	  m_pcNonRequiredSei;
+	SEI::IntegrityCheckSEI* m_pcIntegrityCheckSei;
 };
 
 class H264AVCENCODERLIB_API AccessUnitDataList
@@ -91,8 +82,9 @@ public:
   AccessUnitDataList  ()  {}
   ~AccessUnitDataList ()  {}
 
-  Void            clear               ()            { m_cAccessUnitDataList.clear(); }
-  AccessUnitData& getAccessUnitData   ( UInt uiAUIndex )
+  Void clear() { m_cAccessUnitDataList.clear(); }
+  
+  AccessUnitData& getAccessUnitData( UInt uiAUIndex )
   {
     //===== hack for EIDR (this class should be removed completely =====
     std::list<AccessUnitData>::iterator  iter = m_cAccessUnitDataList.begin();
@@ -108,10 +100,17 @@ public:
     m_cAccessUnitDataList.push_back( cAUData );
     return m_cAccessUnitDataList.back();
   }
-  Void        emptyNALULists  ( ExtBinDataAccessorList& rcOutputList )
+
+  Void emptyNALULists( ExtBinDataAccessorList& rcOutputList )
   {
     while( ! m_cAccessUnitDataList.empty() )
     {
+      ExtBinDataAccessorList& rcBPSEINaluList = m_cAccessUnitDataList.front().getBPSEINalUnitList();
+      rcOutputList += rcBPSEINaluList;
+      rcBPSEINaluList.clear();
+      ExtBinDataAccessorList& rcSEINaluList = m_cAccessUnitDataList.front().getSEINalUnitList();
+      rcOutputList += rcSEINaluList;
+      rcSEINaluList.clear();
       ExtBinDataAccessorList& rcNaluList = m_cAccessUnitDataList.front().getNalUnitList();
       rcOutputList += rcNaluList;
       rcNaluList.clear();
@@ -130,6 +129,11 @@ private:
 class PicOutputData
 {
 public:
+  PicOutputData()
+    : uiBaseQualityLevel( MSYS_UINT_MAX )
+    , uiBaseLayerId     ( MSYS_UINT_MAX )
+  {}
+public:
   Bool    FirstPicInAU;
   Int     Poc;
   Char    FrameType[3];
@@ -141,13 +145,9 @@ public:
   Double  YPSNR;
   Double  UPSNR;
   Double  VPSNR;
-// JVT-V068 {
   Int     iPicType;
   UInt    uiBaseQualityLevel;
   UInt    uiBaseLayerId;
-
-  PicOutputData(): uiBaseQualityLevel(MSYS_UINT_MAX), uiBaseLayerId(MSYS_UINT_MAX) {};
-// JVT-V068 }
 };
 
 typedef MyList<PicOutputData> PicOutputDataList;
@@ -159,8 +159,7 @@ class H264AVCENCODERLIB_API LayerEncoder
 {
   enum
   {
-    //NUM_TMP_FRAMES  = 6 //RPIC bug fix
-    NUM_TMP_FRAMES  = 11
+    NUM_TMP_FRAMES  = 8
   };
   enum RefListUsage
   {
@@ -188,18 +187,11 @@ public:
                                       YuvBufferCtrl*                  pcYuvFullPelBufferCtrl,
                                       YuvBufferCtrl*                  pcYuvHalfPelBufferCtrl,
                                       QuarterPelFilter*               pcQuarterPelFilter,
-                                      MotionEstimation*               pcMotionEstimation
-									  //JVT-U106 Behaviour at slice boundaries{
-                                      ,ReconstructionBypass*           pcReconstructionBypass
-									  //JVT-U106 Behaviour at slice boundaries}
-                                      // JVT-V068 {
-                                      ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler
-                                      // JVT-V068 }
-									  );
+                                      MotionEstimation*               pcMotionEstimation,
+                                      ReconstructionBypass*           pcReconstructionBypass,
+                                      StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler );
   ErrVal        initParameterSets   ( const SequenceParameterSet&     rcSPS,
-                                      const PictureParameterSet&      rcPPSLP,
-                                      const PictureParameterSet&      rcPPSHP );
-
+                                      const PictureParameterSet&      rcPPS );
   ErrVal        uninit              ();
 
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
@@ -217,47 +209,40 @@ public:
                                       Double                          aaadOutputFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
                                       Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
-  Int           getFrameWidth       ()                                { return 16*m_uiFrameWidthInMb; }
-  Int           getFrameHeight      ()                                { return 16*m_uiFrameHeightInMb; }
   UInt          getPicCodingType    ( UInt                            uiTemporalId,
                                       UInt                            uiFrmIdInTLayer );
   ErrVal        updateMaxSliceSize  ( UInt                            uiAUIndex,
                                       UInt&                           ruiMaxSliceSize );
   ErrVal        getBaseLayerStatus  ( Bool&                           bExists,
-																			Bool&                           bMotion,
 																			PicType                         ePicType,
 																			UInt														uiTemporalId );
+  ErrVal        getBaseLayerLevelIdc( UInt&                           uiLevelIdc,
+                                      Bool&                           bBiPred8x8Disable,
+                                      Bool&                           bMCBlks8x8Disable );
+	ErrVal        getBaseLayerDataAvlb( Frame*&                         pcFrame,
+  																	  Frame*&                         pcResidual,
+																			MbDataCtrl*&                    pcMbDataCtrl,
+																			PicType                         ePicType,
+																			UInt											      uiTemporalId );
+  ErrVal        getBaseLayerData    ( SliceHeader&                    rcELSH,
+                                      Frame*&                         pcFrame,
+																			Frame*&                         pcResidual,
+																			MbDataCtrl*&                    pcMbDataCtrl,
+																			Bool                            bSpatialScalability,
+																			PicType                         ePicType,
+																			UInt												    uiTemporalId );
 
-	ErrVal       getBaseLayerDataAvailability( Frame*&                  pcFrame,
-  																					 Frame*&                  pcResidual,
-																						 MbDataCtrl*&             pcMbDataCtrl,
-																						 Bool                     bMotion,
-																						 PicType                  ePicType,
-																						 UInt											uiTemporalId );
+  UInt          getNewBits          ()        { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
+	UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
-		ErrVal        getBaseLayerData    ( SliceHeader&                 rcELSH,
-                                        Frame*&                      pcFrame,
-																				Frame*&                      pcResidual,
-																				MbDataCtrl*&                 pcMbDataCtrl,
-																				MbDataCtrl*&                 pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
-																				Bool                         bSpatialScalability,
-																				Bool                         bMotion,
-																				PicType                      ePicType,
-																				UInt												 uiTemporalId );
+  Frame*        getMGSLPRec         ( UInt uiLowPassIndex );
+  Frame*        getRefPic           ( UInt uiTemporalId, UInt uiFrameIdInTId );
 
-		UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
-		UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
-
-    Frame*     getMGSLPRec         ( UInt uiLowPassIndex );
-    Frame*     getRefPic           ( UInt uiTemporalId, UInt uiFrameIdInTId );
-
-  Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
+  Void			    setNonRequiredWrite ( UInt ui )       { m_uiNonRequiredWrite = ui; } //NonRequired JVT-Q066 (06-04-08)
   //Bug_Fix JVT-R057{
-  Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
-  Void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
+  Bool          getLARDOEnable      ( )               { return m_bLARDOEnable; }
+  Void          setLARDOEnable      ( Bool bEnable )  { m_bLARDOEnable= bEnable; }
   //Bug_Fix JVT-R057{
-  MbDataCtrl*   getBaseMbDataCtrl() {return m_pcBaseMbDataCtrl;}
-  Void          setBaseMbDataCtrl(MbDataCtrl* pcMbDataCtrl) {m_pcBaseMbDataCtrl = pcMbDataCtrl;}
 //JVT-T054{
   Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
   Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
@@ -269,105 +254,62 @@ public:
   UInt          getBaseQualityLevelCGSSNR() { return m_uiBaseQualityLevelCGSSNR;}
 //JVT-T054}
 
-  Frame*     getBaseLayerResidual() {return m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
-  UInt          getIdrPicId         () { return m_uiIdrPicId; } //JVT-W062
-	//JVT-W051 {
-	UInt			xGetParameterSetBits()	{ return m_uiParameterSetBits; }
-	//JVT-W051 }
-	//JVT-X046 {
+  Frame*        getBaseLayerResidual()  { return m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
 
   // JVT-AD021 {
-  ErrVal getCurQpPredData ( Double & dQpPredData , Int & iPOC , UInt & uiFrameSizeInMB ) const;
+  ErrVal        getCurQpPredData    ( Double& dQpPredData, Int& iPOC, UInt& uiFrameSizeInMB ) const;
   // JVT-AD021 }
 
-  ErrVal xEncodeNonKeyPictureSlices(  UInt               uiBaseLevel,
-								                      UInt               uiFrame,
-								                      AccessUnitData&    rcAccessUnitData,
-								                      PicBufferList&		 rcPicBufferInputList,
-								                      PicOutputDataList& rcPicOutputDataList,
-                                      PicType            ePicType );
-
-  ErrVal  xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList,
-											RefFrameList* pcRefFrameList0,
-											RefFrameList* pcRefFrameList1,
-                      MbDataCtrl*   pcMbDataCtrlCol,
-											Frame*        pcOrigFrame,
-											Frame*        pcIntraRecFrame,
-											Frame*        pcMCFrame,
-											Frame*        pcResidual,
-											Frame*        pcPredSignal,
-											ControlData&     rcControlData,
-											UInt             uiNumMaxIter,
-											UInt             uiIterSearchRange,
-											UInt             uiFrameIdInGOP,
-											PicType          ePicType,
-											UInt&            ruiBits,
-											UInt&            ruiBitsRes,
-											PicOutputDataList&       rcPicOutputDataList,
-											Frame*		 pcFrame,
-											Frame*		 pcBLRecFrame,
-											UInt         uiBaseLevel);
-	//JVT-X046 }
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
-
-
   ErrVal  xInitBitCounts                ();
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
                                           PicBufferList&              rcPicBufferUnusedList );
-
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
                                           ExtBinDataAccessor*         pcExtBinDataAccessor );
 
-  //===== decomposition / composition =====
-  ErrVal  xMotionEstimationFrame        ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame
-                                          , PicType                   ePicType //TMM
-
-                                          );
-  ErrVal  xDecompositionFrame           ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame
-                                          , PicType                   ePicType //TMM
-                                          );
-  ErrVal  xCompositionFrame             ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame,
-                                          PicBufferList&              rcPicBufferInputList
-                                          , PicType                   ePicType //TMM
-                                          );
+  //===== coding and related =====
+  ErrVal  xEncodePicture                ( Bool&                       rbPictureCoded,
+                                          UInt                        uiTemporalId,
+                                          UInt                        uiFrameIdInGOP,
+                                          AccessUnitData&             rcAccessUnitData,
+                                          PicBufferList&              rcPicBufferInputList );
   ErrVal  xStoreReconstruction          ( PicBufferList&              rcPicBufferOutputList );
-
-//TMM_INTERLACE{
-ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
-                                          RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
-                                          MbDataCtrl*                 pcMbDataCtrl,
-                                          SliceHeader&                rcSH );
-
-  ErrVal xMotionEstimationMbAff(          RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
-                                          MbDataCtrl*                 pcMbDataCtrlCol,
-                                          Frame*                   pcOrigFrame,
-                                          Frame*                   pcIntraRecFrame,
+  
+  ErrVal  xEncodeLayerRepresentation    ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
                                           ControlData&                rcControlData,
-                                          UInt                        uiNumMaxIter,
-                                          UInt                        uiIterSearchRange,
-                                          UInt                        uiIntraMode );
-//TMM_INTERLACE}
+                                          Frame*                      pcOrgFrame,
+                                          Frame*                      pcFrame,
+                                          Frame*                      pcResidual,
+                                          Frame*                      pcPredSignal,
+                                          UInt&                       ruiBits,
+                                          PicOutputDataList&          rcPicOutputDataList,
+                                          UInt                        uiFrameIdInGOP,
+                                          PicType                     ePicType );
+  ErrVal  xCalculateAndAddPSNR          ( UInt                        uiStage,
+                                          UInt                        uiFrame,
+                                          PicBufferList&              rcPicBufferInputList,
+                                          PicOutputDataList&          rcPicOutputDataList );
+  ErrVal  xOutputPicData                ( PicOutputDataList&          rcPicOutputDataList );
 
 
-  //===== control data initialization =====
-  ErrVal  xSetScalingFactors            ( UInt                        uiBaseLevel );
+  //===== data initialization =====
   ErrVal  xSetScalingFactors            ();
- 	ErrVal  xSetBaseLayerData             ( UInt                        uiFrameIdInGOP,
-		                                      PicType                     ePicType );
+  ErrVal  xSetScalingFactors            ( UInt                        uiBaseLevel );
+  // JVT-AD021 {
+  Double xGetGamma                      ( Double                      dQpPredData,
+                                          ControlData&                rcControlData );
+  // JVT-AD021 }
   Void    xPAffDecision                 ( UInt                        uiFrame );
-
-  ErrVal  xClearBufferExtensions        ();
+  ErrVal  xGetAndSetPredictionLists     ( ControlData&                rcControlData,
+                                          UInt                        uiFrameIdInGOP,
+                                          PicType                     ePicType,
+                                          Bool                        bHalfPel );
   ErrVal  xGetPredictionLists           ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
                                           UInt&                       ruiFrameIdCol,
@@ -375,91 +317,15 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           PicType                     ePicType,
                                           RefListUsage                eRefListUsage,
                                           Bool                        bHalfPel = false );
+ 	ErrVal  xSetBaseLayerData             ( UInt                        uiFrameIdInGOP,
+		                                      PicType                     ePicType );
   ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData,
-                                          UInt                        uiBaseLevel,  //TMM_ESS
-                                          UInt                        uiFrame,      //TMM_ESS
-                                          Bool                        bMotion,
-                                          RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
 																					PicType                     ePicType );
-
-  ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame,
-                                          Bool                        bMotionEstimation,
+  ErrVal  xInitControlData              ( UInt                        uiFrameIdInGOP,
+                                          UInt                        uiTemporalId,
                                           PicType                     ePicType );
-
-  ErrVal  xInitControlDataLowPass       ( UInt                        uiFrameIdInGOP,
-                                          UInt                        uiBaseLevel,  //TMM_ESS
-                                          UInt                        uiFrame,
-                                          PicType                     ePicType );
-
-  ErrVal  xInitControlDataHighPass      ( UInt                        uiFrameIdInGOP,
-                                          UInt                        uiBaseLevel,   //TMM_ESS
-                                          UInt                        uiFrame,
-                                          PicType                     ePicType );
-
-  //===== stage encoding =====
-  ErrVal  xEncodeKeyPicture             ( Bool&                       rbKeyPicCoded,
-                                          UInt                        uiFrame,
-                                          AccessUnitData&             rcAccessUnitData,
-                                          PicOutputDataList&          rcPicOutputDataList );
-  ErrVal  xEncodeNonKeyPicture          ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame,
-                                          AccessUnitData&             rcAccessUnitData,
-                                          PicOutputDataList&          rcPicOutputDataList
-                                          , PicType                   ePicType  //TMM
-                                          );
-  ErrVal  xOutputPicData                ( PicOutputDataList&          rcPicOutputDataList );
 
   //===== basic encoding =====
-  ErrVal  xEncodeLowPassSignal          ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
-                                          ControlData&                rcResidualControlData,
-																					Frame*                      pcOrgFrame,
-                                          Frame*                      pcFrame,
-                                          Frame*                      pcRecSubband,
-                                          Frame*                      pcPredSignal,
-                                          UInt&                       ruiBits,
-                                          PicOutputDataList&          rcPicOutputDataList,
-                                          UInt                        uiFrameIdInGOP,
-																					PicType                     ePicType );
-
-
-  ErrVal  xEncodeHighPassSignal         ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
-                                          ControlData&                rcControlData,
-                                          Frame*                   pcOrgFrame,
-                                          Frame*                   pcFrame,
-                                          Frame*                   pcResidual,
-                                          Frame*                   pcPredSignal,
-																					UInt&                       ruiBits,
-                                          UInt&                       ruiBitsRes,
-                                          PicOutputDataList&          rcPicOutputDataList,
-																					PicType                     ePicType );
-
-
-  //===== motion estimation / compensation =====
-  ErrVal  xMotionCompensation           ( Frame*                   pcMCFrame,
-                                          RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
-                                          MbDataCtrl*                 pcMbDataCtrl,
-                                          SliceHeader&                rcSH);
-
-  ErrVal  xMotionEstimation             ( RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
-                                          MbDataCtrl*                 pcMbDataCtrlCol,
-                                          Frame*                   pcOrigFrame,
-                                          Frame*                   pcIntraRec,
-                                          ControlData&                rcControlData,
-                                          UInt                        uiNumMaxIter,
-                                          UInt                        uiIterSearchRange,
-                                          UInt                        uiFrameIdInGOP ,
-																					PicType                     ePicType  );
-
-  //===== auxiliary functions =====
-  ErrVal  xCalculateAndAddPSNR          ( UInt                        uiStage,
-                                          UInt                        uiFrame,
-                                          PicBufferList&              rcPicBufferInputList,
-                                          PicOutputDataList&          rcPicOutputDataList );
-
   ErrVal  xFillAndUpsampleFrame         ( Frame*                   pcFrame,
 		                                      PicType                     ePicType,
 																					Bool                        bFrameMbsOnlyFlag );
@@ -467,15 +333,7 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   ErrVal  xFillAndExtendFrame           ( Frame*                   pcFrame,
 		                                      PicType                     ePicType,
 																					Bool                        bFrameMbsOnlyFlag );
-
-  ErrVal  xZeroIntraMacroblocks         ( Frame*                   pcFrame,
-                                          ControlData&                pcCtrlData,
-																					PicType                     ePicType );
-
-  ErrVal  xClipIntraMacroblocks         ( Frame*                   pcFrame,
-                                          ControlData&                rcCtrlData,
-                                          Bool                        bClipAll,
-																					PicType                     ePicType );
+  ErrVal  xClearBufferExtensions        ();
 
   ErrVal  xUpdateLowPassRec             ( UInt                        uiLowPassIndex );
   Frame*  xGetRefFrame                  ( UInt                        uiRefIndex,
@@ -485,35 +343,34 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
 
 
   //===== slice header =====
-  ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
-  ErrVal		xWritePrefixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//prefix unit
+  ErrVal  xWriteSEI                     ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
+  ErrVal	xWritePrefixUnit              ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//prefix unit
   //NonRequired JVT-Q066 (06-04-08){{
-  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit );
-  ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
-  //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit );
+  ErrVal	xWriteNonRequiredSEI          ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit );
+  ErrVal	xSetNonRequiredSEI            ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
   //NonRequired JVT-Q066 (06-04-08)}}
-
   // JVT-V068 HRD {
-  ErrVal xWriteSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::MessageList& rcSEIMessageList, UInt &ruiBits);
-  ErrVal xWriteNestingSEIforHrd(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt uiuiDependencyId, UInt uiQualityLevel, UInt uiTemporalLevel, UInt &ruiBits);
-  ErrVal xWriteSEIforAVCCompatibleHrd(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage* pcSEIMessage, UInt &ruiBits);
-  ErrVal xCalculateTiming( PicOutputDataList&  rcPicOutputDataList, UInt uiFrame );
-  // JVT-V068 HRD }
-	ErrVal xWriteRedundantKeyPicSEI  ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList, UInt &ruiBits ); //JVT-W049
-
+  ErrVal  xWriteSEI                     ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::MessageList& rcSEIMessageList, UInt &ruiBits );
+  ErrVal  xWriteNestingSEIforHrd        ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt uiuiDependencyId, UInt uiQualityLevel, UInt uiTemporalLevel, UInt &ruiBits );
+  ErrVal  xWriteSEIforAVCCompatibleHrd  ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage* pcSEIMessage, UInt &ruiBits );
+  ErrVal  writeTl0DepRepIdxSEI              ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId, UInt& ruiBits );
+  ErrVal  writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTId, UInt uiDId, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId, UInt& ruiBits );
+  ErrVal  writeNestingSceneInfoSEIMessage   ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTId, UInt uiDId, UInt& ruiBits );
+  ErrVal  xCalculateTiming              ( PicOutputDataList&  rcPicOutputDataList, UInt uiFrame );
+  // JVT- V068 HRD }
+	ErrVal  xWriteRedundantKeyPicSEI      ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList, UInt &ruiBits ); //JVT-W049
 	//JVT-W052 wxwan
-	ErrVal xWriteIntegrityCheckSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt &ruiBits);
+	ErrVal  xWriteIntegrityCheckSEI       ( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt &ruiBits );
 	//JVT-W052 wxwan
+  Void    xAssignSimplePriorityId       ( SliceHeader *pcSliceHeader );
 
-  Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
-
-  UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj
-	UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
-
+  UInt		getPreAndSuffixUnitEnable     ()	        { return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj
+  Bool		getMMCOBaseEnable		          ()	const	  { return m_bMMCOBaseEnable; } //JVT-S036 lsj
+  Bool		getMMCOEnable		              ()	const	  { return m_bMMCOEnable; } //JVT-S036 lsj
   //S051{
-  Bool	xSIPCheck	(UInt POC);
+  Bool	  xSIPCheck	                    ( UInt POC );
   //S051}
-  Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
+  Void    setMCResizeParameters         ( ResizeParameters*			resizeParameters);
 
   ErrVal  xInitCodingOrder              ( UInt                  uiDecompositionStages,
                                           UInt                  uiTemporalSubSampling,
@@ -547,9 +404,12 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           PicType               ePicType );
   ErrVal  xInitSliceHeadersAndRefLists  ();
 
-  // JVT-AD021 {
-  Double xGetGamma( Double dQpPredData , ControlData & rcControlData );
-  // JVT-AD021 }
+  ErrVal  xGetInitialOutputDelay        ( UInt&                 ruiInitDelay,
+                                          UInt                  uiTemporalLevel );
+  ErrVal  xSetCodingNumbers             ( UInt                  uiCodingIndex );
+  ErrVal  xGetRelativeOutputDelay       ( UInt&                 ruiDelay,
+                                          UInt                  uiFrameIdInGOP,
+                                          UInt                  uiTemporalLevel );
 
 protected:
   //----- instances -----
@@ -559,8 +419,7 @@ protected:
 
   //----- references -----
   const SequenceParameterSet*   m_pcSPS;
-  const PictureParameterSet*    m_pcPPSLP;
-  const PictureParameterSet*    m_pcPPSHP;
+  const PictureParameterSet*    m_pcPPS;
 
   YuvBufferCtrl*                m_pcYuvFullPelBufferCtrl;
   YuvBufferCtrl*                m_pcYuvHalfPelBufferCtrl;
@@ -571,12 +430,13 @@ protected:
   LoopFilter*                   m_pcLoopFilter;
   QuarterPelFilter*             m_pcQuarterPelFilter;
   MotionEstimation*             m_pcMotionEstimation;
+  CodingParameter*              m_pcCodingParameter;
   LayerParameters*              m_pcLayerParameters;
 
   //----- fixed control parameters ----
   Bool                          m_bTraceEnable;                       // trace file
   Bool                          m_bFrameMbsOnlyFlag;                  // frame macroblocks only block
-  UInt                          m_uiDependencyId;                          // layer id for current layer
+  UInt                          m_uiDependencyId;                     // layer id for current layer
   UInt                          m_uiScalableLayerId;                  // scalable layer id for current layer
   UInt                          m_uiBaseLayerId;                      // layer id of base layer
   UInt                          m_uiBaseQualityLevel;                 // quality level of the base layer
@@ -585,20 +445,25 @@ protected:
   UInt                          m_uiMaxGOPSize;                       // maximum possible GOP size (specified by the level)
   UInt                          m_uiDecompositionStages;              // number of decomposition stages
   UInt                          m_uiTemporalResolution;               // temporal subsampling in comparison to highest layer
-  UInt                          m_uiNotCodedStages    ;               // number of stages that are only used for temporal downsampling
+  UInt                          m_uiNotCodedStages;                   // number of stages that are only used for temporal downsampling
   UInt                          m_uiFrameDelay;                       // maximum possible delay in frames
   UInt                          m_uiMaxNumRefFrames;                  // maximum number of active reference pictures in a list
   UInt                          m_uiLowPassIntraPeriod;               // intra period for lowest temporal resolution
   UInt                          m_uiNumMaxIter;                       // maximum number of iteration for bi-directional search
   UInt                          m_uiIterSearchRange;                  // search range for iterative search
-  UInt                          m_iMaxDeltaQp;                        // maximum QP changing
+  UInt                          m_uiMaxDeltaQp;                       // maximum QP changing
   Bool                          m_bH264AVCCompatible;                 // H.264/AVC compatibility
   Bool                          m_bInterLayerPrediction;              // inter-layer prediction
-  Bool                          m_bAdaptivePrediction;                // adaptive inter-layer prediction
+  Bool                          m_bAdaptiveBaseModeFlag;              // adaptive base mode flag
+  Bool                          m_bAdaptiveMotionPredFlag;            // adaptive motion prediction flag
+  Bool                          m_bAdaptiveResidualPredFlag;          // adaptive residual prediction flag
+  Bool                          m_bDefaultBaseModeFlag;               // default base mode flag
+  Bool                          m_bDefaultMotionPredFlag;             // default motion prediction flag
+  Bool                          m_bDefaultResidualPredFlag;           // default residual prediction flag
   Bool                          m_bForceReOrderingCommands;           // always write re-ordering commands (error robustness)
   Bool                          m_bWriteSubSequenceSei;               // Subsequence SEI message (H.264/AVC base layer)
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
-  Double                        m_dBaseQpLambdaMotionLP;
+  Double                        m_dBaseQpLambdaMotionLP;              // base QP for mode decision and motion estimation of key pics
   Double                        m_dBaseQPResidual;                    // base residual QP
 
   UInt                          m_uiFilterIdc;                        // de-blocking filter idc
@@ -607,10 +472,6 @@ protected:
   UInt                          m_uiInterLayerFilterIdc;              // de-blocking filter idc
   Int                           m_iInterLayerAlphaOffset;             // alpha offset for de-blocking filter
   Int                           m_iInterLayerBetaOffset;              // beta offset for de-blocking filter
-
-  Bool                          m_bLoadMotionInfo;                    // load motion data from file
-  Bool                          m_bSaveMotionInfo;                    // save motion data to file
-  FILE*                         m_pMotionInfoFile;                    // motion data file
 
   //----- variable control parameters -----
   Bool                          m_bInitDone;                          // initilisation
@@ -622,28 +483,29 @@ protected:
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
 	UInt													m_uiIdrPicId;	//EIDR 0619
+  UInt                          m_uiLastIdrPicId;
+  UInt                          m_uiTl0DepRepIdx;
 
   //----- frame memories -----
-  Frame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
-  Frame**                    m_papcFrame;                          // frame stores
-  Frame**                    m_papcELFrame;                        // higher layer reference frames
-  Frame*                     m_pcResidual;                         // frame stores for residual data
-  Frame*                     m_pcSubband;                          // reconstructed subband pictures
-  Frame*                     m_apcBaseFrame[2];                    // base reconstruction of last low-pass picture
+  Frame*                        m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
+  Frame**                       m_papcFrame;                          // frame stores
+  Frame**                       m_papcELFrame;                        // higher layer reference frames
+  Frame*                        m_pcResidual;                         // frame stores for residual data
+  Frame*                        m_pcSubband;                          // reconstructed subband pictures
+  Frame*                        m_apcBaseFrame[2];                    // base reconstruction of last low-pass picture
 //TMM_WP
-  Bool                       m_bBaseLayerWp;
+  Bool                          m_bBaseLayerWp;
 //TMM_WP
-  Frame*                     m_pcAnchorFrameOriginal;              // original anchor frame
-  Frame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
-  Frame*                     m_pcBaseLayerFrame;                   // base layer frame
-  Frame*                     m_pcBaseLayerResidual;                // base layer residual
+  Frame*                        m_pcAnchorFrameOriginal;              // original anchor frame
+  Frame*                        m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
+  Frame*                        m_pcBaseLayerFrame;                   // base layer frame
+  Frame*                        m_pcBaseLayerResidual;                // base layer residual
 
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
   MbDataCtrl*                   m_pcBaseLayerCtrlField;
-  MbDataCtrl*                   m_pcRedundantCtrl;//RPIC bug fix
-  MbDataCtrl*                   m_pcRedundant1Ctrl;//RPIC bug fix
+  MbDataCtrl*                   m_pcRedundantCtrl;
 
   //----- auxiliary buffers -----
   UInt                          m_uiWriteBufferSize;                  // size of temporary write buffer
@@ -659,11 +521,9 @@ protected:
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
 
   //----- ESS -----
-  ResizeParameters*				m_pcResizeParameters;
-  FILE*                   m_pESSFile;
-
+  ResizeParameters*				      m_pcResizeParameters;
+  FILE*                         m_pESSFile;
   Bool*                         m_pbFieldPicFlag;
-
 // JVT-Q065 EIDR{
   Int           						  	m_iIDRPeriod;
 // JVT-Q065 EIDR}
@@ -673,12 +533,10 @@ protected:
   //JVT-R057 LA-RD}
   UInt                          m_uiEssRPChkEnable;
   UInt                          m_uiMVThres;
-
   UInt							            m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
-
   UInt							            m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj
-  UInt							            m_uiMMCOBaseEnable;  //JVT-S036 lsj
-
+  Bool							            m_bMMCOBaseEnable;  //JVT-S036 lsj
+  Bool                          m_bMMCOEnable; // (non-base MMCO)
   //S051{
   UInt							            m_uiTotalFrame;
   UInt*							            m_auiFrameBits;
@@ -688,7 +546,6 @@ protected:
   std::string				            m_cInSIPFileName;
   std::string				            m_cOutSIPFileName;
   //S051}
-
   // JVT-S054 (ADD) ->
   UInt*                         m_puiFirstMbInSlice;
   // JVT-S054 (ADD) <-
@@ -716,25 +573,23 @@ protected:
   Bool                          m_bGOPInitialized;
   MbDataCtrl*                   m_pcBaseMbDataCtrl;
 
-  UInt    m_uiEncodeKeyPictures;
-  Bool    m_bSameResBL;
-  Bool    m_bSameResEL;
-  Bool    m_bMGS;
-  UInt    m_uiMGSKeyPictureControl;
-  Bool    m_bHighestMGSLayer;
-  Bool    m_abCoded[(1<<MAX_DSTAGES)+1];
+  UInt                          m_uiEncodeKeyPictures;
+  Bool                          m_bSameResBL;
+  Bool                          m_bSameResEL;
+  Bool                          m_bMGS;
+  UInt                          m_uiMGSKeyPictureControl;
+  Bool                          m_bHighestMGSLayer;
+  Bool                          m_abCoded[(1<<MAX_DSTAGES)+1];
+  Bool                          m_bExplicitQPCascading;
+  Double                        m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 
-  Bool    m_bExplicitQPCascading;
-  Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
-
-// JVT-V068 HRD {
+  // JVT-V068 HRD {
   StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* m_apcScheduler;
-  ParameterSetMng* m_pcParameterSetMng;
-  Bool    m_bEnableHrd;
-// JVT-V068 HRD }
-
+  ParameterSetMng*              m_pcParameterSetMng;
+  Bool                          m_bEnableHrd;
+  // JVT-V068 HRD }
 	// JVT-W049 {
-  UInt m_uiNumberLayersCnt;
+  UInt                          m_uiNumberLayersCnt;
   // JVT-W049 }
 
   Bool          m_bBiPred8x8Disable;
@@ -754,13 +609,16 @@ protected:
   UIntList      m_acRefPicListFrameId_L1      [(1<<MAX_DSTAGES)+1];
   Bool          m_abMaxLongTermIdxSend        [    MAX_DSTAGES +1];
   UIntList      m_acActiveRefListFrameNum     [    MAX_DSTAGES +1];
+  UInt          m_auiCodingNumber             [    MAX_DSTAGES +1];
+  UInt          m_auiInitialDelay             [    MAX_DSTAGES +1];
   UIntList      m_cActiveRefBasePicListFrameNum;
 
-  // JVT-AD021 {
-  UInt			m_uiMultiLayerLambda;
-  Double		m_dQpPredData;
-  Int			m_iCurPOC;
-  UInt			m_uiHighestTempLevel;
+
+  // JVT-AD021 {1
+  UInt			    m_uiMultiLayerLambda;
+  Double		    m_dQpPredData;
+  Int			      m_iCurPOC;
+  UInt			    m_uiHighestTempLevel;
   // JVT-AD021 }
 
   //JVT-W051 {

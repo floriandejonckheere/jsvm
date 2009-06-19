@@ -6,7 +6,6 @@ H264AVC_NAMESPACE_BEGIN
 
 
 QuarterPelFilter::QuarterPelFilter()
-: m_bClip ( true )
 {
   uninit();
 }
@@ -39,8 +38,6 @@ ErrVal QuarterPelFilter::destroy()
 
 ErrVal QuarterPelFilter::init()
 {
-  m_bClip = true;
-
   m_afpXFilterBlockFunc[0] = QuarterPelFilter::xXFilter1;
   m_afpXFilterBlockFunc[1] = QuarterPelFilter::xXFilter2;
   m_afpXFilterBlockFunc[2] = QuarterPelFilter::xXFilter3;
@@ -139,8 +136,8 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
       iTemp += ps[x - 2*iStride];
       iTemp += ps[x + 3*iStride];
 
-      pucDesHP[x]              = xClip( ( ps[x] + 16) / 32);
-      pucDesHP[x+iDesStrideHP] = xClip( ( iTemp + 512) / 1024);
+      pucDesHP[x]              = gClip( ( ps[x] + 16) / 32);
+      pucDesHP[x+iDesStrideHP] = gClip( ( iTemp + 512) / 1024);
     }
     pucDesHP += iDesStrideHP<<1;
     ps     += iStride;
@@ -367,7 +364,7 @@ Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2];
       iTemp += pucSrc[x + 3];
-      pucDest[x] = xClip( (iTemp + 16) / 32 );
+      pucDest[x] = gClip( (iTemp + 16) / 32 );
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -392,7 +389,7 @@ Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2];
       iTemp += pucSrc[x + 3];
-      iTemp = xClip( (iTemp + 16) / 32 );
+      iTemp = gClip( (iTemp + 16) / 32 );
       pucDest[x] = (iTemp + pucSrc[ x + iDx] + 1) / 2;
     }
     pucDest += iDestStride;
@@ -416,7 +413,7 @@ Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2*iSrcStride];
       iTemp += pucSrc[x + 3*iSrcStride];
-      pucDest[x] = xClip( (iTemp + 16) / 32 );
+      pucDest[x] = gClip( (iTemp + 16) / 32 );
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -446,7 +443,7 @@ Void QuarterPelFilter::xPredDx0Dy13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += pucSrc[x - 2*iSrcStride];
       iTemp += pucSrc[x + 3*iSrcStride];
-      iTemp = xClip( (iTemp + 16) / 32 );
+      iTemp = gClip( (iTemp + 16) / 32 );
       pucDest[x] = (iTemp + pucSrc[ x + iDy] + 1)/2;
     }
     pucDest += iDestStride;
@@ -504,7 +501,7 @@ Void QuarterPelFilter::xPredDx2Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride
       iTemp += iTemp << 2;
       iTemp += psTemp[-0x20 + iIndex];
       iTemp += psTemp[ 0x30 + iIndex];
-      pucDest[x] = xClip( (iTemp + 512) / 1024 );
+      pucDest[x] = gClip( (iTemp + 512) / 1024 );
     }
     psTemp  += 0x10;
     pucDest += iDestStride;
@@ -535,8 +532,8 @@ Void QuarterPelFilter::xPredDx2Dy13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       iTemp += iTemp << 2;
       iTemp += psTemp[-0x20 + iIndex];
       iTemp += psTemp[ 0x30 + iIndex];
-      iTemp = xClip( (iTemp + 512) / 1024 );
-      pucDest[x] = (iTemp + xClip( (psTemp[iDy + iIndex] + 16) / 32 ) + 1) / 2;
+      iTemp = gClip( (iTemp + 512) / 1024 );
+      pucDest[x] = (iTemp + gClip( (psTemp[iDy + iIndex] + 16) / 32 ) + 1) / 2;
     }
     psTemp  += 0x10;
     pucDest += iDestStride;
@@ -570,8 +567,8 @@ Void QuarterPelFilter::xPredDy2Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
       {
         iTemp += aiTemp[n+x]*g_aiTapCoeff[n];
       }
-      iTemp = xClip( (iTemp + 512) / 1024 );
-      pucDest[x] = (iTemp + xClip( (aiTemp[x+iDx] + 16) / 32 ) + 1) / 2;
+      iTemp = gClip( (iTemp + 512) / 1024 );
+      pucDest[x] = (iTemp + gClip( (aiTemp[x+iDx] + 16) / 32 ) + 1) / 2;
     }
     pucDest += iDestStride;
     pucSrc  += iSrcStride;
@@ -601,7 +598,7 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
       iTempX += iTempX << 2;
       iTempX += pucSrcX[x - 2];
       iTempX += pucSrcX[x + 3];
-      iTempX = xClip( (iTempX + 16) / 32 );
+      iTempX = gClip( (iTempX + 16) / 32 );
 
       Int iTempY;
       iTempY  = pucSrcY[x - 0*iSrcStride];
@@ -612,7 +609,7 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
       iTempY += iTempY << 2;
       iTempY += pucSrcY[x - 2*iSrcStride];
       iTempY += pucSrcY[x + 3*iSrcStride];
-      iTempY = xClip( (iTempY + 16) / 32 );
+      iTempY = gClip( (iTempY + 16) / 32 );
       pucDest[x] = (iTempX + iTempY + 1) >> 1;
     }
     pucDest += iDestStride;
@@ -638,10 +635,10 @@ Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStrid
     {
       Int iTemp1[2], iTemp2;
       int i, j;
-      sx1 = max(0, x + 1 - iSizeX);
-      sx2 = min(2, x + 1);
-      sy1 = max(0, y + 1 - iSizeY);
-      sy2 = min(2, y + 1);
+      sx1 = gMax(0, x + 1 - iSizeX);
+      sx2 = gMin(2, x + 1);
+      sy1 = gMax(0, y + 1 - iSizeY);
+      sy2 = gMin(2, y + 1);
 
       for(i = sy1; i < sy2; i++)
       {
@@ -680,10 +677,10 @@ Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStrid
     {
       Int iTemp1[4], iTemp2;
       int i, j;
-      sx1 = max(0, x + 1 - iSizeX);
-      sx2 = min(4, x + 1);
-      sy1 = max(0, y + 1 - iSizeY);
-      sy2 = min(4, y + 1);
+      sx1 = gMax(0, x + 1 - iSizeX);
+      sx2 = gMin(4, x + 1);
+      sy1 = gMax(0, y + 1 - iSizeY);
+      sy2 = gMin(4, y + 1);
 
       for(i = sy1; i < sy2; i++)
       {
@@ -726,10 +723,10 @@ Void QuarterPelFilter::xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pu
     {
       Int iTemp1[2], iTemp2;
       int i, j;
-      sx1 = max(0, x + 1 - (int)iSizeX);
-      sx2 = min(2, x + 1);
-      sy1 = max(0, y + 1 - (int)iSizeY);
-      sy2 = min(2, y + 1);
+      sx1 = gMax(0, x + 1 - (int)iSizeX);
+      sx2 = gMin(2, x + 1);
+      sy1 = gMax(0, y + 1 - (int)iSizeY);
+      sy2 = gMin(2, y + 1);
 
       for(i = sy1; i < sy2; i++)
       {
@@ -760,7 +757,7 @@ Void QuarterPelFilter::weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcSt
     for( Int x = 0; x < iSizeX; x++)
     {
       Int iTemp;
-      iTemp  = xClip( pucSrc[iSrcStride*y + x]);
+      iTemp  = gClip( pucSrc[iSrcStride*y + x]);
       iSSD += iTemp*iTemp;
     }
   }
@@ -770,7 +767,7 @@ Void QuarterPelFilter::weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcSt
     bitsShift ++;
 
   iSSD                                = ( iSSD + (1 << (bitsShift-1)) ) >> bitsShift;
-  *usWeight                           = (UShort) max( 0, min( 16, 20 - iSSD ) );
+  *usWeight                           = (UShort) gMax( 0, gMin( 16, 20 - iSSD ) );
 }
 
 H264AVC_NAMESPACE_END

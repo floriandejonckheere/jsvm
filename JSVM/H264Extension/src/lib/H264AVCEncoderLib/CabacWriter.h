@@ -76,7 +76,7 @@ public:
   ErrVal  intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
   ErrVal  intraPredModeChroma( MbDataAccess& rcMbDataAccess );
   ErrVal  samplesPCM( MbDataAccess& rcMbDataAccess );
-  ErrVal  skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed );
+  ErrVal  skipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast );
   UInt getNumberOfWrittenBits();

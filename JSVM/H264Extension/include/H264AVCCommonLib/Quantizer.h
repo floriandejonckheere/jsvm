@@ -58,19 +58,22 @@ public:
   virtual ~Quantizer();
 
 
-  Void setQp( const MbDataAccess& rcMbDataAccess, Bool bIntra )
+  Void setQp( const MbDataAccess& rcMbDataAccess, Bool bIntraMb )
   {
-    Int  iLumaQp   = rcMbDataAccess.getMbData().getQp();
-    Int  iChromaQp = rcMbDataAccess.getSH().getChromaQp( iLumaQp );
+    Int   iLumaQp   = rcMbDataAccess.getMbData().getQp();
+    Int   iChromaQp = rcMbDataAccess.getSH().getChromaQp( iLumaQp );
+    Bool  bRefPic   = rcMbDataAccess.getSH().getNalRefIdc () != NAL_REF_IDC_PRIORITY_LOWEST;
+    Bool  bKeyPic   = rcMbDataAccess.getSH().getTemporalId() == 0;
+    Bool  bOneThird = ( bKeyPic || ( bRefPic && bIntraMb ) );
 
-    m_cLumaQp.setQp( iLumaQp, bIntra );
+    m_cLumaQp.setQp( iLumaQp, bOneThird );
     if( iLumaQp == iChromaQp )
     {
       m_cChromaQp = m_cLumaQp;
     }
     else
     {
-      m_cChromaQp.setQp( iChromaQp, bIntra );
+      m_cChromaQp.setQp( iChromaQp, bOneThird );
     }
   }
 

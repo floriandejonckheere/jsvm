@@ -73,11 +73,14 @@ ErrVal
 MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
                                      MbDataAccess*  pcMbDataAccessBase )
 {
-  MbData& rcMbData = rcMbDataAccess.getMbData();
+  MbData& rcMbData        = rcMbDataAccess.getMbData();
+  Bool    bSNR            = pcMbDataAccessBase && ( rcMbDataAccess.getSH().getSCoeffResidualPredFlag() || rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() );
+  Bool    bFieldMismatch  = bSNR && ( rcMbDataAccess.getMbData().getFieldFlag() != pcMbDataAccessBase->getMbData().getFieldFlag() );
 
   if( rcMbData.getBLSkipFlag() )
   {
     ROF( pcMbDataAccessBase );
+    ROT( bFieldMismatch );
     Bool bBLSkipFlag  = rcMbData.getBLSkipFlag();
     rcMbData.copyMotion( pcMbDataAccessBase->getMbData() );
     rcMbData.setBLSkipFlag( bBLSkipFlag );
@@ -98,6 +101,7 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag() )
           {
+            ROT( bFieldMismatch );
             ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx() );
           }
@@ -107,11 +111,13 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_0 ) )
           {
+            ROT( bFieldMismatch );
             ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_0 ), PART_16x8_0 );
           }
           if( rcMbData.isBlockFwdBwd( B_8x8_2, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_1 ) )
           {
+            ROT( bFieldMismatch );
             ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_1 ), PART_16x8_1 );
           }
@@ -121,11 +127,13 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_0 ) )
           {
+            ROT( bFieldMismatch );
             ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_0 ), PART_8x16_0 );
           }
           if( rcMbData.isBlockFwdBwd( B_8x8_1, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_1 ) )
           {
+            ROT( bFieldMismatch );
             ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_1 ), PART_8x16_1 );
           }
@@ -139,6 +147,7 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
             if( rcMbData.getBlkMode( c8x8Idx.b8x8Index() ) != BLK_SKIP  &&
                 rcMbData.isBlockFwdBwd( c8x8Idx.b8x8Index(), eListIdx ) && rcMbMotionData.getMotPredFlag( c8x8Idx.b8x8() ) )
             {
+              ROT( bFieldMismatch );
               ROF( pcMbDataAccessBase );
               rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( c8x8Idx.b8x8() ), c8x8Idx.b8x8() );
             }
@@ -150,6 +159,20 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
       }
     }
   }
+
+  //----- check coefficients for residual prediction ----
+  if( bFieldMismatch && rcMbDataAccess.getMbData().getResidualPredFlag() )
+  {
+    if( rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() )
+    {
+      ROF( pcMbDataAccessBase->getMbTCoeffs().allCoeffsZero() );
+    }
+    else
+    {
+      ROF( pcMbDataAccessBase->getMbTCoeffs().allLevelsZero() );
+    }
+  }
+
   return Err::m_nOK;
 }
 
@@ -166,6 +189,12 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
                    Bool           bReconstructAll )
 {
   ROF( m_bInitDone );
+
+  if( !rcMbDataAccess.getMbData().getInCropWindowFlag() )
+  {
+    pcMbDataAccessBase = 0;
+  }
+
   RNOK( xPredictionFromBaseLayer( rcMbDataAccess, pcMbDataAccessBase ) );
 
   rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
@@ -173,7 +202,7 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
   YuvMbBuffer  cPredBuffer;  cPredBuffer.setAllSamplesToZero();
 
   //===== modify QP values (as specified in G.8.1.5.1.2) =====
-  if( rcMbDataAccess.getMbData().getMbCbp() == 0
+  if( pcMbDataAccessBase && rcMbDataAccess.getMbData().getMbCbp() == 0
       && ( rcMbDataAccess.getSH().getSCoeffResidualPredFlag() || rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() ) // SpatialResolutionChangeFlag == 0
       && ( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL || rcMbDataAccess.getMbData().getResidualPredFlag() ) )
   {
@@ -227,7 +256,7 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
   }
 
   //===== update transform coefficient levels =====
-  if( rcMbDataAccess.isTCoeffPred() )
+    if( rcMbDataAccess.isTCoeffPred() )
   {
     RNOK( xAddTCoeffs( rcMbDataAccess, *pcMbDataAccessBase ) );
   }
@@ -501,7 +530,7 @@ MbDecoder::xDecodeMbInter( MbDataAccess&  rcMbDataAccess,
   {
     cBaseLayerResidual.setAllSamplesToZero();
   }
-  cYuvMbBufferResidual.add( cBaseLayerResidual );
+  cYuvMbBufferResidual.addRes( cBaseLayerResidual );
 
   //===== store spatially predicted residual =====
   rcMbDataAccess.getMbTCoeffs().copyPredictionFrom( cBaseLayerResidual );
@@ -509,8 +538,7 @@ MbDecoder::xDecodeMbInter( MbDataAccess&  rcMbDataAccess,
   //===== reconstruct signal =====
   if( bReconstruct )
   {
-    cYuvMbBuffer.add( cYuvMbBufferResidual );
-    cYuvMbBuffer.clip();
+    cYuvMbBuffer.addClip( cYuvMbBufferResidual );
   }
 
   //===== store reconstructed residual =====

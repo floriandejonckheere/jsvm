@@ -23,8 +23,7 @@ public:
                                         UInt                        uiLayer ) = 0;
 
   virtual ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
-                                        const PictureParameterSet&  rcPPSLP,
-                                        const PictureParameterSet&  rcPPSHP ) = 0;
+                                        const PictureParameterSet&  rcPPS ) = 0;
 
   virtual ErrVal initSliceForCoding   ( const SliceHeader&  rcSH )        = 0;
   virtual ErrVal initSliceForReading  ( const SliceHeader&  rcSH )        = 0;

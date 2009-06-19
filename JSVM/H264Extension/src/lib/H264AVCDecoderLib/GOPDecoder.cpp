@@ -194,7 +194,7 @@ DPBUnit::getMaxPoc( Bool bPocMode0 ) const
   ROTRS( bPocMode0 && !m_bExisting, MSYS_INT_MIN );
   ROTRS( m_ePicStatus == TOP_FIELD, m_aiPoc[0] );
   ROTRS( m_ePicStatus == BOT_FIELD, m_aiPoc[1] );
-  return max( m_aiPoc[0], m_aiPoc[1] );
+  return gMax( m_aiPoc[0], m_aiPoc[1] );
 }
 
 Int
@@ -202,7 +202,7 @@ DPBUnit::getPoc() const
 {
   ROTRS( m_ePicStatus == TOP_FIELD, m_aiPoc[0] );
   ROTRS( m_ePicStatus == BOT_FIELD, m_aiPoc[1] );
-  return min( m_aiPoc[0], m_aiPoc[1] );
+  return gMin( m_aiPoc[0], m_aiPoc[1] );
 }
 
 Int
@@ -802,7 +802,7 @@ DecodedPicBuffer::xInitBuffer( const SliceHeader& rcSliceHeader )
   ROF( rcSliceHeader.getSPS().getMaxDPBSize   () );
   ROF( rcSliceHeader.getSPS().getNumRefFrames () <= rcSliceHeader.getSPS().getMaxDPBSize() );
   m_uiDPBSizeInFrames       = rcSliceHeader.getSPS().getMaxDPBSize();
-  m_uiMaxNumRefFrames       = max( 1, rcSliceHeader.getSPS().getNumRefFrames() );
+  m_uiMaxNumRefFrames       = gMax( 1, rcSliceHeader.getSPS().getNumRefFrames() );
   m_uiMaxFrameNum           = 1 << rcSliceHeader.getSPS().getLog2MaxFrameNum();
   m_uiLastRefFrameNum       = MSYS_UINT_MAX;
   m_iMaxLongTermFrameIdx    = -1;
@@ -1597,7 +1597,7 @@ DecodedPicBuffer::xReset( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHe
     if( (*iter)->isRequired() )
     {
       Int iPoc  = (*iter)->getMaxPoc( rcSliceHeader.getSPS().getPicOrderCntType() == 0 );
-      iMaxPoc   = max( iMaxPoc, iPoc );
+      iMaxPoc   = gMax( iMaxPoc, iPoc );
     }
   }
   ROF( m_pcCurrDPBUnit->getPoc() > iMaxPoc );
@@ -2454,7 +2454,7 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
     RNOK( m_pcH264AVCDecoder->updateDPB( m_uiDependencyId, rcPicBufferOutputList, rcPicBufferUnusedList ) );
   }
 
-  DTRACE_NEWFRAME;
+  DTRACE_NEWPIC;
   return Err::m_nOK;
 }
 
@@ -2589,8 +2589,9 @@ LayerDecoder::xSetLoopFilterQPs( SliceHeader& rcSliceHeader, MbDataCtrl& rcMbDat
 ErrVal
 LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataCtrl )
 {
-  const SequenceParameterSet& rcSPS =  m_cSliceHeaderList.back()->getSPS();
-  FMO&                        rcFMO = *m_cSliceHeaderList.back()->getFMO();
+  const SequenceParameterSet& rcSPS   =  m_cSliceHeaderList.back()->getSPS();
+  FMO&                        rcFMO   = *m_cSliceHeaderList.back()->getFMO();
+  Bool                        bMbAff  =  m_cSliceHeaderList.back()->isMbaffFrame();
   RNOK( m_pcRewriteEncoder->startPicture( rcSPS ) );
 
   for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
@@ -2613,8 +2614,9 @@ LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataC
       UInt          uiMbX           = 0;
       UInt          uiMbY           = 0;
       pcLastSliceHeader       ->getMbPositionFromAddress  ( uiMbY, uiMbX, uiMbAddress );
+      Bool          bSendEOS        = ( !bMbAff || ( uiMbAddress & 1 ) == 1 );
       RNOK( rcMbDataCtrl       .initMb   (  pcMbDataAccess, uiMbY, uiMbX ) );
-      RNOK( m_pcRewriteEncoder->rewriteMb( *pcMbDataAccess ) );
+      RNOK( m_pcRewriteEncoder->rewriteMb( *pcMbDataAccess, bSendEOS ) );
     }
   }
 
@@ -2633,7 +2635,7 @@ LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
   {
     BinDataAccessor cBinDataAccessorPrefix;
     rcSliceDataNalUnit.getBinDataPrefix()->setMemAccessor( cBinDataAccessorPrefix );
-    RNOK( m_pcNalUnitParser ->initNalUnit   ( cBinDataAccessorPrefix )  );
+    RNOK( m_pcNalUnitParser ->initNalUnit   ( cBinDataAccessorPrefix, 0 )  );
     ROF ( m_pcNalUnitParser ->getNalUnitType() == NAL_UNIT_PREFIX );
     pcPrefixHeader = new PrefixHeader( *m_pcNalUnitParser );
     ROF ( pcPrefixHeader );
@@ -2644,7 +2646,7 @@ LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
   //===== parse slice header =====
   BinDataAccessor cBinDataAccessor;
   rcSliceDataNalUnit.getBinData()->setMemAccessor( cBinDataAccessor );
-  RNOK( m_pcNalUnitParser ->initNalUnit   ( cBinDataAccessor )  );
+  RNOK( m_pcNalUnitParser ->initNalUnit   ( cBinDataAccessor, (Int)rcSliceDataNalUnit.getDQId() )  );
   if( pcPrefixHeader )
   {
     ROT( m_uiDependencyId );
@@ -2730,13 +2732,6 @@ LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUn
   else
   {
     rcSliceHeader.setLastMbInSlice( rcSliceHeader.getFMO()->getLastMBInSliceGroup( rcSliceHeader.getFMO()->getSliceGroupId( rcSliceHeader.getFirstMbInSlice() ) ) );
-  }
-  if( !rcSliceHeader.getSPS().getFrameMbsOnlyFlag() )
-  {
-    if( !rcSliceHeader.getFieldPicFlag() && rcSliceHeader.getSPS().getMbAdaptiveFrameFieldFlag() )
-    {
-      rcSliceHeader.setFirstMbInSlice( rcSliceHeader.getFirstMbInSlice() << 1 );
-    }
   }
 #endif
 
@@ -3047,7 +3042,9 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( m_pcBaseLayerCtrl->upsampleMotion( pcSliceHeader, &m_cResizeParameters, pcBaseDataCtrl, pcList0, pcList1, m_cResizeParameters.m_bFieldPicFlag ) );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
-    if( m_cResizeParameters.m_bIsMbAffFrame )
+
+    Bool bSNR = ( pcSliceHeader->getSCoeffResidualPredFlag() || pcSliceHeader->getTCoeffLevelPredictionFlag() );
+    if( m_cResizeParameters.m_bIsMbAffFrame && !bSNR )
     {
       RNOK( m_pcBaseLayerCtrlField->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
       RNOK( m_pcBaseLayerCtrlField->upsampleMotion( pcSliceHeader, &m_cResizeParameters, pcBaseDataCtrl, pcList0, pcList1, true ) );

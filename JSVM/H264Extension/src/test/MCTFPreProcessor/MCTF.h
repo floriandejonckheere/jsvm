@@ -69,6 +69,9 @@ protected:
   ErrVal  xInitSliceHeader          ( UInt                        uiTemporalLevel,
                                       UInt                        uiFrameIdInGOP );
   ErrVal  xClearBufferExtensions    ();
+  ErrVal  xGetAndSetPredictionLists ( UInt                        uiBaseLevel,
+                                      UInt                        uiFrame,
+                                      Bool                        bHalfPel );
   ErrVal  xGetPredictionLists       ( RefFrameList&               rcRefList0,
                                       RefFrameList&               rcRefList1,
                                       UInt                        uiBaseLevel,
@@ -85,14 +88,11 @@ protected:
                                       Bool                        bMotionEstimation );
 
   //===== motion estimation / compensation =====
-  ErrVal  xMotionCompensation       ( Frame*                   pcMCFrame,
-                                      RefFrameList*               pcRefFrameList0,
-                                      RefFrameList*               pcRefFrameList1,
+  ErrVal  xMotionCompensation       ( Frame*                      pcMCFrame,
+                                      RefListStruct&              rcRefListStruct,
                                       MbDataCtrl*                 pcMbDataCtrl,
                                       SliceHeader&                rcSH );
-  ErrVal  xMotionEstimation         ( RefFrameList*               pcRefFrameList0,
-                                      RefFrameList*               pcRefFrameList1,
-                                      const Frame*             pcOrigFrame,
+  ErrVal  xMotionEstimation         ( const Frame*             pcOrigFrame,
                                       ControlData&                rcControlData );
   ErrVal  xUpdateCompensation       ( Frame*                   pcMCFrame,
                                       RefFrameList*               pcRefFrameList,

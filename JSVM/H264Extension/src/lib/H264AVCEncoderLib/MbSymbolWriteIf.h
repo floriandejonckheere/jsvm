@@ -61,7 +61,7 @@ public:
   virtual ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx ) = 0;
   virtual ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual ErrVal  skipFlag            ( MbDataAccess& rcMbDataAccess, Bool bNotAllowed ) = 0;
+  virtual ErrVal  skipFlag            ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  BLSkipFlag          ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  terminatingBit      ( UInt uiIsLast ) = 0;
   virtual UInt    getNumberOfWrittenBits() = 0;

@@ -151,13 +151,13 @@ H264AVCEncoderTest::destroy()
     PicBufferList::iterator iter;
     for( iter = m_acUnusedPicBufferList[uiLayer].begin(); iter != m_acUnusedPicBufferList[uiLayer].end(); iter++ )
     {
-      delete (*iter)->getBuffer();
-      delete (*iter);
+      delete [] (*iter)->getBuffer();
+      delete    (*iter);
     }
     for( iter = m_acActivePicBufferList[uiLayer].begin(); iter != m_acActivePicBufferList[uiLayer].end(); iter++ )
     {
-      delete (*iter)->getBuffer();
-      delete (*iter);
+      delete [] (*iter)->getBuffer();
+      delete    (*iter);
     }
   }
 
@@ -246,44 +246,8 @@ ErrVal
 H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
                             UInt&                   ruiBytesInFrame )
 {
-  static Bool bFirstPkt = true;
-  static UInt uiTl0DepRepIdx = 0;
-  UInt uiTid = 0, uiEfIdrPicId = 0, uiIdxSend = 0;
-  UChar *nalh = NULL, uiNalUnitType = 0;
-  Bool bCoded = false;
   while( rcList.size() )
   {
-    if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getTl0DepRepIdxSeiEnable() )
-    {
-      nalh = rcList.front()->data();
-      uiEfIdrPicId = m_pcH264AVCEncoder->getIdrPicId();
-      if( uiNalUnitType == 14 )
-      {
-        UChar aucParameterSetBuffer[1000];
-        BinData cBinData;
-        cBinData.reset();
-        cBinData.set( aucParameterSetBuffer, 1000 );
-        ExtBinDataAccessor cExtBinDataAccessor;
-        cBinData.setMemAccessor( cExtBinDataAccessor );
-
-        uiTid = (nalh[3]>>5)&0x7;
-        bCoded = true;
-        if( uiTid == 0 && !bFirstPkt )
-          uiIdxSend = (uiTl0DepRepIdx + 1)%256;
-        else if( uiTid )
-          uiIdxSend = uiTl0DepRepIdx;
-
-        RNOK( m_pcH264AVCEncoder ->writeNestingTl0DepRepIdxSEIMessage( &cExtBinDataAccessor, uiTid, uiIdxSend, uiEfIdrPicId) );
-
-        bFirstPkt = false;
-
-	      RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
-	      RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
-	      ruiBytesInFrame += 4 + cExtBinDataAccessor.size();
-        cBinData.reset();
-      }
-    }
-
     ruiBytesInFrame += rcList.front()->size() + 4;
     RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
     RNOK( m_pcWriteBitstreamToFile->writePacket( rcList.front() ) );
@@ -291,10 +255,6 @@ H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
     delete   rcList.front();
     rcList.pop_front();
   }
-
-  if( bCoded )
-    uiTl0DepRepIdx++;
-
   return Err::m_nOK;
 }
 
@@ -342,7 +302,7 @@ H264AVCEncoderTest::go()
     Int   iFullGOPs    = uiMaxFrame / iGOPSize;
     Double dMaximumFrameRate = m_pcEncoderCodingParameter->getMaximumFrameRate();
     iGOPSize =  (Int)floor( 0.5F + iGOPSize / (dMaximumFrameRate / (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate)) );
-    iGOPSize = max( iGOPSize, 1 );
+    iGOPSize = gMax( iGOPSize, 1 );
     Int uiLocalMaxFrame =  (Int)floor( 0.5F + uiMaxFrame / (dMaximumFrameRate / (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate)) );
     if ( uiLocalMaxFrame % iGOPSize == 0 )
       iFullGOPs--;
@@ -446,22 +406,6 @@ H264AVCEncoderTest::go()
 /* luodan */
     // JVT-V068 }
   }
-  // JVT-T073 {
-  if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getSceneInfoEnable() )
-  {
-      UChar aucParameterSetBuffer[1000];
-      BinData cBinData;
-      cBinData.reset();
-      cBinData.set( aucParameterSetBuffer, 1000 );
-      ExtBinDataAccessor cExtBinDataAccessor;
-      cBinData.setMemAccessor( cExtBinDataAccessor );
-	  RNOK( m_pcH264AVCEncoder ->writeNestingSEIMessage( &cExtBinDataAccessor ) );
-	  RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
-	  RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
-	  uiWrittenBytes += 4 + cExtBinDataAccessor.size();
-	  cBinData.reset();
-  }
-  // JVT-T073 }
 
   //===== determine parameters for required frame buffers =====
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
@@ -632,12 +576,12 @@ H264AVCEncoderTest::ScalableDealing()
 	ROF( lpos == fread( pvChar, 1, lpos, ftemp ) );
 	fseek( ftemp, 0, SEEK_SET );
 	ROF( lFileLength-lpos == fread( pvChar+lpos, 1, lFileLength-lpos, ftemp) );
+  fflush(ftemp);
 	fclose(ftemp);
-	fflush(ftemp);
 	ROF( lFileLength == fwrite( pvChar, 1, lFileLength, f ) );
-	delete pvChar;
+	delete [] pvChar;
+  fflush(f);
 	fclose(f);
-	fflush(f);
 	RNOK( remove( m_cWriteToBitFileTempName.c_str() ) );
 
 	return Err::m_nOK;

@@ -6,8 +6,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#define min(x,y) ((x)<(y)?(x):(y))
-#define max(x,y) ((x)>(y)?(x):(y))
+#define gMin(x,y) ((x)<(y)?(x):(y))
+#define gMax(x,y) ((x)>(y)?(x):(y))
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -47,7 +47,7 @@ const Int gClip( const Int iX )
 __inline
 const Int gClipMinMax( const Int iX, const Int iMin, const Int iMax )
 {
-  return max( min( iX, iMax ), iMin );
+  return gMax( gMin( iX, iMax ), iMin );
 }
 
 //TMM_WP

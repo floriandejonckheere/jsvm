@@ -65,7 +65,7 @@ protected:
   ErrVal xWriteBlockMv        ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 
 
-  ErrVal xScanLumaIntra16x16  ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, Bool bAC );
+  ErrVal xScanLumaIntra16x16  ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, Bool bAC, UInt uiStart = 0, UInt uiStop = 16 );
   ErrVal xScanLumaBlock       ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, LumaIdx cIdx, UInt uiStart = 0, UInt uiStop = 16 );
   ErrVal xScanChromaDc        ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, UInt uiStart = 0, UInt uiStop = 16 );
   ErrVal xScanChromaAcU       ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, UInt uiStart = 0, UInt uiStop = 16 );
@@ -76,6 +76,8 @@ protected:
   MbSymbolWriteIf* m_pcMbSymbolWriteIf;
   RateDistortionIf* m_pcRateDistortionIf;
 
+  BitWriteBuffer*  m_pcBitWriteBufferCabac;
+  BitWriteBuffer*  m_pcBitWriteBufferUvlc;
   //JVT-X046 {
   MbSymbolWriteIf* m_pcCabacSymbolWriteIf;
   MbSymbolWriteIf* m_pcUvlcSymbolWriteIf;

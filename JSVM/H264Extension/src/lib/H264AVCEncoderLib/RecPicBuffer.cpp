@@ -340,7 +340,7 @@ RecPicBuffer::xAdaptListSize( RefFrameList& rcList,
 {
   UInt  uiDefaultListSize = rcSliceHeader.getNumRefIdxActive( eListIdx );
   UInt  uiMaximumListSize = rcList.getActive();
-  UInt  uiCurrentListSize = min( uiDefaultListSize, uiMaximumListSize );
+  UInt  uiCurrentListSize = gMin( uiDefaultListSize, uiMaximumListSize );
 
   //===== update slice header =====
   rcList.       setActive         (           uiCurrentListSize );

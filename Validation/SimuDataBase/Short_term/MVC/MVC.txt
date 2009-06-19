@@ -50,7 +50,7 @@ tests              => [
                         height      => 144,
                         framerate   => 30,
                   			bitrate     => 100,
-                  			psnr        => 30.21,
+                  			psnr        => 30.20,
                         encdecmatch => 1,
                        },
                       ],

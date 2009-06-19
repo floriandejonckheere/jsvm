@@ -53,8 +53,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 30,
-			bitrate     => 139,
-			psnr        => 28.75,
+			bitrate     => 138,
+			psnr        => 28.74,
                        },                       
                        #----------#
                        # Test   1 #
@@ -65,7 +65,7 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 30,
-			bitrate     => 280,
+			bitrate     => 281,
 			psnr        => 32.44,
                         encdecmatch => 1,
                        },                       

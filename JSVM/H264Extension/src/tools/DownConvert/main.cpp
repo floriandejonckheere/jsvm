@@ -61,8 +61,8 @@ readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool s
   assert( width  <= c.stride );
   assert( height <= c.lines  );
 
-  int iMaxPadWidth  = min( c.stride, ( ( width  + 15 ) >> 4 ) << 4 );
-  int iMaxPadHeight = min( c.lines,  ( ( height + 31 ) >> 5 ) << 5 );
+  int iMaxPadWidth  = gMin( c.stride, ( ( width  + 15 ) >> 4 ) << 4 );
+  int iMaxPadHeight = gMin( c.lines,  ( ( height + 31 ) >> 5 ) << 5 );
 
   for( int i = 0; i < height; i++ )
   {
@@ -263,14 +263,14 @@ updateCropParametersFromFile( ResizeParameters& cRP, FILE* cropFile, int resampl
   }
   print_usage_and_exit( cRP.m_iLeftFrmOffset     & 1 || cRP.m_iTopFrmOffset       & 1,                                              name, "cropping parameters must be even values" );
   print_usage_and_exit( cRP.m_iScaledRefFrmWidth & 1 || cRP.m_iScaledRefFrmHeight & 1,                                              name, "cropping parameters must be even values" );
-  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  name, "crop dimensions must be the same as the minimal dimensions" );
-  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  name, "crop dimensions must be the same as the minimal dimensions" );
-  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
-  print_usage_and_exit( cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
-  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
-  print_usage_and_exit( cRP.m_iScaledRefFrmHeight < min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
-  print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     name, "wrong crop window size and origin" );
-  print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     name, "wrong crop window size and origin" );
+  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  name, "crop dimensions must be the same as the minimal dimensions" );
+  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  name, "crop dimensions must be the same as the minimal dimensions" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmHeight > gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmHeight < gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     name, "wrong crop window size and origin" );
+  print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     name, "wrong crop window size and origin" );
 }
 
 
@@ -456,14 +456,14 @@ main( int argc, char *argv[] )
         cRP.m_iScaledRefFrmHeight = atoi( argv[i++] );
         print_usage_and_exit( cRP.m_iLeftFrmOffset     & 1 || cRP.m_iTopFrmOffset       & 1,                                              argv[0], "cropping parameters must be even values" );
         print_usage_and_exit( cRP.m_iScaledRefFrmWidth & 1 || cRP.m_iScaledRefFrmHeight & 1,                                              argv[0], "cropping parameters must be even values" );
-        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
-        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
-        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
-        print_usage_and_exit( cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
-        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
-        print_usage_and_exit( cRP.m_iScaledRefFrmHeight < min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
-        print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     argv[0], "wrong crop window size and origin" );
-        print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     argv[0], "wrong crop window size and origin" );
+        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
+        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmHeight > gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmHeight < gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     argv[0], "wrong crop window size and origin" );
+        print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     argv[0], "wrong crop window size and origin" );
       }
       else
       {
@@ -567,13 +567,13 @@ main( int argc, char *argv[] )
   {
     if( resamplingMethod == 2 )
     {
-      cRP.m_iScaledRefFrmWidth  = min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
-      cRP.m_iScaledRefFrmHeight = min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+      cRP.m_iScaledRefFrmWidth  = gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+      cRP.m_iScaledRefFrmHeight = gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
     }
     else
     {
-      cRP.m_iScaledRefFrmWidth  = max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
-      cRP.m_iScaledRefFrmHeight = max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+      cRP.m_iScaledRefFrmWidth  = gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+      cRP.m_iScaledRefFrmHeight = gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
     }
   }
 
@@ -605,10 +605,10 @@ main( int argc, char *argv[] )
   YuvFrame    cFrame;
   DownConvert cDownConvert;
   {
-    int maxWidth  = max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
-    int maxHeight = max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
-    int minWidth  = min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
-    int minHeight = min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    int maxWidth  = gMax( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+    int maxHeight = gMax( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    int minWidth  = gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+    int minHeight = gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
     int minWRnd16 = ( ( minWidth  + 15 ) >> 4 ) << 4;
     int minHRnd32 = ( ( minHeight + 31 ) >> 5 ) << 5;
     maxWidth      = ( ( maxWidth  * minWRnd16 + ( minWidth  << 4 ) - 1 ) / ( minWidth  << 4 ) ) << 4;
@@ -643,8 +643,8 @@ main( int argc, char *argv[] )
 
       //===== set resampling parameter =====
       if( resamplingMethod != 0 &&
-          cRP.m_iScaledRefFrmWidth  == min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ) &&
-          cRP.m_iScaledRefFrmHeight == min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight )   )
+          cRP.m_iScaledRefFrmWidth  == gMin( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ) &&
+          cRP.m_iScaledRefFrmHeight == gMin( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight )   )
       {
         resampling = false;
       }

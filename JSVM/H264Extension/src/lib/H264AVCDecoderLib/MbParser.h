@@ -27,19 +27,20 @@ public:
   ErrVal initSlice      ( MbSymbolReadIf* pcMbSymbolReadIf );
   ErrVal read           ( MbDataAccess&   rcMbDataAccess,
                           UInt            uiNumMbRead,
-                          Bool&           rbEndOfSlice );
+                          Bool&           rbEndOfSlice,
+                          UInt&           ruiNextSkippedVLC );
 
 protected:
-  Bool   xCheckSkipSliceMb            ( MbDataAccess& rcMbDataAccess, UInt uiNumMbRead, Bool& rbEndOfSlice );
-  ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );
-  ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
+  Bool   xCheckSkipSliceMb    ( MbDataAccess& rcMbDataAccess, UInt uiNumMbRead, Bool& rbEndOfSlice );
+  ErrVal xSkipMb              ( MbDataAccess& rcMbDataAccess );
+  ErrVal xReadIntraPredModes  ( MbDataAccess& rcMbDataAccess );
 
-  ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable, UInt uiStart = 0, UInt uiStop = 16 );
-  ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt uiStart = 0, UInt uiStop = 16 );
-  ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
-  ErrVal xReadReferenceFramesNoRefPic ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
-  ErrVal xReadMotionPredFlags         ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
-  ErrVal xGet8x8BlockMv               ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
+  ErrVal xReadTextureInfo     ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable, UInt uiStart = 0, UInt uiStop = 16 );
+  ErrVal xScanChromaBlocks    ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt uiStart = 0, UInt uiStop = 16 );
+  ErrVal xReadMotionVectors   ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
+  ErrVal xReadReferenceIndices( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
+  ErrVal xReadMotionPredFlags ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
+  ErrVal xGet8x8BlockMv       ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 
 protected:
   Bool            m_bInitDone;

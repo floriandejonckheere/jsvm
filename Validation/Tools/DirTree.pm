@@ -64,7 +64,7 @@ sub CreateDirTree($)
   
  CreateDir($simuname);
 
-  foreach (qw/orig cfg tmp str mot fgs rec crop/)
+  foreach (qw/orig cfg tmp str rec crop/)
     {
       CreateDir("$simuname/$_");
     }

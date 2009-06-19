@@ -23,10 +23,8 @@ MotionEstimation::MotionEstimation() :
 }
 
 
-
 MotionEstimation::~MotionEstimation()
 {
-
 }
 
 
@@ -37,12 +35,12 @@ ErrVal MotionEstimation::destroy()
 }
 
 
-ErrVal MotionEstimation::init(  XDistortion*  pcXDistortion,
-                                CodingParameter* pcCodingParameter,
-                                RateDistortionIf* pcRateDistortionIf,
-                                QuarterPelFilter* pcQuarterPelFilter,
-                                Transform*        pcTransform,
-                                SampleWeighting* pcSampleWeighting)
+ErrVal MotionEstimation::init( XDistortion*      pcXDistortion,
+                               CodingParameter*  pcCodingParameter,
+                               RateDistortionIf* pcRateDistortionIf,
+                               QuarterPelFilter* pcQuarterPelFilter,
+                               Transform*        pcTransform,
+                               SampleWeighting*  pcSampleWeighting )
 {
   RNOK( MotionCompensation::init( pcQuarterPelFilter, pcTransform, pcSampleWeighting ) );
   ROT( NULL == pcXDistortion );
@@ -63,14 +61,14 @@ ErrVal MotionEstimation::init(  XDistortion*  pcXDistortion,
 
   }
 
-  RNOK( MotionEstimationCost::xInitRateDistortionModel( (m_cParams.getSearchRange() << 2), pcRateDistortionIf ) );
+  RNOK( MotionEstimationCost::xInit( (m_cParams.getSearchRange() << 2), pcRateDistortionIf ) );
 
   ROTRS( NULL != m_pcMvSpiralSearch, Err::m_nOK ) ;
 
   UInt uiSubPelSearchEntries = 7;
   m_uiSpiralSearchEntries    = 2*m_cParams.getSearchRange() + 1;
 
-  UInt uiSize = max( uiSubPelSearchEntries, m_uiSpiralSearchEntries );
+  UInt uiSize = gMax( uiSubPelSearchEntries, m_uiSpiralSearchEntries );
 
   m_pcMvSpiralSearch = new Mv [ uiSize*uiSize ];
   m_uiSpiralSearchEntries *= m_uiSpiralSearchEntries;
@@ -128,27 +126,21 @@ ErrVal MotionEstimation::uninit()
 }
 
 
-
-
-
-
-
 ErrVal
-MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
-                                          const Frame&      rcRefFrame,
-                                          Mv&                  rcMv,         // <-- MVSTART / --> MV
-                                          Mv&                  rcMvPred,
-                                          UInt&                ruiBits,
-                                          UInt&                ruiCost,
-                                          UInt                 uiBlk,
-                                          UInt                 uiMode,
-                                          Bool                 bQPelRefinementOnly,
-                                          UInt                 uiSearchRange,
-                                          const PredWeight*             pcPW,
-                                          MEBiSearchParameters* pcBSP )
+MotionEstimation::estimateBlockWithStart( const MbDataAccess&          rcMbDataAccess,
+                                          const Frame&                 rcRefFrame,
+                                          Mv&                          rcMv, // start and result
+                                          const Mv&                    rcMvPred,
+                                          UInt&                        ruiBits,
+                                          UInt&                        ruiCost,
+                                          const UInt                   uiBlk,
+                                          const UInt                   uiMode,
+                                          const UInt                   uiSearchRange,
+                                          const PredWeight*            pcPW,
+                                          const MEBiSearchParameters*  pcBSP )
 {
-  const LumaIdx    cIdx                 = B4x4Idx(uiBlk);
-  YuvMbBuffer*  pcWeightedYuvBuffer  = NULL;
+  const LumaIdx cIdx                 = B4x4Idx( uiBlk );
+  YuvMbBuffer*  pcWeightedYuvBuffer  = 0;
   YuvPicBuffer* pcRefPelData[2];
   YuvMbBuffer   cWeightedYuvBuffer;
 
@@ -159,10 +151,8 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   pcRefPelData[0]->set4x4Block( cIdx );
   pcRefPelData[1]->set4x4Block( cIdx );
 
-  if( bQPelRefinementOnly )rcMv = rcMvPred;
-
   UInt   uiMinSAD  = MSYS_UINT_MAX;
-  Mv     cMv       = rcMv;
+  Mv     cMv       = rcMv; // start value
   Double fWeight   = 1.0;
   Double afCW[2]   = { 1.0, 1.0 };
 
@@ -172,89 +162,86 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
   if( pcBSP ) // bi prediction
   {
-    ROF( pcBSP->pcAltRefPelData    );
-    ROF( pcBSP->pcAltRefFrame      );
-    ROF( pcBSP->apcWeight[LIST_0]  );
-    ROF( pcBSP->apcWeight[LIST_1]  );
+    ROF( pcBSP->pcAltRefPelData   );
+    ROF( pcBSP->pcAltRefFrame     );
+    ROF( pcBSP->apcWeight[LIST_0] );
+    ROF( pcBSP->apcWeight[LIST_1] );
 
-    pcWeightedYuvBuffer               = &cWeightedYuvBuffer;
+    pcWeightedYuvBuffer   = &cWeightedYuvBuffer;
     pcWeightedYuvBuffer   ->set4x4Block( cIdx );
     pcBSP->pcAltRefPelData->set4x4Block( cIdx );
 
     if( rcMbDataAccess.getSH().getPPS().getWeightedBiPredIdc() == 2 ) // implicit weighting
     {
       //----- get implicit weights -----
-      PredWeight              acIPW[2];
+      PredWeight   acIPW[2];
       const Frame* pcFrameL0 = ( pcBSP->uiL1Search ? pcBSP->pcAltRefFrame : &rcRefFrame          );
       const Frame* pcFrameL1 = ( pcBSP->uiL1Search ? &rcRefFrame          : pcBSP->pcAltRefFrame );
-      Int             iScale    = rcMbDataAccess.getSH().getDistScaleFactorWP( pcFrameL0, pcFrameL1 );
-
+      Int          iScale    = rcMbDataAccess.getSH().getDistScaleFactorWP( pcFrameL0, pcFrameL1 );
       //----- weighting -----
       if( iScale == 128 ) // same distance -> use normal function for same result
-  {
-        m_pcSampleWeighting->inverseLumaSamples         ( pcWeightedYuvBuffer,
-                                                          m_pcXDistortion->getYuvMbBuffer(),
-                                                          pcBSP->pcAltRefPelData,
-                                                          iYSize, iXSize );
-    fWeight             = 0.5;
+      {
+        m_pcSampleWeighting->inverseLumaSamples( pcWeightedYuvBuffer,
+                                                 m_pcXDistortion->getYuvMbBuffer(),
+                                                 pcBSP->pcAltRefPelData,
+                                                 iYSize, iXSize );
+        fWeight = 0.5;
       }
       else
       {
         acIPW[1].scaleL1Weight( iScale   );
         acIPW[0].scaleL0Weight( acIPW[1] );
-        m_pcSampleWeighting->weightInverseLumaSamples   ( pcWeightedYuvBuffer,
-                                                          m_pcXDistortion->getYuvMbBuffer(),
-                                                          pcBSP->pcAltRefPelData,
-                                                          &acIPW[pcBSP->uiL1Search],
-                                                          &acIPW[1-pcBSP->uiL1Search],
-                                                          fWeight, iYSize, iXSize );
+        m_pcSampleWeighting->weightInverseLumaSamples( pcWeightedYuvBuffer,
+                                                       m_pcXDistortion->getYuvMbBuffer(),
+                                                       pcBSP->pcAltRefPelData,
+                                                       &acIPW[pcBSP->uiL1Search],
+                                                       &acIPW[1-pcBSP->uiL1Search],
+                                                       fWeight, iYSize, iXSize );
       }
     }
     else if( pcBSP->apcWeight[LIST_0]->getLumaWeightFlag() ||
              pcBSP->apcWeight[LIST_1]->getLumaWeightFlag()   )
     {
       //----- explicit weighting -----
-      m_pcSampleWeighting->weightInverseLumaSamples     ( pcWeightedYuvBuffer,
-                                                          m_pcXDistortion->getYuvMbBuffer(),
-                                                          pcBSP->pcAltRefPelData,
-                                                          pcBSP->apcWeight[pcBSP->uiL1Search],
-                                                          pcBSP->apcWeight[1-pcBSP->uiL1Search],
-                                                          fWeight, iYSize, iXSize );
+      m_pcSampleWeighting->weightInverseLumaSamples( pcWeightedYuvBuffer,
+                                                     m_pcXDistortion->getYuvMbBuffer(),
+                                                     pcBSP->pcAltRefPelData,
+                                                     pcBSP->apcWeight[pcBSP->uiL1Search],
+                                                     pcBSP->apcWeight[1-pcBSP->uiL1Search],
+                                                     fWeight, iYSize, iXSize );
     }
     else
     {
       //----- standard weighting -----
-      m_pcSampleWeighting->inverseLumaSamples    ( pcWeightedYuvBuffer,
-                                                  m_pcXDistortion->getYuvMbBuffer(),
-                                                  pcBSP->pcAltRefPelData,
-                                                  iYSize, iXSize );
-      fWeight   = 0.5;
+      m_pcSampleWeighting->inverseLumaSamples( pcWeightedYuvBuffer,
+                                               m_pcXDistortion->getYuvMbBuffer(),
+                                               pcBSP->pcAltRefPelData,
+                                               iYSize, iXSize );
+      fWeight = 0.5;
     }
   }
   else // unidirectional prediction
   {
     ROF( pcPW );
-
     if( pcPW->getLumaWeightFlag() || ( bOriginalSearchModeIsYUVSAD && pcPW->getChromaWeightFlag() ) )
     {
-    pcWeightedYuvBuffer = &cWeightedYuvBuffer;
-    pcWeightedYuvBuffer ->set4x4Block( cIdx );
-
+      pcWeightedYuvBuffer = &cWeightedYuvBuffer;
+      pcWeightedYuvBuffer ->set4x4Block( cIdx );
       //----- weighting -----
-      m_pcSampleWeighting->weightInverseLumaSamples   ( pcWeightedYuvBuffer,
-                                                        m_pcXDistortion->getYuvMbBuffer(),
-                                                        pcPW, fWeight, iYSize, iXSize );
+      m_pcSampleWeighting->weightInverseLumaSamples( pcWeightedYuvBuffer,
+                                                     m_pcXDistortion->getYuvMbBuffer(),
+                                                     pcPW, fWeight, iYSize, iXSize );
       if( bOriginalSearchModeIsYUVSAD )
       {
         m_pcSampleWeighting->weightInverseChromaSamples( pcWeightedYuvBuffer,
                                                          m_pcXDistortion->getYuvMbBuffer(),
                                                          pcPW, afCW, iYSize, iXSize );
       }
-  }
-  else
-  {
+    }
+    else
+    {
       //----- no weighting -----
-    pcWeightedYuvBuffer = m_pcXDistortion->getYuvMbBuffer();
+      pcWeightedYuvBuffer = m_pcXDistortion->getYuvMbBuffer();
       fWeight = afCW[0] = afCW[1] = 1.0;
     }
   }
@@ -265,87 +252,66 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
     m_cParams.setFullPelDFunc( DF_SAD ); // set to normal SAD
   }
   // <<< heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search)
-  xGetMotionCost( ( 1 != m_cParams.getFullPelDFunc() ), 0 );
-  m_pcXDistortion->getDistStruct( uiMode, m_cParams.getFullPelDFunc(), false, m_cXDSS );
-  m_cXDSS.pYOrg = pcWeightedYuvBuffer->getLumBlk();
-  m_cXDSS.pUOrg = pcWeightedYuvBuffer->getCbBlk ();
-  m_cXDSS.pVOrg = pcWeightedYuvBuffer->getCrBlk ();
-  xSetPredictor( rcMvPred );
-  xSetCostScale( 2 );
+  xSetMEPars      ( 2, ( 1 != m_cParams.getFullPelDFunc() ) );
+  xSetPredictor   ( rcMvPred );
+  m_pcXDistortion ->getDistStruct( uiMode, m_cParams.getFullPelDFunc(), false, m_cXDSS );
+  m_cXDSS.pYOrg   = pcWeightedYuvBuffer->getLumBlk();
+  m_cXDSS.pUOrg   = pcWeightedYuvBuffer->getCbBlk ();
+  m_cXDSS.pVOrg   = pcWeightedYuvBuffer->getCrBlk ();
+  
+  m_acMvCandList.clear();
 
-  if( ! bQPelRefinementOnly )
+  if( uiSearchRange )
   {
-    if( uiSearchRange )
+    if( m_cParams.getFastBiSearch() )
     {
-      if( m_cParams.getFastBiSearch() )
-      {
-        m_acMvPredictors[0] = cMv;
-        m_acMvPredictors[1] = cMv;
-        m_acMvPredictors[2] = cMv;
-        xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv, uiSearchRange );
-      }
-      else
-      {
-        xPelBlockSearch( pcRefPelData[0], cMv, uiMinSAD, uiSearchRange );
-      }
+      xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv, uiSearchRange );
     }
     else
     {
-      switch( m_cParams.getSearchMode() )
-      {
-      case 0:
-        {
-          xPelBlockSearch ( pcRefPelData[0], cMv, uiMinSAD );
-        }
-        break;
-      case 1:
-        {
-          xPelSpiralSearch( pcRefPelData[0], cMv, uiMinSAD );
-        }
-        break;
-      case 2:
-        {
-          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, false, m_iMaxLogStep << ((NULL == pcBSP) ? 1 : 0) );
-        }
-        break;
-      case 3:
-        {
-          rcMbDataAccess.getMvPredictors( m_acMvPredictors );
-          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, true, (NULL == pcBSP) ? 2 : 1 );
-        }
-        break;
-      case 4:
-        {
-          rcMbDataAccess.getMvPredictors( m_acMvPredictors );
-          xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv );
-        }
-        break;
-      default:
-        RERR();
-        break;
-      }
+      xPelBlockSearch( pcRefPelData[0], cMv, uiMinSAD, uiSearchRange );
     }
-    cMv <<= 2;
   }
   else
   {
-    Mv cMvBase = cMv;
-    cMv.limitComponents( m_cMin, m_cMax );
-    if( ! ( cMvBase == cMv ) )
+    switch( m_cParams.getSearchMode() )
     {
-      // don't refine in that case
-      rcMv     = cMvBase;
-      ruiBits += 2;
-      ruiCost  = MSYS_UINT_MAX / 2;
-      // >>>> bug fix by H.Schwarz 19/9/05
-      if( bOriginalSearchModeIsYUVSAD )
+    case 0:
       {
-        m_cParams.setFullPelDFunc( DF_YUV_SAD );
+        xPelBlockSearch ( pcRefPelData[0], cMv, uiMinSAD );
       }
-      // <<<< bug fix by H.Schwarz 19/9/05
-      return Err::m_nOK;
+      break;
+    case 1:
+      {
+        xPelSpiralSearch( pcRefPelData[0], cMv, uiMinSAD );
+      }
+      break;
+    case 2:
+      {
+        xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, false, m_iMaxLogStep << ( pcBSP ? 0 : 1 ) );
+      }
+      break;
+    case 3:
+      {
+        m_acMvCandList.push_back( rcMvPred );
+        rcMbDataAccess.addMvPredictors( m_acMvCandList );
+        xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, true, ( pcBSP ? 1 : 2 ) );
+      }
+      break;
+    case 4:
+      {
+        m_acMvCandList.push_back( rcMvPred );
+        rcMbDataAccess.addMvPredictors( m_acMvCandList );
+        xTZSearch( pcRefPelData[0], cMv, uiMinSAD, m_bELWithBLMv );
+      }
+      break;
+    default:
+      RERR();
+      break;
     }
   }
+  cMv <<= 2;
+
   // heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search) >>>>
   if( bOriginalSearchModeIsYUVSAD )
   {
@@ -355,12 +321,11 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
 
   //===== SUB-PEL ESTIMATION =====
-  xGetMotionCost( 1 != ( 1 & m_cParams.getSubPelDFunc() ), 0 );
+  xSetMEPars( 0, ( 1 != ( 1 & m_cParams.getSubPelDFunc() ) ) );
   m_pcXDistortion->getDistStruct( uiMode, m_cParams.getSubPelDFunc(), false, m_cXDSS );
   m_cXDSS.pYOrg = pcWeightedYuvBuffer->getLumBlk();
-  xSetCostScale( 0 );
 
-  xSubPelSearch( pcRefPelData[1], cMv, uiMinSAD, uiBlk, uiMode, bQPelRefinementOnly );
+  xSubPelSearch( pcRefPelData[1], cMv, uiMinSAD, uiBlk, uiMode );
 
   Short sHor      = cMv.getHor();
   Short sVer      = cMv.getVer();
@@ -368,17 +333,10 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   ruiBits        += uiMvBits;
   ruiCost         = (UInt)floor( fWeight * (Double)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
   rcMv            = cMv;
-
-  m_bELWithBLMv = false;
+  m_bELWithBLMv   = false;
 
   return Err::m_nOK;
 }
-
-
-
-
-
-
 
 
 ErrVal MotionEstimation::initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcMbDataAccess )
@@ -387,9 +345,6 @@ ErrVal MotionEstimation::initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcM
 
   return Err::m_nOK;
 }
-
-
-
 
 
 Void MotionEstimation::xPelBlockSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
@@ -443,7 +398,6 @@ Void MotionEstimation::xPelBlockSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt&
     pucYSearch += iYStride;
   }
 
-
   y = rcMv.getVer();
   x = rcMv.getHor();
 
@@ -455,8 +409,6 @@ Void MotionEstimation::xPelBlockSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt&
   uiSad  = m_cXDSS.Func( &m_cXDSS );
   AOF_DBG( ruiSAD == ( uiSad  = m_cXDSS.Func( &m_cXDSS ) ) );
 }
-
-
 
 
 Void MotionEstimation::xPelSpiralSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
@@ -549,9 +501,9 @@ Void MotionEstimation::xPelLogSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& r
 
   if( bFme )
   {
-    for( UInt n = 0; n < 3; n++ )
+    for( UInt n = 0; n < m_acMvCandList.size(); n++ )
     {
-      Mv cMv = m_acMvPredictors[n];
+      Mv cMv = m_acMvCandList[n];
       {
         cMv.limitComponents( m_cMin, m_cMax );
         cMv >>= 2;
@@ -757,20 +709,6 @@ Void MotionEstimation::xPelLogSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& r
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define TZ_SEARCH_CONFIGURATION                                                                                 \
   const Int  iRaster                  = 3;  /* TZ soll von aussen übergeben werden */                           \
   const Bool bTestOtherPredictedMV    = 1;                                                                      \
@@ -792,7 +730,7 @@ Void MotionEstimation::xPelLogSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& r
 
 
 __inline
-Void MotionEstimation::xTZSearchHelp( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance )
+Void MotionEstimation::xTZCheckPoint( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance )
 {
 #if 0 //degug
   std::cout << "Pruefpunkt           "
@@ -831,11 +769,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
     {
       if ( (iStartX - 1) >= -rcSearchRect.iNegHorLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX - 1, iStartY, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX - 1, iStartY, 0, 2 );
       }
       if ( (iStartY - 1) >= -rcSearchRect.iNegVerLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX, iStartY - 1, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX, iStartY - 1, 0, 2 );
       }
     }
     break;
@@ -845,11 +783,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
       {
         if ( (iStartX - 1) >= -rcSearchRect.iNegHorLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX - 1, iStartY - 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX - 1, iStartY - 1, 0, 2 );
         }
         if ( (iStartX + 1) <= rcSearchRect.iPosHorLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX + 1, iStartY - 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX + 1, iStartY - 1, 0, 2 );
         }
       }
     }
@@ -858,11 +796,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
     {
       if ( (iStartY - 1) >= -rcSearchRect.iNegVerLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX, iStartY - 1, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX, iStartY - 1, 0, 2 );
       }
       if ( (iStartX + 1) <= rcSearchRect.iPosHorLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX + 1, iStartY, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX + 1, iStartY, 0, 2 );
       }
     }
     break;
@@ -872,11 +810,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
       {
         if ( (iStartY + 1) <= rcSearchRect.iPosVerLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX - 1, iStartY + 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX - 1, iStartY + 1, 0, 2 );
         }
         if ( (iStartY - 1) >= -rcSearchRect.iNegVerLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX - 1, iStartY - 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX - 1, iStartY - 1, 0, 2 );
         }
       }
     }
@@ -887,11 +825,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
       {
         if ( (iStartY - 1) >= -rcSearchRect.iNegVerLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX + 1, iStartY - 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX + 1, iStartY - 1, 0, 2 );
         }
         if ( (iStartY + 1) <= rcSearchRect.iPosVerLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX + 1, iStartY + 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX + 1, iStartY + 1, 0, 2 );
         }
       }
     }
@@ -900,11 +838,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
     {
       if ( (iStartX - 1) >= -rcSearchRect.iNegHorLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX - 1, iStartY , 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX - 1, iStartY , 0, 2 );
       }
       if ( (iStartY + 1) <= rcSearchRect.iPosVerLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX, iStartY + 1, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX, iStartY + 1, 0, 2 );
       }
     }
     break;
@@ -914,11 +852,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
       {
         if ( (iStartX - 1) >= -rcSearchRect.iNegHorLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX - 1, iStartY + 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX - 1, iStartY + 1, 0, 2 );
         }
         if ( (iStartX + 1) <= rcSearchRect.iPosHorLimit )
         {
-          xTZSearchHelp( rcStrukt, iStartX + 1, iStartY + 1, 0, 2 );
+          xTZCheckPoint( rcStrukt, iStartX + 1, iStartY + 1, 0, 2 );
         }
       }
     }
@@ -927,11 +865,11 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
     {
       if ( (iStartX + 1) <= rcSearchRect.iPosHorLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX + 1, iStartY, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX + 1, iStartY, 0, 2 );
       }
       if ( (iStartY + 1) <= rcSearchRect.iPosVerLimit )
       {
-        xTZSearchHelp( rcStrukt, iStartX, iStartY + 1, 0, 2 );
+        xTZCheckPoint( rcStrukt, iStartX, iStartY + 1, 0, 2 );
       }
     }
     break;
@@ -960,36 +898,36 @@ Void MotionEstimation::xTZ8PointSquareSearch( IntTZSearchStrukt& rcStrukt, Searc
   {
     if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check top left
     {
-      xTZSearchHelp( rcStrukt, iLeft, iTop, 1, iDist );
+      xTZCheckPoint( rcStrukt, iLeft, iTop, 1, iDist );
     }
     // top middle
-    xTZSearchHelp( rcStrukt, iStartX, iTop, 2, iDist );
+    xTZCheckPoint( rcStrukt, iStartX, iTop, 2, iDist );
 
     if ( iRight <= rcSearchRect.iPosHorLimit ) // check top right
     {
-      xTZSearchHelp( rcStrukt, iRight, iTop, 3, iDist );
+      xTZCheckPoint( rcStrukt, iRight, iTop, 3, iDist );
     }
   } // check top
   if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check middle left
   {
-    xTZSearchHelp( rcStrukt, iLeft, iStartY, 4, iDist );
+    xTZCheckPoint( rcStrukt, iLeft, iStartY, 4, iDist );
   }
   if ( iRight <= rcSearchRect.iPosHorLimit ) // check middle right
   {
-    xTZSearchHelp( rcStrukt, iRight, iStartY, 5, iDist );
+    xTZCheckPoint( rcStrukt, iRight, iStartY, 5, iDist );
   }
   if ( iBottom <= rcSearchRect.iPosVerLimit ) // check bottom
   {
     if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check bottom left
     {
-      xTZSearchHelp( rcStrukt, iLeft, iBottom, 6, iDist );
+      xTZCheckPoint( rcStrukt, iLeft, iBottom, 6, iDist );
     }
     // check bottom middle
-    xTZSearchHelp( rcStrukt, iStartX, iBottom, 7, iDist );
+    xTZCheckPoint( rcStrukt, iStartX, iBottom, 7, iDist );
 
     if ( iRight <= rcSearchRect.iPosHorLimit ) // check bottom right
     {
-      xTZSearchHelp( rcStrukt, iRight, iBottom, 8, iDist );
+      xTZCheckPoint( rcStrukt, iRight, iBottom, 8, iDist );
     }
   } // check bottom
 }
@@ -1011,19 +949,19 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
   {
     if ( iTop >= -rcSearchRect.iNegVerLimit ) // check top
     {
-      xTZSearchHelp( rcStrukt, iStartX, iTop, 2, iDist );
+      xTZCheckPoint( rcStrukt, iStartX, iTop, 2, iDist );
     }
     if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check middle left
     {
-      xTZSearchHelp( rcStrukt, iLeft, iStartY, 4, iDist );
+      xTZCheckPoint( rcStrukt, iLeft, iStartY, 4, iDist );
     }
     if ( iRight <= rcSearchRect.iPosHorLimit ) // check middle right
     {
-      xTZSearchHelp( rcStrukt, iRight, iStartY, 5, iDist );
+      xTZCheckPoint( rcStrukt, iRight, iStartY, 5, iDist );
     }
     if ( iBottom <= rcSearchRect.iPosVerLimit ) // check bottom
     {
-      xTZSearchHelp( rcStrukt, iStartX, iBottom, 7, iDist );
+      xTZCheckPoint( rcStrukt, iStartX, iBottom, 7, iDist );
     }
   }
   else // iDist == 1
@@ -1038,54 +976,54 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
       if (  iTop >= -rcSearchRect.iNegVerLimit && iLeft   >= -rcSearchRect.iNegHorLimit &&
           iRight <=  rcSearchRect.iPosHorLimit && iBottom <= rcSearchRect.iPosVerLimit ) // check border
       {
-        xTZSearchHelp( rcStrukt, iStartX,  iTop,      2, iDist    );
-        xTZSearchHelp( rcStrukt, iLeft_2,  iTop_2,    1, iDist>>1 );
-        xTZSearchHelp( rcStrukt, iRight_2, iTop_2,    3, iDist>>1 );
-        xTZSearchHelp( rcStrukt, iLeft,    iStartY,   4, iDist    );
-        xTZSearchHelp( rcStrukt, iRight,   iStartY,   5, iDist    );
-        xTZSearchHelp( rcStrukt, iLeft_2,  iBottom_2, 6, iDist>>1 );
-        xTZSearchHelp( rcStrukt, iRight_2, iBottom_2, 8, iDist>>1 );
-        xTZSearchHelp( rcStrukt, iStartX,  iBottom,   7, iDist    );
+        xTZCheckPoint( rcStrukt, iStartX,  iTop,      2, iDist    );
+        xTZCheckPoint( rcStrukt, iLeft_2,  iTop_2,    1, iDist>>1 );
+        xTZCheckPoint( rcStrukt, iRight_2, iTop_2,    3, iDist>>1 );
+        xTZCheckPoint( rcStrukt, iLeft,    iStartY,   4, iDist    );
+        xTZCheckPoint( rcStrukt, iRight,   iStartY,   5, iDist    );
+        xTZCheckPoint( rcStrukt, iLeft_2,  iBottom_2, 6, iDist>>1 );
+        xTZCheckPoint( rcStrukt, iRight_2, iBottom_2, 8, iDist>>1 );
+        xTZCheckPoint( rcStrukt, iStartX,  iBottom,   7, iDist    );
       }
       else // check border
       {
         if ( iTop >= -rcSearchRect.iNegVerLimit ) // check top
         {
-          xTZSearchHelp( rcStrukt, iStartX, iTop, 2, iDist );
+          xTZCheckPoint( rcStrukt, iStartX, iTop, 2, iDist );
         }
         if ( iTop_2 >= -rcSearchRect.iNegVerLimit ) // check half top
         {
           if ( iLeft_2 >= -rcSearchRect.iNegHorLimit ) // check half left
           {
-            xTZSearchHelp( rcStrukt, iLeft_2, iTop_2, 1, (iDist>>1) );
+            xTZCheckPoint( rcStrukt, iLeft_2, iTop_2, 1, (iDist>>1) );
           }
           if ( iRight_2 <= rcSearchRect.iPosHorLimit ) // check half right
           {
-            xTZSearchHelp( rcStrukt, iRight_2, iTop_2, 3, (iDist>>1) );
+            xTZCheckPoint( rcStrukt, iRight_2, iTop_2, 3, (iDist>>1) );
           }
         } // check half top
         if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check left
         {
-          xTZSearchHelp( rcStrukt, iLeft, iStartY, 4, iDist );
+          xTZCheckPoint( rcStrukt, iLeft, iStartY, 4, iDist );
         }
         if ( iRight <= rcSearchRect.iPosHorLimit ) // check right
         {
-          xTZSearchHelp( rcStrukt, iRight, iStartY, 5, iDist );
+          xTZCheckPoint( rcStrukt, iRight, iStartY, 5, iDist );
         }
         if ( iBottom_2 <= rcSearchRect.iPosVerLimit ) // check half bottom
         {
           if ( iLeft_2 >= -rcSearchRect.iNegHorLimit ) // check half left
           {
-            xTZSearchHelp( rcStrukt, iLeft_2, iBottom_2, 6, (iDist>>1) );
+            xTZCheckPoint( rcStrukt, iLeft_2, iBottom_2, 6, (iDist>>1) );
           }
           if ( iRight_2 <= rcSearchRect.iPosHorLimit ) // check half right
           {
-            xTZSearchHelp( rcStrukt, iRight_2, iBottom_2, 8, (iDist>>1) );
+            xTZCheckPoint( rcStrukt, iRight_2, iBottom_2, 8, (iDist>>1) );
           }
         } // check half bottom
         if ( iBottom <= rcSearchRect.iPosVerLimit ) // check bottom
         {
-          xTZSearchHelp( rcStrukt, iStartX, iBottom, 7, iDist );
+          xTZCheckPoint( rcStrukt, iStartX, iBottom, 7, iDist );
         }
       } // check border
     }
@@ -1094,39 +1032,39 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
       if ( iTop >= -rcSearchRect.iNegVerLimit && iLeft   >= -rcSearchRect.iNegHorLimit &&
           iRight <=  rcSearchRect.iPosHorLimit && iBottom <= rcSearchRect.iPosVerLimit ) // check border
       {
-        xTZSearchHelp( rcStrukt, iStartX, iTop,    0, iDist );
-        xTZSearchHelp( rcStrukt, iLeft,   iStartY, 0, iDist );
-        xTZSearchHelp( rcStrukt, iRight,  iStartY, 0, iDist );
-        xTZSearchHelp( rcStrukt, iStartX, iBottom, 0, iDist );
+        xTZCheckPoint( rcStrukt, iStartX, iTop,    0, iDist );
+        xTZCheckPoint( rcStrukt, iLeft,   iStartY, 0, iDist );
+        xTZCheckPoint( rcStrukt, iRight,  iStartY, 0, iDist );
+        xTZCheckPoint( rcStrukt, iStartX, iBottom, 0, iDist );
         for ( Int index = 1; index < 4; index++ )
         {
           Int iPosYT = iTop    + ((iDist>>2) * index);
           Int iPosYB = iBottom - ((iDist>>2) * index);
           Int iPosXL = iStartX - ((iDist>>2) * index);
           Int iPosXR = iStartX + ((iDist>>2) * index);
-          xTZSearchHelp( rcStrukt, iPosXL, iPosYT, 0, iDist );
-          xTZSearchHelp( rcStrukt, iPosXR, iPosYT, 0, iDist );
-          xTZSearchHelp( rcStrukt, iPosXL, iPosYB, 0, iDist );
-          xTZSearchHelp( rcStrukt, iPosXR, iPosYB, 0, iDist );
+          xTZCheckPoint( rcStrukt, iPosXL, iPosYT, 0, iDist );
+          xTZCheckPoint( rcStrukt, iPosXR, iPosYT, 0, iDist );
+          xTZCheckPoint( rcStrukt, iPosXL, iPosYB, 0, iDist );
+          xTZCheckPoint( rcStrukt, iPosXR, iPosYB, 0, iDist );
         }
       }
       else // check border
       {
         if ( iTop >= -rcSearchRect.iNegVerLimit ) // check top
         {
-          xTZSearchHelp( rcStrukt, iStartX, iTop, 0, iDist );
+          xTZCheckPoint( rcStrukt, iStartX, iTop, 0, iDist );
         }
         if ( iLeft >= -rcSearchRect.iNegHorLimit ) // check left
         {
-          xTZSearchHelp( rcStrukt, iLeft, iStartY, 0, iDist );
+          xTZCheckPoint( rcStrukt, iLeft, iStartY, 0, iDist );
         }
         if ( iRight <= rcSearchRect.iPosHorLimit ) // check right
         {
-          xTZSearchHelp( rcStrukt, iRight, iStartY, 0, iDist );
+          xTZCheckPoint( rcStrukt, iRight, iStartY, 0, iDist );
         }
         if ( iBottom <= rcSearchRect.iPosVerLimit ) // check bottom
         {
-          xTZSearchHelp( rcStrukt, iStartX, iBottom, 0, iDist );
+          xTZCheckPoint( rcStrukt, iStartX, iBottom, 0, iDist );
         }
         for ( Int index = 1; index < 4; index++ )
         {
@@ -1139,22 +1077,22 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
           {
             if ( iPosXL >= -rcSearchRect.iNegHorLimit ) // check left
             {
-              xTZSearchHelp( rcStrukt, iPosXL, iPosYT, 0, iDist );
+              xTZCheckPoint( rcStrukt, iPosXL, iPosYT, 0, iDist );
             }
             if ( iPosXR <= rcSearchRect.iPosHorLimit ) // check right
             {
-              xTZSearchHelp( rcStrukt, iPosXR, iPosYT, 0, iDist );
+              xTZCheckPoint( rcStrukt, iPosXR, iPosYT, 0, iDist );
             }
           } // check top
           if ( iPosYB <= rcSearchRect.iPosVerLimit ) // check bottom
           {
             if ( iPosXL >= -rcSearchRect.iNegHorLimit ) // check left
             {
-              xTZSearchHelp( rcStrukt, iPosXL, iPosYB, 0, iDist );
+              xTZCheckPoint( rcStrukt, iPosXL, iPosYB, 0, iDist );
             }
             if ( iPosXR <= rcSearchRect.iPosHorLimit ) // check right
             {
-              xTZSearchHelp( rcStrukt, iPosXR, iPosYB, 0, iDist );
+              xTZCheckPoint( rcStrukt, iPosXR, iPosYB, 0, iDist );
             }
           } // check bottom
         } // for ...
@@ -1193,24 +1131,24 @@ Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSA
   cStrukt.uiBestSad   = MSYS_UINT_MAX;
 
   // set rcMv as start point and as best point
-  xTZSearchHelp( cStrukt, rcMv.getHor(), rcMv.getVer(), 0, 0 );
+  xTZCheckPoint( cStrukt, rcMv.getHor(), rcMv.getVer(), 0, 0 );
 
 
   if( bTestOtherPredictedMV )
   {
-    for( UInt index = 0; index < 3; index++ )
+    for( UInt index = 0; index < m_acMvCandList.size(); index++ )
     {
-      Mv cMv = m_acMvPredictors[index];
+      Mv cMv = m_acMvCandList[index];
       cMv.limitComponents( MotionCompensation::m_cMin, MotionCompensation::m_cMax );
       cMv >>= 2;
-      xTZSearchHelp( cStrukt, cMv.getHor(), cMv.getVer(), 0, 0 );
+      xTZCheckPoint( cStrukt, cMv.getHor(), cMv.getVer(), 0, 0 );
     }
   }
 
   // test whether zerovektor is a better start point than the current rcMv
   if( bTestZeroVector )
   {
-    xTZSearchHelp( cStrukt, 0, 0, 0, 0 );
+    xTZCheckPoint( cStrukt, 0, 0, 0, 0 );
   }
 
   // start search                     // ucPointNr
@@ -1238,7 +1176,7 @@ Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSA
   // test whether zerovektor is a better start point than current rcMv
   if( bTestZeroVectorStar && ((cStrukt.iBestX != 0) || (cStrukt.iBestY != 0)) )
   {
-    xTZSearchHelp( cStrukt, 0, 0, 0, 0 );
+    xTZCheckPoint( cStrukt, 0, 0, 0, 0 );
     if( (cStrukt.iBestX == 0) && (cStrukt.iBestY == 0) )
     {
       // test his neighborhood
@@ -1268,7 +1206,7 @@ Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSA
     {
       for( iStartX = -cSearchRect.iNegHorLimit; iStartX <= cSearchRect.iPosHorLimit; iStartX += iRaster )
       {
-        xTZSearchHelp( cStrukt, iStartX, iStartY, 0, iRaster );
+        xTZCheckPoint( cStrukt, iStartX, iStartY, 0, iRaster );
       }
     }
   }

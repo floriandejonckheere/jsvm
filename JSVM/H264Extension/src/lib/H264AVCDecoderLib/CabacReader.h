@@ -36,7 +36,7 @@ public:
   ErrVal  uninit              ();
 
   Bool    isEndOfSlice        ();
-  Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
+  Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess, UInt& uiNextSkippedVLC );
   Bool    isBLSkipped         ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );

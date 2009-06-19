@@ -92,90 +92,33 @@ Void MotionEstimationQuarterPel::xInitBuffer()
 
 
 Void MotionEstimationQuarterPel::xSubPelSearch( YuvPicBuffer*  pcPelData,
-                                                Mv&               rcMv,
-                                                UInt&             ruiSAD,
-                                                UInt              uiBlk,
-                                                UInt              uiMode,
-                                                Bool              bQPelOnly)
+                                                Mv&            rcMv,
+                                                UInt&          ruiSAD,
+                                                UInt           uiBlk,
+                                                UInt           uiMode )
 {
-  // TMM_ESS {
-  Mv    cIniMv = rcMv;
-  if( bQPelOnly && (rcMv.getHor() % 2 || rcMv.getVer() % 2) )
-  {
-    rcMv >>= 1;
-    rcMv <<= 1;
-  }
-// TMM_ESS }
-
   Mv    cMvBestMatch  = rcMv;
   UInt  uiBestSad     = MSYS_UINT_MAX;
   UInt  uiNumHPelPos  = 9;
   UInt  uiNumQPelPos  = 9;
-  UInt  uiBestHPelPos = MSYS_UINT_MAX;
 
   Int   n;
   UInt  uiYSize = 0;
   UInt  uiXSize = 0;
 
-  if( bQPelOnly )
-  {
-    AOT( (rcMv.getHor() % 2) || (rcMv.getVer() % 2) );
-    cMvBestMatch >>= 2;
-    cMvBestMatch <<= 2;
-
-    //--- get best h-pel search position ---
-    Mv cMvDiff = rcMv - cMvBestMatch;
-    for( Int iHIndex = 0; iHIndex < 9; iHIndex++ )
-    {
-      if( cMvDiff == g_acHPSearchMv[iHIndex] )
-      {
-        uiBestHPelPos = iHIndex;
-        break;
-      }
-    }
-    AOT( uiBestHPelPos == 5 || uiBestHPelPos == 1 || uiBestHPelPos == 6 ||
-         uiBestHPelPos == 3 || uiBestHPelPos == 7 || uiBestHPelPos == MSYS_UINT_MAX );
-
-    rcMv = cMvBestMatch;
-  }
-
   xGetSizeFromMode      ( uiXSize, uiYSize, uiMode);
   xCompensateBlocksHalf ( m_aXHPelSearch, pcPelData, cMvBestMatch, uiMode, uiYSize, uiXSize ) ;
   m_cXDSS.iYStride = X1;
 
-  if( ! bQPelOnly || 0 == uiBestHPelPos )
+  //compute SAD for 1/2 pel MV
+  for( n = 0; n < (Int)uiNumHPelPos; n++ )
   {
-    n = 0;
     Mv cMvTest = g_acHPSearchMv[n];
     m_cXDSS.pYSearch = m_apXHPelSearch[n];
     UInt uiSad = m_cXDSS.Func( &m_cXDSS );
 
     cMvTest += rcMv;
-    uiSad += xGetCost( cMvTest );
-
-    if( uiSad < uiBestSad )
-    {
-      m_uiBestMode = n;
-      uiBestSad = uiSad;
-      cMvBestMatch = cMvTest;
-    }
-  }
-
-  //compute SAD for initial 1/2 pel MV
-  for( n = 1; n < (Int)uiNumHPelPos; n++ )
-  {
-    if( bQPelOnly && n != uiBestHPelPos )
-    {
-      continue;
-    }
-
-    Mv cMvTest = g_acHPSearchMv[n];
-    m_cXDSS.pYSearch = m_apXHPelSearch[n];
-    UInt uiSad = m_cXDSS.Func( &m_cXDSS );
-
-    cMvTest += rcMv;
-    UInt uiCost = xGetCost( cMvTest );
-    uiSad += uiCost;
+    uiSad   += xGetCost( cMvTest );
 
     if( uiSad < uiBestSad )
     {
@@ -204,11 +147,6 @@ Void MotionEstimationQuarterPel::xSubPelSearch( YuvPicBuffer*  pcPelData,
     cMvTest += rcMv;
     uiSad += xGetCost( cMvTest );
 
-    // TMM_ESS {
-    if( bQPelOnly && (abs(cIniMv.getHor()-cMvTest.getHor()) > 1 || abs(cIniMv.getVer()-cMvTest.getVer()) > 1) )
-      uiSad = MSYS_UINT_MAX;
-    // TMM_ESS }
-
     if( uiSad < uiBestSad )
     {
       m_uiBestMode = n<<4;
@@ -219,134 +157,6 @@ Void MotionEstimationQuarterPel::xSubPelSearch( YuvPicBuffer*  pcPelData,
 
   rcMv = cMvBestMatch;
   ruiSAD = uiBestSad;
-
-// TMM_ESS {
-//---
-  if( bQPelOnly && (cIniMv.getHor() % 2 || cIniMv.getVer() % 2) )
-  {
-    int   dx0 = ((cIniMv.getHor()>>1)<<1);
-    int   dy0 = ((cIniMv.getVer()>>1)<<1);
-    int   dx1 = (cIniMv.getHor() % 2) ? (dx0+2) : dx0;
-    int   dy1 = (cIniMv.getVer() % 2) ? (dy0+2) : dy0;
-
-    for (int dx=dx0; dx<=dx1; dx+=2)
-    {
-      for (int dy=dy0; dy<=dy1; dy+=2)
-      {
-        if (dx!=dx0 || dy!=dy0)
-        {
-          rcMv.setHor(dx);
-          rcMv.setVer(dy);
-
-          UInt  uiBestSad1     = MSYS_UINT_MAX;
-          Mv    cMvBestMatch1 = rcMv;
-          cMvBestMatch1 >>= 2;
-          cMvBestMatch1 <<= 2;
-
-          //--- get best h-pel search position ---
-          Mv cMvDiff = rcMv - cMvBestMatch1;
-          for( Int iHIndex = 0; iHIndex < 9; iHIndex++ )
-          {
-            if( cMvDiff == g_acHPSearchMv[iHIndex] )
-            {
-              uiBestHPelPos = iHIndex;
-              break;
-            }
-          }
-          AOT( uiBestHPelPos == 5 || uiBestHPelPos == 1 || uiBestHPelPos == 6 ||
-               uiBestHPelPos == 3 || uiBestHPelPos == 7 || uiBestHPelPos == MSYS_UINT_MAX );
-
-          rcMv = cMvBestMatch1;
-
-
-          xGetSizeFromMode      ( uiXSize, uiYSize, uiMode);
-          xCompensateBlocksHalf ( m_aXHPelSearch, pcPelData, cMvBestMatch1, uiMode, uiYSize, uiXSize ) ;
-          m_cXDSS.iYStride = X1;
-
-          if( 0 == uiBestHPelPos )
-          {
-            n = 0;
-            Mv cMvTest = g_acHPSearchMv[n];
-            m_cXDSS.pYSearch = m_apXHPelSearch[n];
-            UInt uiSad = m_cXDSS.Func( &m_cXDSS );
-
-            cMvTest += rcMv;
-            uiSad += xGetCost( cMvTest );
-
-            if( uiSad < uiBestSad1 )
-            {
-              m_uiBestMode = n;
-              uiBestSad1 = uiSad;
-              cMvBestMatch1 = cMvTest;
-            }
-          }
-
-          //compute SAD for initial 1/2 pel MV
-          for( n = 1; n < (Int)uiNumHPelPos; n++ )
-          {
-            if( n != uiBestHPelPos )
-            {
-              continue;
-            }
-
-            Mv cMvTest = g_acHPSearchMv[n];
-            m_cXDSS.pYSearch = m_apXHPelSearch[n];
-            UInt uiSad = m_cXDSS.Func( &m_cXDSS );
-
-            cMvTest += rcMv;
-            UInt uiCost = xGetCost( cMvTest );
-            uiSad += uiCost;
-
-            if( uiSad < uiBestSad1 )
-            {
-              m_uiBestMode = n;
-              uiBestSad1 = uiSad;
-              cMvBestMatch1 = cMvTest;
-            }
-          }
-
-          rcMv = cMvBestMatch1;
-
-          pPel = pcPelData->getLumBlk();
-          iStride = pcPelData->getLStride();
-          pPel += (cMvBestMatch1.getHor()>>1) + (cMvBestMatch1.getVer()>>1) * iStride;
-
-          m_pcQuarterPelFilter->filterBlock( m_aXQPelSearch, pPel, iStride, uiXSize, uiYSize, g_aucFilter[m_uiBestMode]); //1/4 pel interp
-          m_cXDSS.iYStride = 16;
-
-          //1/4 pel refinement around initial 1/2 pel MV
-          for( n = 1; n < (Int)uiNumQPelPos; n++ )
-          {
-            Mv cMvTest = g_acQPSearchMv[n];
-            m_cXDSS.pYSearch = m_apXQPelSearch[n];
-            UInt uiSad = m_cXDSS.Func( &m_cXDSS );
-
-            cMvTest += rcMv;
-            uiSad += xGetCost( cMvTest );
-
-            if( bQPelOnly && (abs(cIniMv.getHor()-cMvTest.getHor()) > 1 || abs(cIniMv.getVer()-cMvTest.getVer()) > 1) )
-              uiSad = MSYS_UINT_MAX;
-
-            if( uiSad < uiBestSad1 )
-            {
-              m_uiBestMode = n<<4;
-              uiBestSad1 = uiSad;
-              cMvBestMatch1 = cMvTest;
-            }
-          }
-
-          if (uiBestSad1 < uiBestSad)
-          {
-            uiBestSad = uiBestSad1;
-            rcMv = cMvBestMatch1;
-            ruiSAD = uiBestSad;
-          }
-        } // if (dx!=dx0 || dy!=dy0)
-      } // for (int dy=dy0; dy<=dy1; dy+=2)
-    } // for (int dx=dx0; dx<=dx1; dx+=2)
-  }
-//---
-// TMM_ESS }
   return;
 }
 

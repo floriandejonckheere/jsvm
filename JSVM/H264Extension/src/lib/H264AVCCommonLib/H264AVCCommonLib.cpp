@@ -1,10 +1,6 @@
 
 #include "H264AVCCommonLib.h"
 
-H264AVCCOMMONLIB_API UInt g_nSymbolCounter[16] = { 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0 };
-H264AVCCOMMONLIB_API UInt g_nLayer = 0;
-
-
 const ErrVal Err::m_nOK =                (0);
 const ErrVal Err::m_nERR =               (-1);
 const ErrVal Err::m_nEndOfStream =       (-2);

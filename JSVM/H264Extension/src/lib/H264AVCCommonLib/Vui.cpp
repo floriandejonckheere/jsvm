@@ -238,8 +238,8 @@ ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, U
   {
     // we provide only one set of parameters. the following code is pretty hard coded
     rcHrd.setCpbCnt(1);
-    UInt uiExponentBR  = max(6, gGetNumberOfLSBZeros(uiBitRate));
-    UInt uiExponentCpb = max(4, gGetNumberOfLSBZeros(uiCpbSize));
+    UInt uiExponentBR  = gMax(6, gGetNumberOfLSBZeros(uiBitRate));
+    UInt uiExponentCpb = gMax(4, gGetNumberOfLSBZeros(uiCpbSize));
     rcHrd.setBitRateScale(uiExponentBR-6);
     rcHrd.setCpbSizeScale(uiExponentCpb-4);
     rcHrd.init(1);
@@ -297,9 +297,9 @@ ErrVal VUI::init( UInt uiNumTemporalLevels, UInt uiNumFGSLevels )
 
 ErrVal VUI::LayerInfo::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
-  RNOK( pcWriteIf->writeCode( m_uiTemporalId, 3,                       "HRD::temporal_level[i]"));
-  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "HRD::dependency_id[i]"));
-  RNOK( pcWriteIf->writeCode( m_uiQualityId, 4,                        "HRD::quality_level[i]"));
+  RNOK( pcWriteIf->writeCode( m_uiTemporalId, 3,                       "VUI: temporal_level"));
+  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "VUI: dependency_id"));
+  RNOK( pcWriteIf->writeCode( m_uiQualityId, 4,                        "VUI: quality_level"));
   return Err::m_nOK;
 }
 
@@ -339,7 +339,7 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
 ErrVal VUI::writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   ROF( getNumLayers() );
-  RNOK( pcWriteIf->writeUvlc( getNumLayers() - 1,            "SPS: num_layers_nimus1" ) );
+  RNOK( pcWriteIf->writeUvlc( getNumLayers() - 1,            "SPS: num_layers_minus1" ) );
 
   for( UInt uiLayer = 0; uiLayer < getNumLayers(); uiLayer++ )
   {
@@ -414,7 +414,7 @@ ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
 ErrVal VUI::readSVCExtension( HeaderSymbolReadIf *pcReadIf )
 {
   UInt uiNumLayers = 0;
-  RNOK( pcReadIf->getUvlc( uiNumLayers,            "SPS: num_layers_nimus1" ) );
+  RNOK( pcReadIf->getUvlc( uiNumLayers,            "SPS: num_layers_minus1" ) );
   uiNumLayers++;
 
   UInt uiStartIdx = m_acLayerInfo.size();

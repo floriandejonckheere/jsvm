@@ -367,7 +367,7 @@ QualityLevelAssigner::xInitStreamParameters()
         UInt uiLayerId = pcScalSEI->getDependencyId( ui );
         if( abUsed[uiLayerId] )
         { // update information
-          m_auiNumTempLevel [uiLayerId] = max( m_auiNumTempLevel[uiLayerId], pcScalSEI->getTemporalId( ui ) );
+          m_auiNumTempLevel [uiLayerId] = gMax( m_auiNumTempLevel[uiLayerId], pcScalSEI->getTemporalId( ui ) );
           m_auiGOPSize      [uiLayerId] = ( 1 << m_auiNumTempLevel[uiLayerId] );
         }
         else
@@ -602,7 +602,7 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
           Double dDistortionEnhDep   = 0;
           Double dDistortionEnhInd   = 0;
           UInt    uiStartPicNum   = uiTopLayerPicNum - uiTopLayerStepSize2 + 1;
-          UInt    uiEndPicNum     = min( uiTopLayerPicNum + uiTopLayerStepSize2, m_auiNumFrames[uiTopLayer] ) - 1;
+          UInt    uiEndPicNum     = gMin( uiTopLayerPicNum + uiTopLayerStepSize2, m_auiNumFrames[uiTopLayer] ) - 1;
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
             dDistortionBaseDep += xLog( aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
@@ -1452,14 +1452,14 @@ QualityLevelAssigner::xUpdateScalableSEI()
   UInt    auiPr_dependency_id[MAX_LAYERS];
   UInt    auiPr_num_minus1[MAX_LAYERS];
   UInt    aauiPr_id[MAX_LAYERS][MAX_SIZE_PID];
-  Int32   aaiPr_profile_level_idc[MAX_LAYERS][MAX_SIZE_PID];
+  UInt    aaiPr_profile_level_idc[MAX_LAYERS][MAX_SIZE_PID];
   Double  aadPr_avg_bitrate[MAX_LAYERS][MAX_SIZE_PID];
   Double  aadPr_max_bitrate[MAX_LAYERS][MAX_SIZE_PID];
   uiPr_num_dId_minus1 = 0;
   ::memset( auiPr_dependency_id, 0, MAX_LAYERS*sizeof(UInt) );
   ::memset( auiPr_num_minus1, 0, MAX_LAYERS*sizeof(UInt) );
   ::memset( aauiPr_id, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(UInt) );
-  ::memset( aaiPr_profile_level_idc, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Int32) );
+  ::memset( aaiPr_profile_level_idc, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(UInt) );
   ::memset( aadPr_avg_bitrate, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Double) );
   ::memset( aadPr_max_bitrate, 0, MAX_LAYERS*MAX_SIZE_PID*sizeof(Double) );
 

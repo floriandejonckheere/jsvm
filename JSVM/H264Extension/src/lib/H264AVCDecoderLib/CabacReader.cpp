@@ -232,7 +232,7 @@ ErrVal CabacReader::xRefFrame( MbDataAccess& rcMbDataAccess, UInt& ruiRefFrame, 
   }
 
   ruiRefFrame++;
-  DTRACE_T( "RefFrame" );
+  DTRACE_TH( "RefFrame" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE(ruiRefFrame-1);
   DTRACE_N;
@@ -249,7 +249,7 @@ ErrVal CabacReader::xMotionPredFlag(  Bool& bFlag, ListIdx eLstIdx )
 
   bFlag = ( uiCode != 0 );
 
-  DTRACE_T( "MotionPredFlag" );
+  DTRACE_TH( "MotionPredFlag" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiCode );
   DTRACE_N;
@@ -328,7 +328,7 @@ ErrVal CabacReader::blockModes( MbDataAccess& rcMbDataAccess )
       }
     }
 
-    DTRACE_T( "BlockMode" );
+    DTRACE_TH( "BlockMode" );
     DTRACE_TY( "ae(v)" );
     DTRACE_CODE(uiBlockMode);
     DTRACE_N;
@@ -341,8 +341,9 @@ ErrVal CabacReader::blockModes( MbDataAccess& rcMbDataAccess )
 
 
 
-Bool CabacReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
+Bool CabacReader::isMbSkipped( MbDataAccess& rcMbDataAccess, UInt& uiNextSkippedVLC )
 {
+  uiNextSkippedVLC = 0;
   ROTRS( rcMbDataAccess.getSH().isIntraSlice(), false );
   UInt uiSymbol;
 
@@ -360,7 +361,7 @@ Bool CabacReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
 
   ROTRS( 0 == uiSymbol, false );
   m_uiLastDQpNonZero = 0; // no DeltaQP for Skipped Macroblock
-  DTRACE_T( "MbMode" );
+  DTRACE_TH( "MbMode" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( 0 );
   DTRACE_N;
@@ -375,7 +376,7 @@ Bool CabacReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
 
   CabaDecoder::getSymbol( uiSymbol, m_cBLSkipCCModel.get( 0, uiCtx ) );
 
-  DTRACE_T( "BLSkipFlag" );
+  DTRACE_TH( "BLSkipFlag" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiSymbol );
   DTRACE_N;
@@ -393,7 +394,7 @@ ErrVal CabacReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   RNOK( CabaDecoder::getSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
   rcMbDataAccess.getMbData().setResidualPredFlag( (uiSymbol!=0) );
 
-  DTRACE_T( "ResidualPredFlag" );
+  DTRACE_TH( "ResidualPredFlag" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiSymbol );
   DTRACE_N;
@@ -566,7 +567,7 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
     m_uiLastDQpNonZero = 0; // no DQP for IPCM
   }
 
-  DTRACE_T( "MbMode" );
+  DTRACE_TH( "MbMode" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( ( ! rcMbDataAccess.getSH().isIntraSlice()) ? uiMbMode+1:uiMbMode );
   DTRACE_N;
@@ -673,24 +674,24 @@ ErrVal CabacReader::xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cId
   DECRNOK( xGetMvdComponent( sMvdComponent, cMvA.getAbsHor() + cMvB.getAbsHor(), 0 ) );
   rcMv.setHor( sMvdComponent );
 
-  DTRACE_T( "Mvd: x" );
+  DTRACE_TH( "Mvd: x" );
   DTRACE_TY( "ae(v)" );
   DTRACE_V( sMvdComponent );
-  DTRACE_T( " above " );
+  DTRACE_TH( " above " );
   DTRACE_V( cMvA.getHor() );
-  DTRACE_T( " left " );
+  DTRACE_TH( " left " );
   DTRACE_V( cMvB.getHor() );
   DTRACE_N;
 
   DECRNOK( xGetMvdComponent( sMvdComponent, cMvA.getAbsVer() + cMvB.getAbsVer(), 5 ) );
   rcMv.setVer( sMvdComponent );
 
-  DTRACE_T( "Mvd: y" );
+  DTRACE_TH( "Mvd: y" );
   DTRACE_TY( "ae(v)" );
   DTRACE_V( sMvdComponent );
-  DTRACE_T( " above " );
+  DTRACE_TH( " above " );
   DTRACE_V( cMvA.getVer() );
-  DTRACE_T( " left " );
+  DTRACE_TH( " left " );
   DTRACE_V( cMvB.getVer() );
   DTRACE_N;
 
@@ -704,7 +705,7 @@ ErrVal CabacReader::fieldFlag( MbDataAccess& rcMbDataAccess )
 
   rcMbDataAccess.setFieldMode( uiSymbol != 0 );
 
-  DTRACE_T( "FieldFlag:" );
+  DTRACE_TH( "FieldFlag:" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiSymbol );
   DTRACE_N;
@@ -725,7 +726,7 @@ ErrVal CabacReader::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
   }
 
   rcMbDataAccess.getMbData().setChromaPredMode( uiSymbol );
-  DTRACE_T( "IntraPredModeChroma" );
+  DTRACE_TH( "IntraPredModeChroma" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiSymbol );
   DTRACE_N;
@@ -756,7 +757,7 @@ ErrVal CabacReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cId
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
 
-  DTRACE_T( "IntraPredModeLuma" );
+  DTRACE_TH( "IntraPredModeLuma" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( rcMbDataAccess.getMbData().intraPredMode( cIdx ) );
   DTRACE_N;
@@ -821,7 +822,7 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
 
   AOF_DBG( 48 >= uiCbp );
 
-  DTRACE_T( "Cbp" );
+  DTRACE_TH( "Cbp" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( uiCbp );
   DTRACE_N;
@@ -843,7 +844,7 @@ ErrVal CabacReader::residualBlock( MbDataAccess&  rcMbDataAccess,
 
   Bool bCoded;
 
-  DTRACE_T( "LUMA:" );
+  DTRACE_TH( "LUMA:" );
   DTRACE_V( cIdx );
   DTRACE_N;
 
@@ -874,7 +875,7 @@ ErrVal CabacReader::residualBlock( MbDataAccess&  rcMbDataAccess,
 
   Bool bCoded;
 
-  DTRACE_T( eResidualMode == CHROMA_DC ? "CHROMA_DC:" : "CHROMA_AC:" );
+  DTRACE_TH( eResidualMode == CHROMA_DC ? "CHROMA_DC:" : "CHROMA_AC:" );
 
   DTRACE_V( cIdx );
   DTRACE_N;
@@ -914,7 +915,7 @@ ErrVal CabacReader::deltaQp( MbDataAccess& rcMbDataAccess )
     }
   }
 
-  DTRACE_T( "DQp" );
+  DTRACE_TH( "DQp" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE ( iDQp );
   DTRACE_N;
@@ -932,7 +933,7 @@ Bool CabacReader::isEndOfSlice()
   UInt uiEOS;
 
   CabaDecoder::getTerminateBufferBit( uiEOS );
-  DTRACE_T( "EOS" );
+  DTRACE_TH( "EOS" );
   DTRACE_CODE( uiEOS );
   DTRACE_N;
 
@@ -1014,7 +1015,7 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
   {
     if( uiStart == 0 && uiStop > 0 )
     {
-      uiStop = CHROMA_DC == eResidualMode ? 3 : 15;
+      uiStop = ( CHROMA_DC == eResidualMode ? 3 : 15 );
     }
     else
     {
@@ -1027,7 +1028,7 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
     {
       if( uiStop > 1 )
       {
-        uiStart = max( 1, uiStart );
+        uiStart = gMax( 1, uiStart );
       }
       else
       {
@@ -1073,13 +1074,13 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
     UInt uiCoeff = piCoeff[pucScan[ui]];
     if( uiCoeff )
     {
-      UInt uiCtx = min (c1,4);
+      UInt uiCtx = gMin (c1,4);
 
       RNOK( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
 
       if( 1 == uiCoeff )
       {
-        uiCtx = min (c2,4);
+        uiCtx = gMin (c2,4);
         RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
         uiCoeff += 2;
 
@@ -1113,7 +1114,7 @@ ErrVal CabacReader::samplesPCM( MbDataAccess& rcMbDataAccess )
   RNOK( CabaDecoder::finish() );
 
   DTRACE_POS;
-  DTRACE_T( "  PCM SAMPLES: " );
+  DTRACE_TH( "  PCM SAMPLES: " );
 
   AOF_DBG( rcMbDataAccess.getMbData().isPCM() );
 
@@ -1147,7 +1148,7 @@ ErrVal CabacReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess)
 
   rcMbDataAccess.getMbData().setTransformSize8x8( uiSymbol != 0 );
 
-  DTRACE_T( "transformSize8x8Flag:" );
+  DTRACE_TH( "transformSize8x8Flag:" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( rcMbDataAccess.getMbData().isTransformSize8x8() );
   DTRACE_N;
@@ -1177,7 +1178,7 @@ ErrVal CabacReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx 
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
 
-  DTRACE_T( "IntraPredModeLuma" );
+  DTRACE_TH( "IntraPredModeLuma" );
   DTRACE_TY( "ae(v)" );
   DTRACE_CODE( rcMbDataAccess.getMbData().intraPredMode( cIdx ) );
   DTRACE_N;
@@ -1194,7 +1195,7 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
   const Bool bFrame    = ( FRAME == rcMbDataAccess.getMbPicType() );
   const UChar* pucScan = (bFrame) ? g_aucFrameScan64 : g_aucFieldScan64;
 
-  DTRACE_T( "LUMA_8x8:" );
+  DTRACE_TH( "LUMA_8x8:" );
   DTRACE_V( cIdx.b8x8Index() );
   DTRACE_N;
 
@@ -1262,13 +1263,13 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
 
     if( uiCoeff )
     {
-      UInt uiCtx = min (c1,4);
+      UInt uiCtx = gMin (c1,4);
 
       RNOK( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( uiCtxOffset, uiCtx ) ) );
 
       if( 1 == uiCoeff )
       {
-        uiCtx = min (c2,4);
+        uiCtx = gMin (c2,4);
         RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( uiCtxOffset, uiCtx ) ) );
         uiCoeff += 2;
 

@@ -64,11 +64,11 @@ public:
   Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
   UInt          getSliceGroupChangeRateMinus1 () const {return m_uiSliceGroupChangeRateMinus1;}
   UInt          getNumSliceGroupMapUnitsMinus1() const {return m_uiNumSliceGroupMapUnitsMinus1;}
-  UInt          getSliceGroupId(Int i) const {return m_uiSliceGroupId[i];}
+  UInt          getSliceGroupId(Int i) const { AOF(i<(Int)m_uiSliceGroupIdArraySize); return m_pauiSliceGroupId[i];}
   UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
-  UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
+  UInt*         getArraySliceGroupId() const {return m_pauiSliceGroupId;}
   UInt          getSliceGroupChangeCycle() const {return m_uiSliceGroupChangeCycle;}
   UInt          getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(m_uiSliceGroupChangeRateMinus1+1.)+ 1. ))/log(2.) ));};
   //--ICU/ETRI FMO Implementation : FMO stuff end
@@ -76,7 +76,7 @@ public:
 
   Void  setReferencesSubsetSPS                  ( Bool b )                  { m_bReferencesSubsetSPS                    = b; }
   Void  setNalUnitType                          ( NalUnitType e )           { m_eNalUnitType                            = e; }
-  Void  setDependencyId                              ( UInt        ui )          { m_uiDependencyId                               = ui; }
+  Void  setDependencyId                         ( UInt        ui )          { m_uiDependencyId                          = ui; }
   Void  setPicParameterSetId                    ( UInt        ui )          { m_uiPicParameterSetId                     = ui; }
   Void  setSeqParameterSetId                    ( UInt        ui )          { m_uiSeqParameterSetId                     = ui; }
   Void  setEntropyCodingModeFlag                ( Bool        b )           { m_bEntropyCodingModeFlag                  = b; }
@@ -105,7 +105,7 @@ public:
   Void setSliceGroupChangeDirection_flag (Bool         SliceGroupChangeDirection_flag){m_bSliceGroupChangeDirection_flag = SliceGroupChangeDirection_flag;}
   Void setSliceGroupChangeRateMinus1 (UInt         SliceGroupChangeRateMinus1 ){m_uiSliceGroupChangeRateMinus1 = SliceGroupChangeRateMinus1;}
   Void setNumSliceGroupMapUnitsMinus1 (UInt         uiNumSliceGroupMapUnitsMinus1){ m_uiNumSliceGroupMapUnitsMinus1 = uiNumSliceGroupMapUnitsMinus1;}
-  Void setSliceGroupId(UInt         uiSliceGroupId, Int i) {m_uiSliceGroupId[i] = uiSliceGroupId;}
+  Void setSliceGroupId(UInt         uiSliceGroupId, Int i) { AOF(i<(Int)m_uiSliceGroupIdArraySize); m_pauiSliceGroupId[i] = uiSliceGroupId;}
   Void setArrayRunLengthMinus1 (UInt*        uiRunLengthMinus1)
   {
     for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
@@ -121,10 +121,19 @@ public:
     for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
     m_uiBottomRight[i] = uiBottomRight[i];
   }
-  Void setArraySliceGroupId(UInt*         uiSliceGroupId)
+  Void setArraySliceGroupId( UInt* uiSliceGroupId )
   {
-    for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
-    m_uiSliceGroupId[i] = uiSliceGroupId[i];
+    ROFVS( uiSliceGroupId );
+    if( m_uiSliceGroupIdArraySize <= getNumSliceGroupMapUnitsMinus1() )
+    {
+      delete [] m_pauiSliceGroupId;
+      m_uiSliceGroupIdArraySize = getNumSliceGroupMapUnitsMinus1() + 1;
+      m_pauiSliceGroupId        = new UInt [m_uiSliceGroupIdArraySize];
+    }
+    for( UInt i=0; i<=getNumSliceGroupMapUnitsMinus1(); i++)
+    {
+      m_pauiSliceGroupId[i] = uiSliceGroupId[i];
+    }
   }
   Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;}
   //--ICU/ETRI FMO Implementation : FMO stuff end
@@ -152,11 +161,12 @@ protected:
   UInt          m_uiRunLengthMinus1[MAXNumSliceGroupsMinus1];
   UInt          m_uiTopLeft[MAXNumSliceGroupsMinus1];
   UInt          m_uiBottomRight[MAXNumSliceGroupsMinus1];
-  Bool      m_bSliceGroupChangeDirection_flag;
-  UInt      m_uiSliceGroupChangeRateMinus1;
-  UInt      m_uiNumSliceGroupMapUnitsMinus1;
-  UInt          m_uiSliceGroupId[MAXNumSliceGroupsMinus1];
+  Bool          m_bSliceGroupChangeDirection_flag;
+  UInt          m_uiSliceGroupChangeRateMinus1;
+  UInt          m_uiNumSliceGroupMapUnitsMinus1;
   UInt          m_uiSliceGroupChangeCycle;
+  UInt          m_uiSliceGroupIdArraySize;
+  UInt*         m_pauiSliceGroupId;
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
   UInt          m_auiNumRefIdxActive[2];

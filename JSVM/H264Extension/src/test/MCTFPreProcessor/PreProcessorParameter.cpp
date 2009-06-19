@@ -164,7 +164,7 @@ PreProcessorParameter::xPrintUsage( Char** argv )
   printf("  -h   Height  - frame height in luma samples (multiple of 16)\n");
   printf("  -f   frms    - number of frames to be processed (>1)\n");
   printf("  -i   Input   - input sequence\n");
-  printf("  -i   Output  - output sequence\n");
+  printf("  -o   Output  - output sequence\n");
   printf("  -gop GOPSize - GOP size for MCTF (2,4,8,16,32,64, default: 16)\n");
   printf("  -qp  QP      - QP for motion estimation and mode decision\n"
          "                 (>0, default: 26)\n\n");

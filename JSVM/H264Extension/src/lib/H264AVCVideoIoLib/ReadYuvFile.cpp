@@ -86,7 +86,7 @@ ErrVal ReadYuvFile::xReadPlane( UChar *pucDest, UInt uiBufHeight, UInt uiBufWidt
   }
 
 
-  UInt uiEnd = min (uiPicHeight, uiEndLine);
+  UInt uiEnd = gMin (uiPicHeight, uiEndLine);
 
   for( UInt yR = uiStartLine; yR < uiEnd; yR++ )
   {

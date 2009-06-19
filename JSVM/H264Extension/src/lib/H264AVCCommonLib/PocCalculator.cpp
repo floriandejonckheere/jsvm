@@ -229,7 +229,7 @@ PocCalculator::resetMMCO5( SliceHeader& rcSliceHeader )
   PicType ePicType    = rcSliceHeader.getPicType();
   Int     iTempPOC    = ( ePicType == TOP_FIELD ? rcSliceHeader.getTopFieldPoc() :
                           ePicType == BOT_FIELD ? rcSliceHeader.getBotFieldPoc() :
-                          min( rcSliceHeader.getTopFieldPoc(), rcSliceHeader.getBotFieldPoc() ) );
+                          gMin( rcSliceHeader.getTopFieldPoc(), rcSliceHeader.getBotFieldPoc() ) );
   Int     iTopFldPoc  = rcSliceHeader.getTopFieldPoc() - iTempPOC;
   Int     iBotFldPoc  = rcSliceHeader.getBotFieldPoc() - iTempPOC;
   m_iPrevRefPocMsb    = 0;

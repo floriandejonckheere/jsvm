@@ -55,8 +55,7 @@ public:
   ErrVal initSlice0           ( SliceHeader*                rcSH);
   ErrVal initSPS              ( SequenceParameterSet&       rcSequenceParameterSet, UInt  uiLayer );
   ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
-                                const PictureParameterSet&  rcPPSLP,
-                                const PictureParameterSet&  rcPPSHP  )    { return Err::m_nERR; }
+                                const PictureParameterSet&  rcPPS )    { return Err::m_nERR; }
 
   ErrVal initSliceForCoding   ( const SliceHeader& rcSH ) { return Err::m_nERR; }
   ErrVal initSliceForReading  ( const SliceHeader& rcSH );

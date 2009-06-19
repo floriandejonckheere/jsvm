@@ -80,8 +80,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 142,
-            		        psnr => 30.34,
+            		        bitrate => 141,
+            		        psnr => 30.30,
             		      },
             		      #----------#
                       # Test   1 #
@@ -93,7 +93,7 @@
             		        height => 288,
             		        framerate => 30,
             		        bitrate => 475,
-            		        psnr => 27.24,
+            		        psnr => 27.23,
             		      },
     		              #----------#
 			# Test   2 #
@@ -104,8 +104,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 30,
-            		        bitrate => 747,
-            		        psnr => 29.22,
+            		        bitrate => 741,
+            		        psnr => 29.12,
             		        encdecmatch => 1,
             		      },
     		              #----------#
@@ -117,7 +117,7 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 329,
+            		        bitrate => 330,
             		        psnr => 34.17,
             		        encdecmatch => 1,
             		      },
@@ -130,8 +130,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 276,
-            		        psnr => 32.89,
+            		        bitrate => 274,
+            		        psnr => 32.82,
             		      },
     		              #----------#
 			# Test   5 #
@@ -142,8 +142,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 30,
-            		        bitrate => 645,
-            		        psnr => 28.38,
+            		        bitrate => 644,
+            		        psnr => 28.34,
             		      },
     		              #----------#
 		  ],

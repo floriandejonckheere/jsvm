@@ -336,13 +336,13 @@ SliceHeader::getPicType() const
 Int
 SliceHeader::getPoc() const
 {
-  return ( getFieldPicFlag() ? ( getBottomFieldFlag() ? m_iBotFieldPoc : m_iTopFieldPoc ) : min( m_iTopFieldPoc, m_iBotFieldPoc ) );
+  return ( getFieldPicFlag() ? ( getBottomFieldFlag() ? m_iBotFieldPoc : m_iTopFieldPoc ) : gMin( m_iTopFieldPoc, m_iBotFieldPoc ) );
 }
 
 Int
 SliceHeader::getPoc( PicType ePicType ) const
 {
-  return ( ePicType == FRAME ? min( m_iTopFieldPoc, m_iBotFieldPoc ) : ePicType == BOT_FIELD ? m_iBotFieldPoc : m_iTopFieldPoc );
+  return ( ePicType == FRAME ? gMin( m_iTopFieldPoc, m_iBotFieldPoc ) : ePicType == BOT_FIELD ? m_iBotFieldPoc : m_iTopFieldPoc );
 }
 
 Void

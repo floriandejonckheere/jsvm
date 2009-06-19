@@ -20,7 +20,6 @@ class Scheduler
   class TimingUnit
   {
   public:
-
     Int64   m_iDataLength; // in Bytes
     Int64   m_iBitRate;    // in Bits
     Double  m_dInitialArrivalEarliest;
@@ -55,8 +54,6 @@ public:
   ErrVal initBuffer( const VUI* pcVui, UInt uiLayerIndex);
   ErrVal uninit();
 
-  Void setInitialOutputDelay( UInt uiInitialOutputDelay )  { m_uiInitialOutputDelay = uiInitialOutputDelay;}
-
   Void setLayerBits( UInt uiBits ) { m_uiLayerBits = uiBits; }
   UInt getLayerBits()              { return m_uiLayerBits; }
 protected:
@@ -71,7 +68,6 @@ protected:
   Double  m_dActualOutTime;
   Double  m_dActualInTime;
   Double  m_dLastBPTime;
-  UInt    m_uiInitialOutputDelay;
 
   StatBuf< DynBuf< TimingUnit >,2 >  m_aacTiming;
   const HRD* m_apcHrd[2];

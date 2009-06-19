@@ -26,7 +26,7 @@ YuvMbBuffer::setZero()
   ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) );
 }
 
-Void YuvMbBuffer::loadIntraPredictors( YuvPicBuffer* pcSrcBuffer )
+Void YuvMbBuffer::loadIntraPredictors( const YuvPicBuffer* pcSrcBuffer )
 {
   Int y;
 
@@ -84,7 +84,7 @@ Void YuvMbBuffer::loadIntraPredictors( YuvPicBuffer* pcSrcBuffer )
 }
 
 
-Void YuvMbBuffer::loadBuffer( YuvPicBuffer* pcSrcBuffer )
+Void YuvMbBuffer::loadBuffer( const YuvPicBuffer* pcSrcBuffer )
 {
   Int   y;
   XPel* pSrc;
@@ -129,12 +129,12 @@ Void YuvMbBuffer::loadBuffer( YuvPicBuffer* pcSrcBuffer )
 
 
 Void
-YuvMbBuffer::add( YuvMbBuffer& rcIntYuvMbBuffer )
+YuvMbBuffer::add( const YuvMbBuffer& rcIntYuvMbBuffer )
 {
-  Int   y, x;
-  Int   iStride = getLStride  ();
-  XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
-  XPel* pDes    = getMbLumAddr();
+  Int         y, x;
+  Int         iStride = getLStride  ();
+  const XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
+  XPel*       pDes    = getMbLumAddr();
 
   for( y = 0; y < 16; y++ )
   {
@@ -165,6 +165,104 @@ YuvMbBuffer::add( YuvMbBuffer& rcIntYuvMbBuffer )
   }
 }
 
+Void
+YuvMbBuffer::addRes( const YuvMbBuffer& rcIntYuvMbBuffer )
+{
+  Int         y, x;
+  Int         iStride = getLStride  ();
+  const XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
+  XPel*       pDes    = getMbLumAddr();
+
+  for( y = 0; y < 16; y++ )
+  {
+    for( x = 0; x < 16; x++ )
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClipMinMax( pDes[x], -255, 255 );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+
+  iStride = getCStride  ();
+  pSrc    = rcIntYuvMbBuffer.getMbCbAddr ();
+  pDes    = getMbCbAddr ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8;  x++ )
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClipMinMax( pDes[x], -255, 255 );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+
+  pSrc    = rcIntYuvMbBuffer.getMbCrAddr ();
+  pDes    = getMbCrAddr ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8;  x++ )
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClipMinMax( pDes[x], -255, 255 );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+}
+
+
+Void
+YuvMbBuffer::addClip( const YuvMbBuffer& rcIntYuvMbBuffer )
+{
+  Int         y, x;
+  Int         iStride = getLStride  ();
+  const XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
+  XPel*       pDes    = getMbLumAddr();
+
+  for( y = 0; y < 16; y++ )
+  {
+    for( x = 0; x < 16; x++ )
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClip( pDes[x] );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+
+  iStride = getCStride  ();
+  pSrc    = rcIntYuvMbBuffer.getMbCbAddr ();
+  pDes    = getMbCbAddr ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8;  x++ )
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClip( pDes[x] );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+
+  pSrc    = rcIntYuvMbBuffer.getMbCrAddr ();
+  pDes    = getMbCrAddr ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8;  x++ ) 
+    {
+      pDes[x] += pSrc[x];
+      pDes[x]  = gClip( pDes[x] );
+    }
+    pDes += iStride;
+    pSrc += iStride;
+  }
+}
 
 
 Void
@@ -251,12 +349,12 @@ YuvMbBuffer::isZero()
 }
 
 Void
-YuvMbBuffer::subtract( YuvMbBuffer& rcIntYuvMbBuffer )
+YuvMbBuffer::subtract( const YuvMbBuffer& rcIntYuvMbBuffer )
 {
-  Int   y, x;
-  Int   iStride = getLStride  ();
-  XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
-  XPel* pDes    = getMbLumAddr();
+  Int         y, x;
+  Int         iStride = getLStride  ();
+  const XPel* pSrc    = rcIntYuvMbBuffer.getMbLumAddr();
+  XPel*       pDes    = getMbLumAddr();
 
   for( y = 0; y < 16; y++ )
   {
@@ -293,12 +391,12 @@ YuvMbBuffer::subtract( YuvMbBuffer& rcIntYuvMbBuffer )
 
 
 
-Void YuvMbBuffer::loadChroma( YuvMbBuffer& rcSrcBuffer )
+Void YuvMbBuffer::loadChroma( const YuvMbBuffer& rcSrcBuffer )
 {
-  const Int iStride = getCStride();
-  XPel*     pDes    = getMbCbAddr();
-  XPel*     pSrc    = rcSrcBuffer.getMbCbAddr();
-  Int       y;
+  const Int   iStride = getCStride();
+  XPel*       pDes    = getMbCbAddr();
+  const XPel* pSrc    = rcSrcBuffer.getMbCbAddr();
+  Int         y;
 
   for( y = 0; y < 8; y++ )
   {
@@ -319,11 +417,11 @@ Void YuvMbBuffer::loadChroma( YuvMbBuffer& rcSrcBuffer )
 }
 
 
-Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, LumaIdx c4x4Idx )
+Void YuvMbBuffer::loadLuma( const YuvMbBuffer& rcSrcBuffer, LumaIdx c4x4Idx )
 {
-  const Int iStride = getLStride();
-  XPel*     pDes    = getYBlk( c4x4Idx );
-  XPel*     pSrc    = rcSrcBuffer.getYBlk( c4x4Idx );
+  const Int   iStride = getLStride();
+  XPel*       pDes    = getYBlk( c4x4Idx );
+  const XPel* pSrc    = rcSrcBuffer.getYBlk( c4x4Idx );
 
   for( Int y = 0; y < 4; y++ )
   {
@@ -334,11 +432,11 @@ Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, LumaIdx c4x4Idx )
 }
 
 
-Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, B8x8Idx c8x8Idx )
+Void YuvMbBuffer::loadLuma( const YuvMbBuffer& rcSrcBuffer, B8x8Idx c8x8Idx )
 {
-  const Int iStride = getLStride();
-  XPel*     pDes = getYBlk( c8x8Idx );
-  XPel*     pSrc = rcSrcBuffer.getYBlk( c8x8Idx );
+  const Int   iStride = getLStride();
+  XPel*       pDes    = getYBlk( c8x8Idx );
+  const XPel* pSrc    = rcSrcBuffer.getYBlk( c8x8Idx );
 
   for( Int y = 0; y < 8; y++ )
   {
@@ -349,11 +447,11 @@ Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer, B8x8Idx c8x8Idx )
 }
 
 
-Void YuvMbBuffer::loadLuma( YuvMbBuffer& rcSrcBuffer )
+Void YuvMbBuffer::loadLuma( const YuvMbBuffer& rcSrcBuffer )
 {
-  const Int iStride = getLStride();
-  XPel*     pDes = getMbLumAddr();
-  XPel*     pSrc = rcSrcBuffer.getMbLumAddr();
+  const Int   iStride = getLStride();
+  XPel*       pDes    = getMbLumAddr();
+  const XPel* pSrc    = rcSrcBuffer.getMbLumAddr();
 
   for( Int y = 0; y < 16; y++ )
   {
@@ -394,7 +492,7 @@ Void YuvMbBuffer::setAllSamplesToZero()
   }
 }
 
-Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer, Int iMbXOffset, Int iMbYOffset )
+Void YuvMbBufferExtension::loadSurrounding( const YuvPicBuffer* pcSrcBuffer, Int iMbXOffset, Int iMbYOffset )
 {
   Int x, y;
   Int iDesStride = getLStride();
@@ -460,7 +558,7 @@ Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer, Int iMbXO
 }
 
 //TMM_INTERLACE {
-Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset, Int iMbYOffset )
+Void YuvMbBufferExtension::loadSurrounding_MbAff( const YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset, Int iMbYOffset )
 {
   Int   x, y;
   Bool  bTopIntra     = ( ( uiMask & 0x020 ) != 0 );

@@ -80,9 +80,6 @@ public:
                    PicBufferList*           apcPicBufferUnusedList,
                    UInt&                    ruiNumCodedFrames,
                    Double&                  rdHighestLayerOutputRate );
-// JVT-T073 {
-  ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
-// JVT-T073 }
   Bool getScalableSeiMessage ( void );
 	Void SetVeryFirstCall ( void );
   // JVT-S080 LMI {
@@ -92,10 +89,7 @@ public:
   // JVT-S080 LMI }
   // JVT-W043
   CodingParameter*  getCodingParameter( void );
-  //JVT-W062 {
-  ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
-  UInt getIdrPicId( void );
-  //JVT-W062 }
+
 protected:
   ErrVal xCreateEncoder();
 

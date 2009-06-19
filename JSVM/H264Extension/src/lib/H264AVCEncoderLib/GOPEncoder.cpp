@@ -40,8 +40,7 @@ H264AVC_NAMESPACE_BEGIN
 LayerEncoder::LayerEncoder()
 //----- references -----
 : m_pcSPS                           ( 0 )
-, m_pcPPSLP                         ( 0 )
-, m_pcPPSHP                         ( 0 )
+, m_pcPPS                           ( 0 )
 , m_pcYuvFullPelBufferCtrl          ( 0 )
 , m_pcYuvHalfPelBufferCtrl          ( 0 )
 , m_pcPocCalculator                 ( 0 )
@@ -69,18 +68,20 @@ LayerEncoder::LayerEncoder()
 , m_uiLowPassIntraPeriod            ( 0 )
 , m_uiNumMaxIter                    ( 0 )
 , m_uiIterSearchRange               ( 0 )
-, m_iMaxDeltaQp                     ( 0 )
+, m_uiMaxDeltaQp                    ( 0 )
 , m_bH264AVCCompatible              ( true  )
 , m_bInterLayerPrediction           ( true  )
-, m_bAdaptivePrediction             ( true  )
+, m_bAdaptiveBaseModeFlag           ( true  )
+, m_bAdaptiveMotionPredFlag         ( true  )
+, m_bAdaptiveResidualPredFlag       ( true  )
+, m_bDefaultBaseModeFlag            ( false )
+, m_bDefaultMotionPredFlag          ( false )
+, m_bDefaultResidualPredFlag        ( false )
 , m_bWriteSubSequenceSei            ( false )
 , m_dBaseQPResidual                 ( 0.0 )
 , m_uiFilterIdc                     ( 0 )
 , m_iAlphaOffset                    ( 0 )
 , m_iBetaOffset                     ( 0 )
-, m_bLoadMotionInfo                 ( false )
-, m_bSaveMotionInfo                 ( false )
-, m_pMotionInfoFile                 ( 0 )
 //----- variable control parameters -----
 , m_bInitDone                       ( false )
 , m_bFirstGOPCoded                  ( false )
@@ -123,7 +124,8 @@ LayerEncoder::LayerEncoder()
 , m_uiMVThres												( 20 )
 , m_uiNonRequiredWrite				      ( 0 )  //NonRequired JVT-Q066 (06-04-08)
 , m_uiPreAndSuffixUnitEnable				      ( 0 ) //JVT-S036 lsj
-, m_uiMMCOBaseEnable						    ( 0 ) //JVT-S036 lsj
+, m_bMMCOBaseEnable						      ( true ) //JVT-S036 lsj
+, m_bMMCOEnable                     ( true )
 // JVT-S054 (ADD) ->
 , m_puiFirstMbInSlice               ( 0 )
 // JVT-S054 (ADD) <-
@@ -152,7 +154,6 @@ LayerEncoder::LayerEncoder()
 , m_uiMGSKeyPictureControl( 0 )
 , m_bHighestMGSLayer( false )
 , m_pcRedundantCtrl (0)//RPIC bug fix
-, m_pcRedundant1Ctrl (0)//RPIC bug fix
 , m_uiLastCodedFrameIdInGOP ( MSYS_UINT_MAX )
 , m_uiLastCodedTemporalId   ( MSYS_UINT_MAX )
 , m_bBotFieldFirst          ( false )
@@ -258,8 +259,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
 
   //----- references -----
   m_pcSPS                   = 0;
-  m_pcPPSLP                 = 0;
-  m_pcPPSHP                 = 0;
+  m_pcPPS                   = 0;
   m_pcYuvFullPelBufferCtrl  = pcYuvFullPelBufferCtrl;
   m_pcYuvHalfPelBufferCtrl  = pcYuvHalfPelBufferCtrl;
   m_pcPocCalculator         = pcPocCalculator;
@@ -272,6 +272,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   //JVT-U106 Behaviour at slice boundaries{
   m_pcReconstructionBypass  = pcReconstructionBypass;
   //JVT-U106 Behaviour at slice boundaries}
+  m_pcCodingParameter       = pcCodingParameter;
   m_pcLayerParameters       = pcLayerParameters;
 
   //----- fixed control parameters -----
@@ -302,57 +303,62 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
 	m_uiEssRPChkEnable = pcCodingParameter->getEssRPChkEnable();
 	m_uiMVThres = pcCodingParameter->getMVThres();
 
-  m_uiDecompositionStages   = pcLayerParameters->getDecompositionStages     ();
-  m_uiTemporalResolution    = pcLayerParameters->getTemporalResolution      ();
-  m_uiNotCodedStages        = pcLayerParameters->getNotCodedStages          ();
-  m_uiFrameDelay            = pcLayerParameters->getFrameDelay              ();
-  m_uiMaxNumRefFrames       = pcCodingParameter->getNumRefFrames            ();
-  m_uiLowPassIntraPeriod    = pcCodingParameter->getIntraPeriodLowPass      ();
-  m_uiNumMaxIter            = pcCodingParameter->getMotionVectorSearchParams().getNumMaxIter      ();
-  m_uiIterSearchRange       = pcCodingParameter->getMotionVectorSearchParams().getIterSearchRange ();
-  m_iMaxDeltaQp             = pcLayerParameters->getMaxAbsDeltaQP           ();
-  m_bH264AVCCompatible      = m_uiDependencyId == 0; //bug-fix suffix
-  m_bInterLayerPrediction   = pcLayerParameters->getInterLayerPredictionMode()  > 0;
-  m_bAdaptivePrediction     = pcLayerParameters->getInterLayerPredictionMode()  > 1;
-  m_bBiPred8x8Disable       = pcLayerParameters->getBiPred8x8Disable() > 0;
-  m_bMCBlks8x8Disable       = pcLayerParameters->getMCBlks8x8Disable() > 0;
-  m_bBotFieldFirst          = pcLayerParameters->getBotFieldFirst() > 0;
-  m_bUseLongTermPics        = pcLayerParameters->getUseLongTerm() > 0;
-  m_iMaxLongTermFrmIdx      = -1;
-  m_uiNextTL0LongTermIdx    = 0;
+  m_uiDecompositionStages     = pcLayerParameters->getDecompositionStages     ();
+  m_uiTemporalResolution      = pcLayerParameters->getTemporalResolution      ();
+  m_uiNotCodedStages          = pcLayerParameters->getNotCodedStages          ();
+  m_uiFrameDelay              = pcLayerParameters->getFrameDelay              ();
+  m_uiMaxNumRefFrames         = pcCodingParameter->getNumRefFrames            ();
+  m_uiLowPassIntraPeriod      = pcCodingParameter->getIntraPeriodLowPass      ();
+  m_uiNumMaxIter              = pcCodingParameter->getMotionVectorSearchParams().getNumMaxIter      ();
+  m_uiIterSearchRange         = pcCodingParameter->getMotionVectorSearchParams().getIterSearchRange ();
+  m_uiMaxDeltaQp              = pcLayerParameters->getMaxAbsDeltaQP           ();
+  m_bH264AVCCompatible        = m_uiDependencyId == 0; //bug-fix suffix
+  m_bInterLayerPrediction     = pcLayerParameters->getInterLayerPredictionMode()  > 0;
+  m_bAdaptiveBaseModeFlag     = pcLayerParameters->getILPredMode              ()  > 1;
+  m_bAdaptiveMotionPredFlag   = pcLayerParameters->getILPredMotion            ()  > 1;
+  m_bAdaptiveResidualPredFlag = pcLayerParameters->getILPredResidual          ()  > 1;
+  m_bDefaultBaseModeFlag      = pcLayerParameters->getILPredMode              () == 1;
+  m_bDefaultMotionPredFlag    = pcLayerParameters->getILPredMotion            () == 1;
+  m_bDefaultResidualPredFlag  = pcLayerParameters->getILPredResidual          () == 1;
+  m_bBiPred8x8Disable         = pcLayerParameters->getBiPred8x8Disable() > 0;
+  m_bMCBlks8x8Disable         = pcLayerParameters->getMCBlks8x8Disable() > 0;
+  m_bBotFieldFirst            = pcLayerParameters->getBotFieldFirst() > 0;
+  m_bUseLongTermPics          = pcLayerParameters->getUseLongTerm() > 0;
+  m_iMaxLongTermFrmIdx        = -1;
+  m_uiNextTL0LongTermIdx      = 0;
   if( m_bUseLongTermPics )
   {
-    m_iMaxLongTermFrmIdx    = m_uiDecompositionStages - m_uiNotCodedStages + ( pcLayerParameters->getPAff() ? 1 : 0 );
+    m_iMaxLongTermFrmIdx      = m_uiDecompositionStages - m_uiNotCodedStages + ( pcLayerParameters->getPAff() ? 1 : 0 );
   }
-  m_uiPicCodingType         = pcLayerParameters->getPicCodingType();
-  m_bForceReOrderingCommands= pcLayerParameters->getForceReorderingCommands ()  > 0;
-  m_bWriteSubSequenceSei    = pcCodingParameter->getBaseLayerMode           ()  > 1 && m_uiDependencyId == 0;
+  m_uiPicCodingType           = pcLayerParameters->getPicCodingType();
+  m_bForceReOrderingCommands  = pcLayerParameters->getForceReorderingCommands ()  > 0;
+  m_bWriteSubSequenceSei      = pcCodingParameter->getBaseLayerMode           ()  > 1 && m_uiDependencyId == 0;
 
-  m_bSameResBL              = ( m_uiBaseLayerId != MSYS_UINT_MAX &&
-                                pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameWidthInSamples () == pcLayerParameters->getFrameWidthInSamples () &&
-                                pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameHeightInSamples() == pcLayerParameters->getFrameHeightInSamples() &&
-                                pcLayerParameters->getResizeParameters().m_iExtendedSpatialScalability == ESS_NONE );
+  m_bSameResBL                = ( m_uiBaseLayerId != MSYS_UINT_MAX &&
+                                  pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameWidthInSamples () == pcLayerParameters->getFrameWidthInSamples () &&
+                                  pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameHeightInSamples() == pcLayerParameters->getFrameHeightInSamples() &&
+                                  pcLayerParameters->getResizeParameters().m_iExtendedSpatialScalability == ESS_NONE );
 
-  m_bSameResEL              = false;
+  m_bSameResEL                = false;
   {
     UInt uiLId;
     for( uiLId = m_uiDependencyId + 1; uiLId < pcCodingParameter->getNumberOfLayers() && ! m_bSameResEL; uiLId++ )
     {
-      LayerParameters& rcEL = pcCodingParameter->getLayerParameters( uiLId );
+      LayerParameters& rcEL   = pcCodingParameter->getLayerParameters( uiLId );
       if( rcEL.getBaseLayerId() == m_uiDependencyId )
       {
-        m_bSameResEL        = ( pcLayerParameters->getFrameWidthInSamples () == rcEL.getFrameWidthInSamples () &&
-                                pcLayerParameters->getFrameHeightInSamples() == rcEL.getFrameHeightInSamples() &&
-                                rcEL.getResizeParameters().m_iExtendedSpatialScalability == ESS_NONE );
+        m_bSameResEL          = ( pcLayerParameters->getFrameWidthInSamples () == rcEL.getFrameWidthInSamples () &&
+                                  pcLayerParameters->getFrameHeightInSamples() == rcEL.getFrameHeightInSamples() &&
+                                  rcEL.getResizeParameters().m_iExtendedSpatialScalability == ESS_NONE );
       }
     }
   }
-  m_bMGS                    = pcCodingParameter->getCGSSNRRefinement    () == 1 && ( m_bSameResBL || m_bSameResEL );
-  m_uiEncodeKeyPictures     = ( pcLayerParameters->isIntraOnly() ? 0 : pcCodingParameter->getEncodeKeyPictures() );
-  m_uiMGSKeyPictureControl  = pcCodingParameter->getMGSKeyPictureControl();
-  m_bHighestMGSLayer        = m_bMGS && !m_bSameResEL;
-  m_uiLastCodedFrameIdInGOP = MSYS_UINT_MAX;
-  m_uiLastCodedTemporalId   = MSYS_UINT_MAX;
+  m_bMGS                      = pcCodingParameter->getCGSSNRRefinement    () == 1 && ( m_bSameResBL || m_bSameResEL );
+  m_uiEncodeKeyPictures       = ( pcLayerParameters->isIntraOnly() ? 0 : pcCodingParameter->getEncodeKeyPictures() );
+  m_uiMGSKeyPictureControl    = pcCodingParameter->getMGSKeyPictureControl();
+  m_bHighestMGSLayer          = m_bMGS && !m_bSameResEL;
+  m_uiLastCodedFrameIdInGOP   = MSYS_UINT_MAX;
+  m_uiLastCodedTemporalId     = MSYS_UINT_MAX;
 
   RNOK( xInitCodingOrder( m_uiDecompositionStages, m_uiTemporalResolution, m_uiFrameDelay ) );
   for( UInt uiTId = 0; uiTId <= MAX_DSTAGES; uiTId++ )
@@ -396,12 +402,13 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
     }
     m_pcSliceEncoder->getMbEncoder()->setRatio(dRatio);
     m_pcSliceEncoder->getMbEncoder()->setPLR(auiPLR);
-    pcLayerParameters->setContrainedIntraForLP();
+    pcLayerParameters->setContrainedIntraPred();
   }
   //JVT-R057 LA-RDO}
 
-  m_uiPreAndSuffixUnitEnable = pcCodingParameter->getPreAndSuffixUnitEnable();//JVT-S036 lsj
-  m_uiMMCOBaseEnable   = pcCodingParameter->getMMCOBaseEnable();  //JVT-S036 lsj
+  m_uiPreAndSuffixUnitEnable  = pcCodingParameter->getPreAndSuffixUnitEnable();//JVT-S036 lsj
+  m_bMMCOBaseEnable           = pcLayerParameters->getMMCOBaseEnable() > 0;  //JVT-S036 lsj
+  m_bMMCOEnable               = pcLayerParameters->getMMCOEnable    () > 0;  //JVT-S036 lsj
 
   // TMM_ESS
   m_pcResizeParameters  = &pcLayerParameters->getResizeParameters();
@@ -429,30 +436,6 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiInterLayerFilterIdc   = pcCodingParameter->getInterLayerLoopFilterParams().getFilterIdc       ();
   m_iInterLayerAlphaOffset  = pcCodingParameter->getInterLayerLoopFilterParams().getAlphaOffset     ();
   m_iInterLayerBetaOffset   = pcCodingParameter->getInterLayerLoopFilterParams().getBetaOffset      ();
-
-  m_bLoadMotionInfo         = pcLayerParameters->getMotionInfoMode            () == 1;
-  m_bSaveMotionInfo         = pcLayerParameters->getMotionInfoMode            () == 2;
-  m_pMotionInfoFile         = 0;
-
-  if( m_bLoadMotionInfo )
-  {
-    m_pMotionInfoFile = ::fopen( pcLayerParameters->getMotionInfoFilename().c_str(), "rb" );
-    if( ! m_pMotionInfoFile )
-    {
-      fprintf( stderr, "\nCANNOT OPEN MOTION INFO FILE \"%s\"\n\n", pcLayerParameters->getMotionInfoFilename().c_str() );
-      return Err::m_nERR;
-    }
-  }
-  else if( m_bSaveMotionInfo )
-  {
-    m_pMotionInfoFile = ::fopen( pcLayerParameters->getMotionInfoFilename().c_str(), "wb" );
-    if( ! m_pMotionInfoFile )
-    {
-      fprintf( stderr, "\nCANNOT OPEN MOTION INFO FILE \"%s\"\n\n", pcLayerParameters->getMotionInfoFilename().c_str() );
-      return Err::m_nERR;
-    }
-  }
-
 
   //----- PSNR and rate -----
   m_fOutputFrameRate          = pcLayerParameters->getOutputFrameRate();
@@ -482,10 +465,17 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiTotalFrame	= pcCodingParameter->getTotalFrames();
   m_uiAnaSIP		= pcLayerParameters->getAnaSIP();
   m_cOutSIPFileName	= pcLayerParameters->getOutSIPFileName();
-  if(m_uiAnaSIP==1)
-    m_bInterLayerPrediction=true;
-  if(m_uiAnaSIP==2)
-    m_bInterLayerPrediction=m_bAdaptivePrediction=false;
+  if( m_uiAnaSIP == 1 )
+  {
+    m_bInterLayerPrediction = true;
+  }
+  if( m_uiAnaSIP == 2 )
+  {
+    m_bInterLayerPrediction     = false;
+    m_bAdaptiveBaseModeFlag     = m_bDefaultBaseModeFlag     = false;
+    m_bAdaptiveMotionPredFlag   = m_bDefaultMotionPredFlag   = false;
+    m_bAdaptiveResidualPredFlag = m_bDefaultResidualPredFlag = false;
+  }
 
   if(pcCodingParameter->getNumberOfLayers() > m_uiDependencyId+1)
   {
@@ -546,7 +536,7 @@ LayerEncoder::xInitCodingOrder( UInt uiDecompositionStages, UInt uiTemporalSubSa
   UInt        auiRequiredFId [ uiMaxSize ];
   Bool        abIndexAssigned[ uiMaxSize ];
   //===== restrict input delay and determine period parameters =====
-  uiMaxFrameDelay = min( uiMaxFrameDelay, uiMaxGOPSize - 1 );
+  uiMaxFrameDelay = gMin( uiMaxFrameDelay, uiMaxGOPSize - 1 );
   UInt uiPeriod   = 0;
   for( uiPeriod   = 1; uiMaxFrameDelay >= uiPeriod; uiPeriod <<= 1 );
   UInt uiP0Size   = uiPeriod - ( uiMaxFrameDelay + 1 );
@@ -651,13 +641,11 @@ LayerEncoder::xInitCodingOrder( UInt uiDecompositionStages, UInt uiTemporalSubSa
 
 ErrVal
 LayerEncoder::initParameterSets( const SequenceParameterSet& rcSPS,
-                                const PictureParameterSet&  rcPPSLP,
-                                const PictureParameterSet&  rcPPSHP )
+                                 const PictureParameterSet&  rcPPS )
 {
   //===== set references =====
   m_pcSPS                 = &rcSPS;
-  m_pcPPSLP               = &rcPPSLP;
-  m_pcPPSHP               = &rcPPSHP;
+  m_pcPPS                 = &rcPPS;
 
   //===== get and set relevant parameters =====
   m_bFrameMbsOnlyFlag     = rcSPS.getFrameMbsOnlyFlag ();
@@ -752,14 +740,13 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (       pcMbDataCtrl                ->init            ( rcSPS ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrl ) );
 
-    Bool          bLowPass                    = ( ( uiIndex % ( 1 << m_uiDecompositionStages ) ) == 0 );
     SliceHeader*  pcSliceHeader               = 0;
-    ROFS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
+    ROFS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, *m_pcPPS ) ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader, FRAME ) );
 
     if( m_pcLayerParameters->getPAff() )
     {
-      ROFRS ( (   pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ), Err::m_nERR );
+      ROFRS ( (   pcSliceHeader               = new SliceHeader ( *m_pcSPS, *m_pcPPS ) ), Err::m_nERR );
       RNOK  (     m_pacControlData[ uiIndex ] . setSliceHeader  ( pcSliceHeader, BOT_FIELD ) );
     }
   }
@@ -773,8 +760,6 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
 //RPIC bug fix
   ROFS ( (     m_pcRedundantCtrl                = new MbDataCtrl  () ) );
   RNOK  (       m_pcRedundantCtrl                ->init            ( rcSPS ) );
-  ROFS ( (     m_pcRedundant1Ctrl                = new MbDataCtrl  () ) );
-  RNOK  (       m_pcRedundant1Ctrl                ->init            ( rcSPS ) );
 //RPIC bug fix
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
@@ -958,12 +943,6 @@ LayerEncoder::xDeleteData()
 	  delete m_pcRedundantCtrl;
 	  m_pcRedundantCtrl = 0 ;
   }
-		  if(m_pcRedundant1Ctrl)
-  {
-	  RNOK( m_pcRedundant1Ctrl->uninit() );
-	  delete m_pcRedundant1Ctrl;
-	  m_pcRedundant1Ctrl = 0 ;
-  }
 //RPIC bug fix
 
   if( m_pcBaseLayerCtrl )
@@ -1003,10 +982,6 @@ LayerEncoder::uninit()
 
   xDeleteData();
 
-  if( m_pMotionInfoFile )
-  {
-    ::fclose( m_pMotionInfoFile );
-  }
   if( m_pESSFile )
   {
     ::fclose( m_pESSFile );
@@ -1065,348 +1040,6 @@ LayerEncoder::xFillAndExtendFrame( Frame* pcFrame, PicType ePicType, Bool bFrame
 
 
 
-
-
-ErrVal
-LayerEncoder::xMotionEstimation( RefFrameList* pcRefFrameList0,
-                                 RefFrameList* pcRefFrameList1,
-                                 MbDataCtrl*   pcMbDataCtrlCol,
-                                 Frame*        pcOrigFrame,
-                                 Frame*        pcIntraRecFrame,
-                                 ControlData&  rcControlData,
-                                 UInt          uiNumMaxIter,
-                                 UInt          uiIterSearchRange,
-                                 UInt          uiFrameIdInGOP,
-                                 PicType       ePicType )
-{
-  MbEncoder*    pcMbEncoder           =  m_pcSliceEncoder->getMbEncoder         ();
-  SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ( ePicType );
-  MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
-  Frame*        pcBaseLayerFrame      =  rcControlData.getBaseLayerRec          ();
-  Frame*        pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
-  MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  UInt          uiMaxMvPerMb          = rcSliceHeader.getSPS().getMaxMVsPer2Mb () >> 1; // hard limit (don't take into account last macroblock)
-
-  if( ePicType!=FRAME )
-  {
-    if( pcOrigFrame )         RNOK( pcOrigFrame        ->addFieldBuffer( ePicType ) );
-    if( pcIntraRecFrame )     RNOK( pcIntraRecFrame    ->addFieldBuffer( ePicType ) );
-    if( pcBaseLayerFrame )    RNOK( pcBaseLayerFrame   ->addFieldBuffer( ePicType ) );
-    if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->addFieldBuffer( ePicType ) );
-  }
-
-  FMO* pcFMO = rcControlData.getSliceHeader( ePicType )->getFMO(); //TMM
-
-  for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
-  {
-    rcSliceHeader.setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
-    rcSliceHeader.setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
-    // JVT-S054 (2) (ADD)
-    rcSliceHeader.setNumMbsInSlice(rcSliceHeader.getFMO()->getNumMbsInSlice(rcSliceHeader.getFirstMbInSlice(), rcSliceHeader.getLastMbInSlice()));
-    UInt uiMbAddress       = rcSliceHeader.getFirstMbInSlice();
-    UInt uiLastMbAddress   = rcSliceHeader.getLastMbInSlice();
-    UInt uiNumMBInSlice;
-
-
-    //===== initialization =====
-    RefFrameList rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-    if( rcSliceHeader.isMbaffFrame() )
-    {
-      RNOK( pcMbDataCtrl->initUsedField( rcSliceHeader, rcRefFrameList1 ) );
-    }
-
-    //===== initialization =====
-    RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlCol ) );
-    if( ! m_bLoadMotionInfo )
-    {
-      RNOK( m_pcMotionEstimation->initSlice( rcSliceHeader ) );
-      RNOK( pcMbEncoder         ->initSlice( rcSliceHeader ) );
-      RNOK( m_pcMotionEstimation->getSW()->initSlice( rcSliceHeader ) );
-    }
-
-    //===== loop over macroblocks =====
-    for(  uiNumMBInSlice = 0; uiMbAddress <= uiLastMbAddress;  )
-    {
-      MbDataAccess* pcMbDataAccess      = 0;
-      MbDataAccess* pcMbDataAccessBase  = 0;
-
-      UInt          uiMbY, uiMbX;
-      Double        dCost              = 0;
-
-      rcSliceHeader.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress     );
-
-      //===== init macroblock =====
-      RNOK  ( pcMbDataCtrl            ->initMb( pcMbDataAccess,     uiMbY, uiMbX ) );
-      if    ( pcBaseLayerCtrl )
-      {
-        RNOK( pcBaseLayerCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
-        if (rcSliceHeader.getTCoeffLevelPredictionFlag())
-        {
-          pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
-        }
-      }
-
-      if( ! m_bLoadMotionInfo )
-      {
-        //===== initialisation =====
-        RNOK( m_pcYuvFullPelBufferCtrl->initMb( uiMbY, uiMbX, false           ) );
-        RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX, false           ) );
-        RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
-
-        if( !rcSliceHeader.getNoInterLayerPredFlag() )
-        {
-          pcMbEncoder->setBaseModeAllowedFlag( m_apabBaseModeFlagAllowedArrays[0][uiMbAddress] );
-        }
-
-        RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
-                                                pcMbDataAccessBase,
-                                                *pcRefFrameList0,
-                                                *pcRefFrameList1,
-                                                pcBaseLayerFrame    ? pcBaseLayerFrame   ->getPic( ePicType ) : NULL,
-                                                pcBaseLayerResidual ? pcBaseLayerResidual->getPic( ePicType ) : NULL,
-                                                *pcOrigFrame                              ->getPic( ePicType ),
-                                                *pcIntraRecFrame                          ->getPic( ePicType ),
-                                                uiMaxMvPerMb,
-                                                m_bMCBlks8x8Disable,
-                                                m_bBiPred8x8Disable,
-                                                uiNumMaxIter,
-                                                uiIterSearchRange,
-                                                rcControlData.getLambda(),
-                                                dCost,
-                                                true ) );
-// TMM_INTERLACE{
-       /* if( m_bSaveMotionInfo )
-        {
-          //===== save prediction data =====
-         // saveAll is displaced because the Mvs are Ok but the other data could be modified (mode,...).
-         // Do it after m_pcSliceEncoder->encodeHighPassPicture
-         //            RNOK( pcMbDataAccess->getMbData().saveAll( m_pMotionInfoFile ) );
-        }*/
-// TMM_INTERLACE}
-      }
-      else
-      {
-        //===== load prediction data =====
-        RNOK( pcMbDataAccess->getMbData().loadAll( m_pMotionInfoFile ) );
-      }
-      uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress);
-      uiNumMBInSlice++;
-    }
-  }
-
-  if( ePicType!=FRAME )
-  {
-    if( pcOrigFrame )         RNOK( pcOrigFrame        ->removeFieldBuffer( ePicType ) );
-    if( pcIntraRecFrame )     RNOK( pcIntraRecFrame    ->removeFieldBuffer( ePicType ) );
-    if( pcBaseLayerFrame )    RNOK( pcBaseLayerFrame   ->removeFieldBuffer( ePicType ) );
-    if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->removeFieldBuffer( ePicType ) );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-
-ErrVal
-LayerEncoder::xMotionCompensation( Frame*        pcMCFrame,
-                                  RefFrameList*    pcRefFrameList0,
-                                  RefFrameList*    pcRefFrameList1,
-                                  MbDataCtrl*      pcMbDataCtrl,
-                                  SliceHeader&     rcSH )
-{
-  Bool        bCalcMv         = false;
-  Bool        bFaultTolerant  = false;
-  MbEncoder*  pcMbEncoder     = m_pcSliceEncoder->getMbEncoder();
-
-  RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
-  RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
-
-  MbDataCtrl*      pcBaseMbDataCtrl = getBaseMbDataCtrl();
-
-  RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
-  RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
-  const PicType ePicType = rcSH.getPicType();
-  const Bool    bMbAff   = rcSH.isMbaffFrame   ();
-  Frame* apcBLFrame[3] = { 0, 0, m_pcBaseLayerFrame };
-
-  if( bMbAff )
-  {
-    RefFrameList acRefFrameList0[2];
-    RefFrameList acRefFrameList1[2];
-
-    RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
-    RNOK( gSetFrameFieldLists( acRefFrameList1[0], acRefFrameList1[1], *pcRefFrameList1 ) );
-
-    apcRefFrameList0[ TOP_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[0];
-    apcRefFrameList0[ BOT_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[1];
-    apcRefFrameList1[ TOP_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[0];
-    apcRefFrameList1[ BOT_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
-    apcRefFrameList0[     FRAME ] = pcRefFrameList0;
-    apcRefFrameList1[     FRAME ] = pcRefFrameList1;
-
-    if( m_pcBaseLayerFrame )
-    {
-      m_pcBaseLayerFrame->addFrameFieldBuffer();
-      apcBLFrame[0] = m_pcBaseLayerFrame->getPic( TOP_FIELD );
-      apcBLFrame[1] = m_pcBaseLayerFrame->getPic( BOT_FIELD );
-    }
-  }
-  else
-  {
-    RNOK( pcMCFrame->addFieldBuffer( ePicType ) );
-    apcRefFrameList0[ ePicType ] = pcRefFrameList0;
-    apcRefFrameList1[ ePicType ] = pcRefFrameList1;
-  }
-
-  //===== loop over macroblocks =====
-  const UInt uiMbNumber = rcSH.getMbInPic(); //TMM
-  for( UInt uiMbAddress = 0 ; uiMbAddress < uiMbNumber; uiMbAddress++ ) //TMM
-  {
-    MbDataAccess* pcMbDataAccess = NULL;
-    MbDataAccess* pcMbDataAccessBase  = 0;
-    UInt          uiMbY, uiMbX;
-
-    rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress                                );
-
-    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
-    if    ( pcBaseMbDataCtrl )
-    {
-      RNOK( pcBaseMbDataCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
-    }
-    RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX, bMbAff          ) );
-    RNOK( m_pcYuvHalfPelBufferCtrl->initMb(                 uiMbY, uiMbX, bMbAff          ) );
-    RNOK( m_pcMotionEstimation    ->initMb(                 uiMbY, uiMbX, *pcMbDataAccess ) );
-
-    const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-    pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
-    pcMbEncoder->setBaseLayerRec( apcBLFrame[ eMbPicType - 1 ] );
-
-    RNOK( pcMbEncoder->compensatePrediction( *pcMbDataAccess,
-                                              pcMCFrame->getPic( eMbPicType ),
-                                             *apcRefFrameList0 [ eMbPicType ],
-                                             *apcRefFrameList1 [ eMbPicType ],
-                                             bCalcMv, bFaultTolerant) );
-
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-LayerEncoder::xZeroIntraMacroblocks( Frame*    pcFrame,
-                                    ControlData& rcCtrlData,
-                                    PicType      ePicType )
-{
-  MbDataCtrl*       pcMbDataCtrl  = rcCtrlData.getMbDataCtrl       ();
-  SliceHeader*      pcSliceHeader = rcCtrlData.getSliceHeader      (ePicType);
-
-
-  RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-
-  YuvMbBuffer cZeroMbBuffer;
-  cZeroMbBuffer.setAllSamplesToZero();
-
-  const Bool bMbAff = pcSliceHeader->isMbaffFrame();
-  if( ePicType!=FRAME )
-  {
-    RNOK( pcFrame->addFieldBuffer     ( ePicType ) );
-  }
-  else if( bMbAff )
-  {
-    RNOK( pcFrame->addFrameFieldBuffer() );
-  }
-
-  //===== loop over macroblocks =====
-  const UInt uiMbNumber = pcSliceHeader->getMbInPic(); //TMM
-  for( UInt uiMbAddress = 0 ; uiMbAddress < uiMbNumber; uiMbAddress++ ) //TMM
-  {
-    MbDataAccess* pcMbDataAccess = NULL;
-    UInt          uiMbY, uiMbX;
-
-    pcSliceHeader->getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress              );
-
-    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcYuvFullPelBufferCtrl->initMb (                 uiMbY, uiMbX, bMbAff ) );
-
-    if( pcMbDataAccess->getMbData().isIntra() )
-    {
-      const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-      pcFrame->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
-    }
-  }
-
-  if( ePicType!=FRAME )
-  {
-    RNOK( pcFrame->removeFieldBuffer     ( ePicType ) );
-  }
-  else if( bMbAff )
-  {
-    RNOK( pcFrame->removeFrameFieldBuffer()           );
-  }
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-LayerEncoder::xClipIntraMacroblocks( Frame*    pcFrame,
-                                    ControlData& rcCtrlData,
-                                    Bool         bClipAll,
-                                    PicType      ePicType )
-{
-  MbDataCtrl*       pcMbDataCtrl  = rcCtrlData.getMbDataCtrl       ();
-  SliceHeader* pcSliceHeader = rcCtrlData.getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-  YuvPicBuffer* pcPicBuffer;
-  YuvMbBuffer    cMbBuffer;
-
-  RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-
-  const Bool bMbAff = pcSliceHeader->isMbaffFrame();
-  if( ePicType!=FRAME )
-  {
-    RNOK( pcFrame->addFieldBuffer     ( ePicType ) );
-  }
-  else if( bMbAff )
-  {
-    RNOK( pcFrame->addFrameFieldBuffer() );
-  }
-
-  //===== loop over macroblocks =====
-  const UInt uiMbNumber = pcSliceHeader->getMbInPic();//TMM
-  for( UInt uiMbAddress = 0 ; uiMbAddress < uiMbNumber; uiMbAddress++ )//TMM
-  {
-    MbDataAccess* pcMbDataAccess = 0;
-    UInt          uiMbY, uiMbX;
-
-    pcSliceHeader->getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress              );
-
-    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcYuvFullPelBufferCtrl->initMb (                 uiMbY, uiMbX, bMbAff ) );
-
-    if( bClipAll || pcMbDataAccess->getMbData().isIntra() )
-    {
-      const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-      pcPicBuffer = pcFrame->getPic( eMbPicType )->getFullPelYuvBuffer();
-      cMbBuffer   .loadBuffer( pcPicBuffer );
-      cMbBuffer   .clip      ();
-      pcPicBuffer->loadBuffer( &cMbBuffer );
-    }
-  }
-  if( ePicType!=FRAME )
-  {
-    RNOK( pcFrame->removeFieldBuffer     ( ePicType ) );
-  }
-  else if( bMbAff )
-  {
-    RNOK( pcFrame->removeFrameFieldBuffer()           );
-  }
-  return Err::m_nOK;
-}
-
-
 ErrVal
 LayerEncoder::xInitExtBinDataAccessor( ExtBinDataAccessor& rcExtBinDataAccessor )
 {
@@ -1446,24 +1079,24 @@ LayerEncoder::xAppendNewExtBinDataAccessor( ExtBinDataAccessorList& rcExtBinData
 }
 
 
-
 ErrVal
-LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAccessorList,
-                                    ControlData&            rcControlData,
-                                    Frame*                  pcOrgFrame,
-                                    Frame*                  pcFrame,
-                                    Frame*                  pcResidual,
-                                    Frame*                  pcPredSignal,
-                                    UInt&                   ruiBits,
-                                    PicOutputDataList&      rcPicOutputDataList,
-                                    UInt                    uiFrameIdInGOP,
-                                    PicType                 ePicType )
+LayerEncoder::xEncodeLayerRepresentation( ExtBinDataAccessorList& rcOutExtBinDataAccessorList,
+                                          ControlData&            rcControlData,
+                                          Frame*                  pcOrgFrame,
+                                          Frame*                  pcFrame,
+                                          Frame*                  pcResidual,
+                                          Frame*                  pcPredSignal,
+                                          UInt&                   ruiBits,
+                                          PicOutputDataList&      rcPicOutputDataList,
+                                          UInt                    uiFrameIdInGOP,
+                                          PicType                 ePicType )
 {
-  UInt         uiBits              = 0;
-  UInt         uiBitsSEI           = 0;
-  Frame*       pcBaseLayerFrame    = rcControlData.getBaseLayerRec ();
-  SliceHeader* pcSliceHeader       = rcControlData.getSliceHeader ( ePicType );
+  UInt          uiBits        = 0;
+  UInt          uiBitsSEI     = 0;
+  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
   ROF( pcSliceHeader );
+  FMO*          pcFMO         = pcSliceHeader->getFMO();
+  ROF( pcFMO );
 
   ExtBinDataAccessorList  cTmpExtBinDataAccessorList;
   ExtBinDataAccessorList  acExtBinDataAccessorList[16];
@@ -1475,147 +1108,66 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
     RNOK( xWriteSEI( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBitsSEI ) );
   }
 
-  FMO* pcFMO = pcSliceHeader->getFMO();
+  //=====   L O O P   O V E R   S L I C E   G R O U P S   =====
   for( UInt iSliceGroupID = 0; !pcFMO->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID++ )
   {
-		//JVT-X046 {
 		rcControlData.m_bSliceGroupAllCoded = false;
 		rcControlData.m_uiCurrentFirstMB    = pcFMO->getFirstMacroblockInSlice( iSliceGroupID );
+
+    //===== loop over slices (inside slice group) =====
 		while( !rcControlData.m_bSliceGroupAllCoded )
 		{
-		  if (!m_uiSliceMode)
-      {
-        rcControlData.m_bSliceGroupAllCoded = true;
-      }
-		  //JVT-X046 }
+      //----- set slice parameters -----
+		  rcControlData.m_bSliceGroupAllCoded = ( m_uiSliceMode == 0 );
       pcSliceHeader->setFirstMbInSlice( rcControlData.m_uiCurrentFirstMB );
       pcSliceHeader->setLastMbInSlice ( pcFMO->getLastMBInSliceGroup( iSliceGroupID ) );
-      // JVT-S054 (2) (ADD)
       pcSliceHeader->setNumMbsInSlice ( pcFMO->getNumMbsInSlice( pcSliceHeader->getFirstMbInSlice(), pcSliceHeader->getLastMbInSlice() ) );
 
-      //prefix unit{{
-      if( m_uiPreAndSuffixUnitEnable )
+      //----- write prefix NAL unit -----
+      if( m_uiPreAndSuffixUnitEnable && ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE || pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR ) )
       {
-        // TMM {
-        if ( rcControlData.getSliceHeader( ePicType )->getNalUnitType() == NAL_UNIT_CODED_SLICE|| rcControlData.getSliceHeader( ePicType )->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
-        {
-          RNOK( xWritePrefixUnit( acExtBinDataAccessorList[0], *rcControlData.getSliceHeader( ePicType ), uiBits ) );
-        }
-        // TMM }
+        RNOK( xWritePrefixUnit( acExtBinDataAccessorList[0], *pcSliceHeader, uiBits ) );
       }
-      //prefix unit}}
 
-      //----- init NAL UNIT -----
+      //----- init slice data NAL UNIT -----
       RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
       RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
 
-      //---- write Slice Header -----
-      ETRACE_NEWSLICE;
+      //----- write Slice Header -----
       xAssignSimplePriorityId( pcSliceHeader );
       if( pcSliceHeader->getSliceSkipFlag() )
       {
         UInt uiMaxMbsInSlice  = ( m_uiSliceMode == 1 ? m_uiSliceArgument : MSYS_UINT_MAX );
-        UInt uiNumSkipSlices  = min( uiMaxMbsInSlice, pcSliceHeader->getNumMbsInSlice() );
+        UInt uiNumSkipSlices  = gMin( uiMaxMbsInSlice, pcSliceHeader->getNumMbsInSlice() );
         ROF( uiNumSkipSlices  > 0 );
         pcSliceHeader->setNumMbsInSliceMinus1( uiNumSkipSlices - 1 );
       }
+      RNOK( m_pcNalUnitEncoder->write( *pcSliceHeader ) );
 
-		  //JVT-X046 {
+      //----- set slice mode for MbCoder & adjust argument for slice mode 2 -----
 		  m_pcSliceEncoder->m_pcMbCoder->m_uiSliceMode     = m_uiSliceMode;
 		  m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument = m_uiSliceArgument;
 		  if( m_pcSliceEncoder->m_pcMbCoder->m_uiSliceMode == 2 )
 		  {
 			  //subtract slice header size and 4*8 bytes from Slice Argument
-			  m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument -= m_pcNalUnitEncoder->xGetBitsWriteBuffer()->getBitsWritten() + 4*8 +20;
+			  m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument -= m_pcNalUnitEncoder->xGetBitsWriteBuffer()->getBitsWritten() + 4*8 + 20;
+        ROF( m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument > 20 );
 		  }
-		  //JVT-X046 }
-
-      RNOK( m_pcNalUnitEncoder->write( *pcSliceHeader ) );
-
-      rcControlData.getPrdFrameList( LIST_0 ).reset();
-      rcControlData.getPrdFrameList( LIST_1 ).reset();
 
       //----- encode slice data -----
-      if( pcSliceHeader->isIntraSlice() )
+      if( pcSliceHeader->isMbaffFrame() )
       {
-        if( pcSliceHeader->isMbaffFrame() )
-        {
-          RNOK( m_pcSliceEncoder->encodeIntraPictureMbAff( uiBits,
-                                                           rcControlData,
-                                                           pcOrgFrame,
-                                                           pcFrame,
-                                                           pcResidual,
-                                                           pcBaseLayerFrame,
-                                                           pcPredSignal,
-                                                           m_uiFrameWidthInMb,
-                                                           rcControlData.getLambda() ) );
-        }
-        else
-        {
-          RNOK( m_pcSliceEncoder->encodeIntraPicture( uiBits,
-                                                      rcControlData,
-                                                      pcFrame,
-                                                      pcResidual,
-                                                      pcBaseLayerFrame,
-                                                      pcPredSignal,
-                                                      m_uiFrameWidthInMb,
-                                                      rcControlData.getLambda(),
-                                                      ePicType ) );
-        }
+        RNOK( m_pcSliceEncoder->encodeMbAffSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidual, pcPredSignal,
+                                                     m_uiNumMaxIter, m_uiIterSearchRange, m_bBiPred8x8Disable, m_bMCBlks8x8Disable, m_uiMaxDeltaQp,
+                                                     uiBits ) );
       }
       else
       {
-        //----- initialize reference lists -----
-        ROF ( pcSliceHeader->getNumRefIdxActive ( LIST_1 ) == 0 );
-
-        //===== get reference frame lists =====
-        RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-        RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-        UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-
-        RNOK( xGetPredictionLists( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_REF_BASE_PIC, true ) );
-        RefFrameList acRefFieldList0[2];
-        RefFrameList acRefFieldList1[2];
-        pcSliceHeader->setRefFrameList( &rcRefFrameList0, ePicType, LIST_0 );
-        pcSliceHeader->setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
-        if( pcSliceHeader->isMbaffFrame() )
-        {
-          RNOK( gSetFrameFieldLists( acRefFieldList0[0], acRefFieldList0[1], rcRefFrameList0 ) );
-          RNOK( gSetFrameFieldLists( acRefFieldList1[0], acRefFieldList1[1], rcRefFrameList1 ) );
-          pcSliceHeader->setRefFrameList( &(acRefFieldList0[0]), TOP_FIELD, LIST_0 );
-          pcSliceHeader->setRefFrameList( &(acRefFieldList0[1]), BOT_FIELD, LIST_0 );
-          pcSliceHeader->setRefFrameList( &(acRefFieldList1[0]), TOP_FIELD, LIST_1 );
-          pcSliceHeader->setRefFrameList( &(acRefFieldList1[1]), BOT_FIELD, LIST_1 );
-        }
-
-        if( pcSliceHeader->isMbaffFrame() )
-        {
-          RNOK( m_pcSliceEncoder->encodeInterPicturePMbAff( uiBits,
-                                                            pcOrgFrame,
-                                                            pcFrame,
-                                                            pcResidual,
-                                                            pcPredSignal,
-                                                            rcControlData,
-                                                            m_bMCBlks8x8Disable,
-                                                            m_uiFrameWidthInMb,
-                                                            rcRefFrameList0 ) );
-        }
-        else
-        {
-          RNOK( m_pcSliceEncoder->encodeInterPictureP ( uiBits,
-                                                        pcFrame,
-                                                        pcResidual,
-                                                        pcPredSignal,
-                                                        rcControlData,
-                                                        m_bMCBlks8x8Disable,
-                                                        m_uiFrameWidthInMb,
-                                                        rcRefFrameList0,
-                                                        ePicType ) );
-
-        }
-        RNOK( m_apcBaseFrame[0]->uninitHalfPel() );
-        RNOK( m_apcBaseFrame[1]->uninitHalfPel() );
+        RNOK( m_pcSliceEncoder->encodeSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidual, pcPredSignal, ePicType,
+                                                m_uiNumMaxIter, m_uiIterSearchRange, m_bBiPred8x8Disable, m_bMCBlks8x8Disable, m_uiMaxDeltaQp,
+                                                uiBits ) );
       }
+
 
       //----- close NAL UNIT -----
       UInt auiBits[16];
@@ -1633,17 +1185,10 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
       }
       uiBits = auiBits[0];
 
-      //JVT-W052
-      if(m_pcH264AVCEncoder->getCodingParameter()->getIntegrityCheckSEIEnable()&&m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-      {
-        if(m_pcH264AVCEncoder->getCodingParameter()->getNumberOfLayers()-1 == pcSliceHeader->getDependencyId() )
-        {
-          xWriteIntegrityCheckSEI( rcOutExtBinDataAccessorList, m_pcH264AVCEncoder->m_pcIntegrityCheckSEI, uiBits );
-        }
-      }
-      //JVT-W052
-
+      
+      //----- update statistic -----
       PicOutputData cPicOutputData;
+      // base pic
       cPicOutputData.FirstPicInAU  = pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getFirstMbInSlice() == 0;
       cPicOutputData.iPicType      = pcSliceHeader->getPicType();
       cPicOutputData.Poc           = pcSliceHeader->getPoc                   ();
@@ -1659,23 +1204,21 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
       cPicOutputData.YPSNR         = 0.0;
       cPicOutputData.UPSNR         = 0.0;
       cPicOutputData.VPSNR         = 0.0;
-
       // JVT-V068 {
       cPicOutputData.iPicType      = (Int)ePicType;
-      if (  m_uiQualityLevelCGSSNR != 0 || m_uiLayerCGSSNR != rcControlData.getSliceHeader()->getDependencyId()  )
+      if(  m_uiQualityLevelCGSSNR != 0 || m_uiLayerCGSSNR != rcControlData.getSliceHeader()->getDependencyId() )
       {
-        cPicOutputData.uiBaseLayerId = m_uiBaseLayerCGSSNR;
+        cPicOutputData.uiBaseLayerId      = m_uiBaseLayerCGSSNR;
         cPicOutputData.uiBaseQualityLevel = m_uiBaseQualityLevel;
       }
       else
       {
-        cPicOutputData.uiBaseLayerId = m_uiBaseLayerId;
+        cPicOutputData.uiBaseLayerId      = m_uiBaseLayerId;
         cPicOutputData.uiBaseQualityLevel = m_uiBaseQualityLevel;
       }
       // JVT-V068 }
-
       acPicOutputDataList[0].push_back( cPicOutputData );
-
+      // MGS vector refinements
       for( UInt uiFrag = 0; true; )
       {
         if( pcSliceHeader->getSPS().getMGSCoeffStop( uiFrag ) == 16 )
@@ -1698,11 +1241,6 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
         }
         ruiBits += auiBits[uiFrag];
       }
-
-      if( ePicType != ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) )
-      {
-        ETRACE_NEWFRAME;
-      }
       if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits + uiBitsSEI;
@@ -1711,12 +1249,14 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits + uiBitsSEI;
       }
-      ruiBits = ruiBits + uiBits + uiBitsSEI;
-      uiBitsSEI=0;
-    }
+      ruiBits  += uiBits + uiBitsSEI;
+      uiBitsSEI = 0;
+    } // end of slice group
+	} // end of layer representation
 
-	}//JVT-X046
 
+
+  //===== update output data =====
   for( UInt uiMGSIdx = 0; uiMGSIdx < 16; uiMGSIdx++ )
   {
     rcOutExtBinDataAccessorList += acExtBinDataAccessorList [uiMGSIdx];
@@ -1725,258 +1265,23 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList& rcOutExtBinDataAcces
     acPicOutputDataList     [uiMGSIdx].clear();
   }
 
+
+  //===== update data that can be use by next layer representation =====
   if( ! pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getSCoeffResidualPredFlag() )
   {
-    m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+    m_pcSliceEncoder->updatePictureResTransform( rcControlData, m_uiFrameWidthInMb );
   }
-
-  if(pcSliceHeader->getTCoeffLevelPredictionFlag())
-  {
-    //===== update state prior to deblocking
-    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-
-
-
-
-ErrVal
-LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList,
-                                    ControlData&             rcControlData,
-                                    Frame*                pcOrgFrame,
-                                    Frame*                pcFrame,
-                                    Frame*                pcResidual,
-                                    Frame*                pcPredSignal,
-                                    UInt&                    ruiBits,
-                                    UInt&                    ruiBitsRes,
-                                    PicOutputDataList&       rcPicOutputDataList,
-                                    PicType                  ePicType )
-{
-  UInt  uiBitsSEI   = 0;
-  UInt  uiBits      = 0;//prefix unit
-  SliceHeader* pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-
-  ExtBinDataAccessorList  cTmpExtBinDataAccessorList;
-  ExtBinDataAccessorList  acExtBinDataAccessorList[16];
-  PicOutputDataList       acPicOutputDataList     [16];
-
-  //----- Subsequence SEI -----
-  if( m_bWriteSubSequenceSei &&   m_bH264AVCCompatible )
-  {
-    RNOK( xWriteSEI( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBitsSEI ) );
-  }
-
-  FMO* pcFMO = rcControlData.getSliceHeader( ePicType )->getFMO();
-
-  for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
-  {
-    uiBits      = 0;
-    UInt  uiBitsRes   = 0;
-    UInt  uiMbCoded   = 0;
-
-    pcSliceHeader->setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
-    pcSliceHeader->setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
-    pcSliceHeader->setNumMbsInSlice (pcFMO->getNumMbsInSlice(rcControlData.getSliceHeader( ePicType )->getFirstMbInSlice(), rcControlData.getSliceHeader( ePicType )->getLastMbInSlice()));
-
-    //prefix unit{{
-    if( m_uiPreAndSuffixUnitEnable )
-    {
-      if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
-      {
-        RNOK( xWritePrefixUnit( acExtBinDataAccessorList[0], *pcSliceHeader, uiBits ) );
-      }
-    }
-    //prefix unit}}
-
-    //----- init NAL UNIT -----
-    RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
-    RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
-
-    //---- write Slice Header -----
-    ETRACE_NEWSLICE;
-    xAssignSimplePriorityId( pcSliceHeader );
-    if( pcSliceHeader->getSliceSkipFlag() )
-    {
-      UInt uiNumSkipSlices  = pcSliceHeader->getNumMbsInSlice();
-      ROF( uiNumSkipSlices  > 0 );
-      pcSliceHeader->setNumMbsInSliceMinus1( uiNumSkipSlices - 1 );
-    }
-
-    RNOK( m_pcNalUnitEncoder->write( *pcSliceHeader ) );
-
-    //----- write slice data -----
-    if( pcSliceHeader->isMbaffFrame() )
-    {
-      RNOK( m_pcSliceEncoder->encodeHighPassPictureMbAff( uiMbCoded,
-                                                          uiBits,
-                                                          *rcControlData.getSliceHeader            (),
-                                                          pcOrgFrame,
-                                                          pcFrame,
-                                                          pcResidual,
-                                                          pcPredSignal,
-                                                          rcControlData.getBaseLayerSbb           (),
-                                                          rcControlData.getBaseLayerRec           (),
-                                                          rcControlData.getMbDataCtrl             (),
-                                                          rcControlData.getBaseLayerCtrl          (),
-                                                          rcControlData.getBaseLayerCtrlField     (),
-                                                          m_uiFrameWidthInMb,
-                                                          rcControlData.getLambda                 (),
-                                                          m_iMaxDeltaQp ) );
-    }
-    else
-    {
-      RNOK( m_pcSliceEncoder->encodeHighPassPicture ( uiMbCoded,
-                                                      uiBits,
-                                                     *pcSliceHeader,
-                                                      pcOrgFrame,
-                                                      pcFrame,
-                                                      pcResidual,
-                                                      pcPredSignal,
-                                                      rcControlData.getBaseLayerSbb(),
-                                                      rcControlData.getBaseLayerRec(),
-                                                      rcControlData.getMbDataCtrl(),
-                                                      rcControlData.getBaseLayerCtrl(),
-                                                      m_uiFrameWidthInMb,
-                                                      rcControlData.getLambda(),
-                                                      m_iMaxDeltaQp,
-                                                      ePicType ) );
-    }
-
-    // TMM_INTERLACE {
-    // saveAll is deplaced here. All data are correct.
-    // save prediction data for B pictures
-    if( m_bSaveMotionInfo )
-    {
-      MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
-      //===== loop over macroblocks =====
-      UInt uiMbAddress       = pcSliceHeader->getFirstMbInSlice();
-      UInt uiLastMbAddress   = pcSliceHeader->getLastMbInSlice();
-      UInt uiNumMBInSlice;
-      for(  uiNumMBInSlice = 0; uiMbAddress <= uiLastMbAddress;  )
-      {
-        MbDataAccess* pcMbDataAccess     = NULL;
-        UInt          uiMbY, uiMbX;
-
-        pcSliceHeader->getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress            );
-
-        //===== init macroblock =====
-        RNOK  ( pcMbDataCtrl            ->initMb( pcMbDataAccess,     uiMbY, uiMbX ) );
-
-        //===== save prediction data =====
-        RNOK( pcMbDataAccess->getMbData().saveAll( m_pMotionInfoFile ) );
-        uiMbAddress = pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress);
-        uiNumMBInSlice++;
-      }
-    }
-    // TMM_INTERLACE }
-
-    //----- close NAL UNIT -----
-    UInt auiBits[16];
-    RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, cTmpExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
-    for( Int iMGSIdx = 0; cTmpExtBinDataAccessorList.size(); iMGSIdx++ )
-    {
-      acExtBinDataAccessorList[iMGSIdx].push_back( cTmpExtBinDataAccessorList.popFront() );
-      auiBits[iMGSIdx] += 4*8; // start code
-    }
-    uiBits = auiBits[0];
-
-    PicOutputData cPicOutputData;
-    cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader( ePicType )->getNoInterLayerPredFlag() && rcControlData.getSliceHeader( ePicType )->getFirstMbInSlice() == 0;
-    cPicOutputData.iPicType      = ePicType;
-    cPicOutputData.Poc           = rcControlData.getSliceHeader( ePicType )->getPoc                  ();
-    cPicOutputData.FrameType[0]  = rcControlData.getSliceHeader( ePicType )->getSliceType            () == B_SLICE ? 'B' :
-    rcControlData.getSliceHeader( ePicType )->getSliceType                                           () == P_SLICE ? 'P' : 'I';
-    cPicOutputData.FrameType[1]  = rcControlData.getSliceHeader( ePicType )->getUseRefBasePicFlag()            ? 'K' : ' ';
-    cPicOutputData.FrameType[2]  = '\0';
-    cPicOutputData.DependencyId  = rcControlData.getSliceHeader( ePicType )->getLayerCGSSNR          ();
-    cPicOutputData.QualityId     = rcControlData.getSliceHeader( ePicType )->getQualityLevelCGSSNR   ();
-    cPicOutputData.TemporalId    = rcControlData.getSliceHeader( ePicType )->getTemporalId        ();
-    cPicOutputData.Qp            = rcControlData.getSliceHeader( ePicType )->getSliceQp                ();
-    cPicOutputData.Bits          = uiBits + uiBitsSEI;
-    cPicOutputData.YPSNR         = 0.0;
-    cPicOutputData.UPSNR         = 0.0;
-    cPicOutputData.VPSNR         = 0.0;
-    // JVT-V068 {
-    cPicOutputData.iPicType      = (Int)ePicType;
-    if (  m_uiQualityLevelCGSSNR != 0 || m_uiLayerCGSSNR != rcControlData.getSliceHeader()->getDependencyId()  )
-    {
-      cPicOutputData.uiBaseLayerId = m_uiBaseLayerCGSSNR;
-      cPicOutputData.uiBaseQualityLevel = m_uiBaseQualityLevel;
-    }
-    else
-    {
-      cPicOutputData.uiBaseLayerId = m_uiBaseLayerId;
-      cPicOutputData.uiBaseQualityLevel = m_uiBaseQualityLevel;
-    }
-    // JVT-V068 }
-    acPicOutputDataList[0].push_back( cPicOutputData );
-
-    for( UInt uiFrag = 0; true; )
-    {
-      if( pcSliceHeader->getSPS().getMGSCoeffStop( uiFrag ) == 16 )
-      {
-        break;
-      }
-      uiFrag++;
-      cPicOutputData.QualityId++;
-      cPicOutputData.uiBaseLayerId      = pcSliceHeader->getLayerCGSSNR();
-      cPicOutputData.uiBaseQualityLevel = cPicOutputData.QualityId - 1;
-      cPicOutputData.Bits               = auiBits[uiFrag];
-      acPicOutputDataList[uiFrag].push_back( cPicOutputData );
-      if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-      {
-        m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()+uiFrag] += auiBits[uiFrag];
-      }
-      else
-      {
-        m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += auiBits[uiFrag];
-      }
-      ruiBits += auiBits[uiFrag];
-    }
-
-    if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-    {
-      m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits+uiBitsSEI;
-    }
-    else
-    {
-      m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits+uiBitsSEI;
-    }
-
-    ruiBits     += uiBits+uiBitsSEI;
-    ruiBitsRes  += uiBitsRes;
-    uiBitsSEI =0;
-  }
-
-  for( UInt uiMGSIdx = 0; uiMGSIdx < 16; uiMGSIdx++ )
-  {
-    rcOutExtBinDataAccessorList += acExtBinDataAccessorList [uiMGSIdx];
-    rcPicOutputDataList         += acPicOutputDataList      [uiMGSIdx];
-    acExtBinDataAccessorList[uiMGSIdx].clear();
-    acPicOutputDataList     [uiMGSIdx].clear();
-  }
-
-  if( !pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getSCoeffResidualPredFlag() )
-  {
-    m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
-  }
-
   if( pcSliceHeader->getTCoeffLevelPredictionFlag() )
   {
-    //===== update state prior to deblocking
     m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
   }
 
-  ETRACE_NEWFRAME;
-
   return Err::m_nOK;
 }
+
+
+
+
 
 
 ErrVal
@@ -2035,7 +1340,7 @@ LayerEncoder::xInitRefFrameLists( UInt uiFrameIdInGOP, UInt uiTemporalId )
   m_auiPicCodingType    [ uiFrameIdInGOP ]  = m_uiPicCodingType;
   if( m_auiPicCodingType[ uiFrameIdInGOP ] == 2 && cBwdList.size() && cFwdList.size() && m_uiBaseLayerId != MSYS_UINT_MAX )
   {
-    UInt uiShift             = min( m_uiDecompositionStages, m_uiDecompositionStages + 1 - uiTemporalId );
+    UInt uiShift             = gMin( m_uiDecompositionStages, m_uiDecompositionStages + 1 - uiTemporalId );
     UInt uiFrmIdInTLayer     = uiFrameIdInGOP >> uiShift;
     UInt uiBasePicCodingType = m_pcH264AVCEncoder->getPicCodingType( m_uiBaseLayerId, uiTemporalId, uiFrmIdInTLayer );
     if(  uiBasePicCodingType == MSYS_UINT_MAX || uiBasePicCodingType == 0 )
@@ -2407,7 +1712,7 @@ LayerEncoder::xSetMMCOAndUpdateParameters( SliceHeader& rcSliceHeader, UInt uiFr
   //===== MMCO for short-term configurations =====
   if( ! m_bUseLongTermPics && uiFrameIdInGOP == m_uiFrameIdWithSmallestTId && bRefFrmOr2ndFld )
   {
-    if( bUseRefBasePic && m_uiMMCOBaseEnable )
+    if( bUseRefBasePic && m_bMMCOBaseEnable )
     {
       UIntList cBasePicNumList;
       while( m_cActiveRefBasePicListFrameNum.size() )
@@ -2425,37 +1730,41 @@ LayerEncoder::xSetMMCOAndUpdateParameters( SliceHeader& rcSliceHeader, UInt uiFr
       }
       RNOK( xSetDecRefPicMarkingST( rcDecRefBasePicMarking, cBasePicNumList, uiCurrPicNum, uiMaxPicNum ) );
     }
-    UIntList cPicNumList;
-    for( UInt uiTId = 0; uiTId <= MAX_DSTAGES; uiTId++ )
+    if( m_bMMCOEnable )
     {
-      UInt uiMaxListSize = ( m_uiDecompositionStages - uiTId > m_uiNotCodedStages ? 1 : 0 );
-      while( m_acActiveRefListFrameNum[ uiTId ].size() > uiMaxListSize )
+      UIntList cPicNumList;
+      for( UInt uiTId = 0; uiTId <= MAX_DSTAGES; uiTId++ )
       {
-        UInt  uiFrameNumX = m_acActiveRefListFrameNum[ uiTId ].popFront();
-        if( bFieldPic )
+        UInt uiMaxListSize = ( m_uiDecompositionStages - uiTId > m_uiNotCodedStages ? 1 : 0 );
+        while( m_acActiveRefListFrameNum[ uiTId ].size() > uiMaxListSize )
         {
-          cPicNumList.push_back( 2 * uiFrameNumX );
-          cPicNumList.push_back( 2 * uiFrameNumX + 1 );
-        }
-        else
-        {
-          cPicNumList.push_back( uiFrameNumX );
-        }
-        for( UInt uiFId = 0; uiFId <= m_uiGOPSize; uiFId++ )
-        {
-          if( m_auiFrameIdToFrameNumOrLTIdx[ uiFId ] == uiFrameNumX )
+          UInt  uiFrameNumX = m_acActiveRefListFrameNum[ uiTId ].popFront();
+          if( bFieldPic )
           {
-            m_auiFrameIdToFrameNumOrLTIdx[ uiFId ] = MSYS_UINT_MAX;
+            cPicNumList.push_back( 2 * uiFrameNumX );
+            cPicNumList.push_back( 2 * uiFrameNumX + 1 );
+          }
+          else
+          {
+            cPicNumList.push_back( uiFrameNumX );
+          }
+          for( UInt uiFId = 0; uiFId <= m_uiGOPSize; uiFId++ )
+          {
+            if( m_auiFrameIdToFrameNumOrLTIdx[ uiFId ] == uiFrameNumX )
+            {
+              m_auiFrameIdToFrameNumOrLTIdx[ uiFId ] = MSYS_UINT_MAX;
+            }
           }
         }
       }
+      RNOK( xSetDecRefPicMarkingST( rcDecRefPicMarking, cPicNumList, uiCurrPicNum, uiMaxPicNum ) );
     }
-    RNOK( xSetDecRefPicMarkingST( rcDecRefPicMarking, cPicNumList, uiCurrPicNum, uiMaxPicNum ) );
   }
 
   //===== MMCO for long-term configurations =====
   if( m_bUseLongTermPics && bRefPic && !bIdrFlag )
   {
+    ROF( m_bMMCOEnable );
     Bool bSendMaxLongTerm = ( m_iMaxLongTermFrmIdx > 0 && ! m_abMaxLongTermIdxSend[ uiTemporalId ] );
     if(  bSendMaxLongTerm )
     {
@@ -2495,7 +1804,7 @@ LayerEncoder::xSetMMCOAndUpdateParameters( SliceHeader& rcSliceHeader, UInt uiFr
   }
   if( bIdrFlag )
   {
-    m_uiIdrPicId  = ( m_uiIdrPicId + 1 ) % 3;
+    m_uiIdrPicId = ( m_uiIdrPicId + 1 ) % 3;
   }
   return Err::m_nOK;
 }
@@ -2759,28 +2068,40 @@ LayerEncoder::updateMaxSliceSize( UInt uiAUIndex, UInt& ruiMaxSliceSize )
 }
 
 ErrVal
+LayerEncoder::getBaseLayerLevelIdc( UInt& uiLevelIdc, Bool& bBiPred8x8Disable, Bool& bMCBlks8x8Disable )
+{
+  uiLevelIdc                 = 0;
+  SliceHeader* pcSliceHeader = m_pacControlData[ m_uiLastCodedFrameIdInGOP ].getSliceHeader();
+  if( ! pcSliceHeader )
+  {
+    pcSliceHeader = m_pacControlData[ m_uiLastCodedFrameIdInGOP ].getSliceHeader( BOT_FIELD );
+  }
+  ROF( pcSliceHeader );
+  uiLevelIdc        = pcSliceHeader->getSPS().getConvertedLevelIdc();
+  bBiPred8x8Disable = pcSliceHeader->getSPS().getBiPred8x8Disabled() || m_bBiPred8x8Disable;
+  bMCBlks8x8Disable = m_bMCBlks8x8Disable;
+  return Err::m_nOK;
+}
+
+ErrVal
 LayerEncoder::getBaseLayerStatus( Bool&   bExists,
-                                  Bool&   bMotion,
                                   PicType ePicType,
                                   UInt		uiTemporalId )
 {
   bExists = false;
-  bMotion = false;
 
   if( m_uiLastCodedFrameIdInGOP != MSYS_UINT_MAX && m_uiLastCodedTemporalId == uiTemporalId )
   {
     bExists = true;
-    bMotion = bExists || !m_bH264AVCCompatible;
   }
 
   //S051{
-  if(m_bEncSIP && m_uiLastCodedFrameIdInGOP != MSYS_UINT_MAX && m_uiLastCodedTemporalId == uiTemporalId )
+  if( m_bEncSIP && m_uiLastCodedFrameIdInGOP != MSYS_UINT_MAX && m_uiLastCodedTemporalId == uiTemporalId )
   {
-    Int iPoc = m_pacControlData[m_uiLastCodedTemporalId].getSliceHeader( ePicType )->getPoc( ePicType );
-    if(xSIPCheck(iPoc))
+    Int iPoc = m_pacControlData[m_uiLastCodedFrameIdInGOP].getSliceHeader( ePicType )->getPoc( ePicType );
+    if( xSIPCheck( iPoc ) )
     {
       bExists = false;
-      bMotion = bExists || !m_bH264AVCCompatible;
     }
   }
   //S051}
@@ -2789,12 +2110,11 @@ LayerEncoder::getBaseLayerStatus( Bool&   bExists,
 }
 
 ErrVal
-LayerEncoder::getBaseLayerDataAvailability( Frame*&       pcFrame,
-                                            Frame*&       pcResidual,
-                                            MbDataCtrl*&  pcMbDataCtrl,
-                                            Bool          bMotion,
-                                            PicType       ePicType,
-                                            UInt		      uiTemporalId )
+LayerEncoder::getBaseLayerDataAvlb( Frame*&       pcFrame,
+                                    Frame*&       pcResidual,
+                                    MbDataCtrl*&  pcMbDataCtrl,
+                                    PicType       ePicType,
+                                    UInt		      uiTemporalId )
 {
   pcFrame      = NULL;
   pcResidual   = NULL;
@@ -2824,9 +2144,7 @@ LayerEncoder::getBaseLayerData( SliceHeader&  rcELSH,
                                 Frame*&       pcFrame,
                                 Frame*&       pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
-                                MbDataCtrl*&  pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                 Bool          bSpatialScalability,
-                                Bool          bMotion,
                                 PicType       ePicType,
                                 UInt	      	uiTemporalId )
 {
@@ -2868,8 +2186,6 @@ LayerEncoder::getBaseLayerData( SliceHeader&  rcELSH,
                                    m_pacControlData[uiPos].getSpatialScalability() ) );
   }
 
-  pcMbDataCtrlEL = pcMbDataCtrl;
-
   return Err::m_nOK;
 }
 
@@ -2883,35 +2199,56 @@ LayerEncoder::xSetBaseLayerData( UInt    uiFrameIdInGOP,
   ROF( pcSliceHeader );
   UInt          uiTemporalId        = pcSliceHeader->getTemporalId();
   UInt          uiBaseLayerId       = m_uiBaseLayerId;
-  UInt          uiBaseLayerIdMotion = m_uiBaseLayerId;
 
   if( ! m_bInterLayerPrediction )
   {
-    pcSliceHeader->setBaseLayerId           ( MSYS_UINT_MAX );
-    pcSliceHeader->setNoInterLayerPredFlag( true );
-    //pcSliceHeader->setBaseQualityLevel      ( 0 );
-    pcSliceHeader->setAdaptiveBaseModeFlag( false );
-    // JVT-U160 LMI
-    pcSliceHeader->setAdaptiveResidualPredictionFlag (false);
-    rcControlData .setBaseLayer             ( MSYS_UINT_MAX, MSYS_UINT_MAX );
+    pcSliceHeader->setBaseLayerId                   ( MSYS_UINT_MAX );
+    pcSliceHeader->setNoInterLayerPredFlag          ( true  );
+    pcSliceHeader->setAdaptiveBaseModeFlag          ( false );
+    pcSliceHeader->setAdaptiveMotionPredictionFlag  ( false );
+    pcSliceHeader->setAdaptiveResidualPredictionFlag( false );
+    pcSliceHeader->setDefaultBaseModeFlag           ( false );
+    pcSliceHeader->setDefaultMotionPredictionFlag   ( false );
+    pcSliceHeader->setDefaultResidualPredictionFlag ( false );
+    rcControlData .setBaseLayer                     ( MSYS_UINT_MAX );
     return Err::m_nOK;
   }
 
-  RNOK( m_pcH264AVCEncoder->getBaseLayerStatus( uiBaseLayerId, uiBaseLayerIdMotion, m_uiDependencyId, ePicType, uiTemporalId ) );
+  RNOK( m_pcH264AVCEncoder->getBaseLayerStatus( uiBaseLayerId, m_uiDependencyId, ePicType, uiTemporalId ) );
+  m_pcResizeParameters->updatePicParameters( m_papcFrame[ uiFrameIdInGOP ]->getPicParameters( ePicType ) );
 
-  Bool  bAdaptive = m_bAdaptivePrediction;
-  if(   bAdaptive )
+  Bool  bILPred           = ( uiBaseLayerId != MSYS_UINT_MAX );
+  Bool  bAdaptiveBaseMode = ( bILPred && m_bAdaptiveBaseModeFlag );
+  Bool  bDefaultBaseMode  = ( bILPred && m_bDefaultBaseModeFlag  );
+  Bool  bAdaptiveMotion   = ( bILPred && m_bAdaptiveMotionPredFlag   );
+  Bool  bDefaultMotion    = ( bILPred && m_bDefaultMotionPredFlag    );
+  Bool  bAdaptiveResidual = ( bILPred && m_bAdaptiveResidualPredFlag );
+  Bool  bDefaultResidual  = ( bILPred && m_bDefaultResidualPredFlag  );
+  Bool  bSendSkipSlices   = ( bILPred && m_pcLayerParameters->getSliceSkip() != 0 && pcSliceHeader->getTemporalId() >= m_pcLayerParameters->getSliceSkipTLevelStart() );
+
+  if( bSendSkipSlices )
   {
-    if( uiBaseLayerId != MSYS_UINT_MAX         && // when base layer available
+    bAdaptiveBaseMode = false;
+    bAdaptiveMotion   = false;
+    bAdaptiveResidual = false;
+    bDefaultBaseMode  = true;
+    bDefaultMotion    = true;
+    bDefaultResidual  = true;
+  }
+
+  if( bAdaptiveBaseMode )
+  {
+    if( uiBaseLayerId != MSYS_UINT_MAX      && // when base layer available
         pcSliceHeader->getTemporalId() == 0 && // only for TL=0 pictures
-        m_bMGS                                 && // only when MGS
-        m_bSameResBL                           && // only when not lowest MGS layer (QL=0)
-        m_uiEncodeKeyPictures   >  0            ) // only when MGS key pictures
+        m_bMGS                              && // only when MGS
+        m_bSameResBL                        && // only when not lowest MGS layer (QL=0)
+        m_uiEncodeKeyPictures   >  0         ) // only when MGS key pictures
     {
-      bAdaptive = false;
+      bAdaptiveBaseMode = false;
+      bDefaultBaseMode  = true;
     }
   }
-  else if( m_uiGOPSize == ( 1U << m_uiDecompositionStages ) )
+  if( bDefaultBaseMode && m_uiGOPSize == ( 1U << m_uiDecompositionStages ) )
   {
     PicType eTestPicType = ( m_pbFieldPicFlag[ m_uiGOPSize ] ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
     if( m_pacControlData[ m_uiGOPSize ].getSliceHeader( eTestPicType )->getIdrFlag() )
@@ -2928,50 +2265,67 @@ LayerEncoder::xSetBaseLayerData( UInt    uiFrameIdInGOP,
         uiCodNumCurr++;
         ROF( uiCodNumCurr <= 64 );
       }
-      bAdaptive = ( uiCodNumIDR <= uiCodNumCurr );
+      bAdaptiveBaseMode = ( uiCodNumIDR <= uiCodNumCurr );
+      bDefaultBaseMode  = !bAdaptiveBaseMode;
     }
   }
 
-  m_pcResizeParameters->updatePicParameters( m_papcFrame[ uiFrameIdInGOP ]->getPicParameters( ePicType ) );
-  if( uiBaseLayerId != uiBaseLayerIdMotion && ( bAdaptive || m_pcResizeParameters->getSpatialResolutionChangeFlag() ) )
-  {
-    uiBaseLayerIdMotion = uiBaseLayerId;
-  }
+  pcSliceHeader->setBaseLayerId                   ( uiBaseLayerId     );
+  pcSliceHeader->setRefLayer                      ( m_uiBaseLayerCGSSNR, m_uiBaseQualityLevelCGSSNR );
+  pcSliceHeader->setNoInterLayerPredFlag          ( !bILPred          );
+  pcSliceHeader->setSliceSkipFlag                 ( bSendSkipSlices   );
+  pcSliceHeader->setAdaptiveILPred                ( bAdaptiveBaseMode );
+  pcSliceHeader->setAdaptiveBaseModeFlag          ( bAdaptiveBaseMode );
+  pcSliceHeader->setAdaptiveMotionPredictionFlag  ( bAdaptiveMotion   );
+  pcSliceHeader->setAdaptiveResidualPredictionFlag( bAdaptiveResidual );
+  pcSliceHeader->setDefaultBaseModeFlag           ( bDefaultBaseMode  );
+  pcSliceHeader->setDefaultMotionPredictionFlag   ( bDefaultMotion    );
+  pcSliceHeader->setDefaultResidualPredictionFlag ( bDefaultResidual  );
 
-  pcSliceHeader->setBaseLayerId( uiBaseLayerId );
-  pcSliceHeader->setRefLayer( m_uiBaseLayerCGSSNR, m_uiBaseQualityLevelCGSSNR );
-  pcSliceHeader->setNoInterLayerPredFlag( uiBaseLayerId == MSYS_UINT_MAX );
-  Bool bSendSkipSlices = ( uiBaseLayerId != MSYS_UINT_MAX && m_pcLayerParameters->getSliceSkip() != 0 && pcSliceHeader->getTemporalId() >= m_pcLayerParameters->getSliceSkipTLevelStart() );
-  pcSliceHeader->setSliceSkipFlag( bSendSkipSlices );
-  Bool bAdaptivePredFlag = ( uiBaseLayerId != MSYS_UINT_MAX ? bAdaptive : false );
-  pcSliceHeader->setAdaptiveBaseModeFlag          ( bAdaptivePredFlag );
-  pcSliceHeader->setAdaptiveMotionPredictionFlag  ( bAdaptivePredFlag );
-  pcSliceHeader->setAdaptiveResidualPredictionFlag( bAdaptivePredFlag );
-  pcSliceHeader->setAdaptiveILPred                ( bAdaptivePredFlag );
-  if( ! bAdaptivePredFlag )
+  //===== check special cases for ensuring level constraints =====
+  if( pcSliceHeader->getDefaultBaseModeFlag() &&
+      ( pcSliceHeader->getSPS().getConvertedLevelIdc() >= 30 || m_bBiPred8x8Disable ) )
   {
-    pcSliceHeader->setDefaultBaseModeFlag           ( ! pcSliceHeader->getNoInterLayerPredFlag() );
-    pcSliceHeader->setDefaultMotionPredictionFlag   ( ! pcSliceHeader->getNoInterLayerPredFlag() );
-    pcSliceHeader->setDefaultResidualPredictionFlag ( ! pcSliceHeader->getNoInterLayerPredFlag() );
+    Bool  bPSlice               = pcSliceHeader->getSliceType() == P_SLICE;
+    Bool  bInterSlice           = bPSlice || pcSliceHeader->getSliceType() == B_SLICE;
+    Bool  bSNR                  = ! m_pcResizeParameters->getSpatialResolutionChangeFlag();
+    Bool  bESS                  = ! bSNR && ! m_pcResizeParameters->getRestrictedSpatialResolutionChangeFlag();
+    Bool  bBiPred8x8Disable     = m_bBiPred8x8Disable || pcSliceHeader->getSPS().getBiPred8x8Disabled();
+    UInt  uiBaseLevel           = 0;
+    Bool  bBaseBiPred8Disable   = false;
+    Bool  bBaseMCBlks8x8Disable = false;
+    RNOK( m_pcH264AVCEncoder->getBaseLayerLevelIdc( uiBaseLayerId, uiBaseLevel, bBaseBiPred8Disable, bBaseMCBlks8x8Disable ) );
+    Bool  bLevelIssue           = ( uiBaseLevel < 30 || ( uiBaseLevel == 30 && pcSliceHeader->getSPS().getConvertedLevelIdc() > 30 ) ) && !bBaseMCBlks8x8Disable;
+    Bool  bSNRIssue             = bLevelIssue || ( bBiPred8x8Disable && ! bBaseBiPred8Disable );
+    Bool  bForceABMF            = ( ( bPSlice && bESS ) || ( bInterSlice && bSNR && bSNRIssue ) );
+    if( bForceABMF )
+    { // for SNR: level idc and biPredDisabled could be modified in base layer
+      pcSliceHeader->setAdaptiveBaseModeFlag( true );
+      pcSliceHeader->setDefaultBaseModeFlag ( false );
+      pcSliceHeader->setSliceSkipFlag       ( false );
+      if( bSendSkipSlices )
+      {
+        printf("skip slice has been disabled!!!\n");
+        if( bESS )
+        {
+          printf("skip slices are not supported for P pictures in an ESS configuration.\n");
+        }
+        else if( bLevelIssue )
+        {
+          printf("for enabling skip slices:\n");
+          printf("-> set MinLevelIdc in base layer, or\n");
+          printf("-> disable MC blocks less than 8x8 in base layer\n");
+        }
+        else
+        {
+          printf("for enabling skip slices:\n");
+          printf("-> enable biprediction in layer with skip slices, or\n");
+          printf("-> disable biprediction for blocks less than 8x8 in base layer\n");
+        }
+      }
+    }
   }
-  else
-  {
-    pcSliceHeader->setDefaultBaseModeFlag           ( false );
-    pcSliceHeader->setDefaultMotionPredictionFlag   ( false );
-    pcSliceHeader->setDefaultResidualPredictionFlag ( false );
-  }
-  if( ! pcSliceHeader->getNoInterLayerPredFlag() &&
-      ! pcSliceHeader->getAdaptiveBaseModeFlag() &&
-        pcSliceHeader->getSliceType() == P_SLICE &&
-        pcSliceHeader->getSPS().getConvertedLevelIdc() >= 30 &&
-      ! m_pcResizeParameters->getRestrictedSpatialResolutionChangeFlag() )
-  {
-    pcSliceHeader->setAdaptiveBaseModeFlag          ( true );
-    pcSliceHeader->setAdaptiveMotionPredictionFlag  ( true );
-    pcSliceHeader->setDefaultBaseModeFlag           ( false );
-    pcSliceHeader->setDefaultMotionPredictionFlag   ( false );
-  }
-  rcControlData.setBaseLayer( uiBaseLayerId, uiBaseLayerIdMotion );
+  rcControlData.setBaseLayer( uiBaseLayerId );
 
   return Err::m_nOK;
 }
@@ -3153,13 +2507,94 @@ LayerEncoder::xClearBufferExtensions()
 {
   for( UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++ )
   {
-    RNOK( m_papcFrame   [uiFrame]->uninitHalfPel() );
-    RNOK( m_papcFrame   [ uiFrame ]->removeFrameFieldBuffer() );
-    RNOK( m_pcSubband->uninitHalfPel() );
-    RNOK( m_pcSubband->removeFrameFieldBuffer() );
-    RNOK( m_pcResidual->uninitHalfPel() );
-    RNOK( m_pcResidual->removeFrameFieldBuffer() );
+    RNOK  ( m_papcFrame[uiFrame]  ->uninitHalfPel() );
+    RNOK  ( m_papcFrame[uiFrame]  ->removeFrameFieldBuffer() );
+    if( m_papcELFrame )
+    {
+      RNOK( m_papcELFrame[uiFrame]->uninitHalfPel() );
+      RNOK( m_papcELFrame[uiFrame]->removeFrameFieldBuffer() );
+    }
   }
+  RNOK    ( m_pcSubband           ->uninitHalfPel() );
+  RNOK    ( m_pcSubband           ->removeFrameFieldBuffer() );
+  RNOK    ( m_pcResidual          ->uninitHalfPel() );
+  RNOK    ( m_pcResidual          ->removeFrameFieldBuffer() );
+  RNOK    ( m_apcBaseFrame[0]     ->uninitHalfPel() );
+  RNOK    ( m_apcBaseFrame[0]     ->removeFrameFieldBuffer() );
+  RNOK    ( m_apcBaseFrame[1]     ->uninitHalfPel() );
+  RNOK    ( m_apcBaseFrame[1]     ->removeFrameFieldBuffer() );
+  return Err::m_nOK;
+}
+
+ErrVal
+LayerEncoder::xGetAndSetPredictionLists( ControlData& rcControlData,
+                                         UInt         uiFrameIdInGOP,
+                                         PicType      ePicType,
+                                         Bool         bHalfPel )
+{
+  RefListStruct&  rcRefListStruct = rcControlData.getRefListStruct();
+  SliceHeader*    pcSliceHeader   = rcControlData.getSliceHeader( ePicType );
+  RefFrameList&   rcRefList0      = rcRefListStruct.acRefFrameListRC[ 0 ];
+  RefFrameList&   rcRefList1      = rcRefListStruct.acRefFrameListRC[ 1 ];
+  UInt            uiFrameIdCol    = MSYS_UINT_MAX;
+  Bool            bKeyPic         = ( pcSliceHeader->getTemporalId() == 0 );
+  RefListUsage    eRLU            = ( bKeyPic ? RLU_REF_BASE_PIC : RLU_RECONSTRUCTION );
+
+  //===== get prediction lists and set RefListStruct =====
+  RNOK( xGetPredictionLists( rcRefList0, rcRefList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, eRLU, bHalfPel ) );
+  rcRefListStruct.uiFrameIdCol = uiFrameIdCol;
+  if( bKeyPic || m_uiMGSKeyPictureControl == 0 )
+  {
+    rcRefListStruct.acRefFrameListME[0].copy( rcRefList0 );
+    rcRefListStruct.acRefFrameListME[1].copy( rcRefList1 );
+    rcRefListStruct.acRefFrameListMC[0].copy( rcRefList0 );
+    rcRefListStruct.acRefFrameListMC[1].copy( rcRefList1 );
+    rcRefListStruct.bMCandRClistsDiffer = false;
+  }
+  else
+  {
+    RefFrameList& rcRefList0ME = rcRefListStruct.acRefFrameListME[ 0 ];
+    RefFrameList& rcRefList1ME = rcRefListStruct.acRefFrameListME[ 1 ];
+    RNOK( xGetPredictionLists( rcRefList0ME, rcRefList1ME, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_MOTION_ESTIMATION, bHalfPel ) );
+    if( m_uiMGSKeyPictureControl == 1 )
+    {
+      rcRefListStruct.acRefFrameListMC[0].copy( rcRefList0 );
+      rcRefListStruct.acRefFrameListMC[1].copy( rcRefList1 );
+      rcRefListStruct.bMCandRClistsDiffer = false;
+    }
+    else 
+    {
+      ROF( m_uiMGSKeyPictureControl == 2 );
+      rcRefListStruct.acRefFrameListMC[0].copy( rcRefList0ME );
+      rcRefListStruct.acRefFrameListMC[1].copy( rcRefList1ME );
+      rcRefListStruct.bMCandRClistsDiffer = true;
+    }
+  }
+
+  //===== set slice header lists =====
+  pcSliceHeader->setRefFrameList( &rcRefList0, ePicType, LIST_0 );
+  pcSliceHeader->setRefFrameList( &rcRefList1, ePicType, LIST_1 );
+  if( pcSliceHeader->isMbaffFrame() )
+  {
+    RefFrameList  cRefList0Top, cRefList1Top, cRefList0Bot, cRefList1Bot;
+    RNOK( gSetFrameFieldLists( cRefList0Top, cRefList0Bot, rcRefList0 ) );
+    RNOK( gSetFrameFieldLists( cRefList1Top, cRefList1Bot, rcRefList1 ) );
+    pcSliceHeader->setRefFrameList( &cRefList0Top, TOP_FIELD, LIST_0 );
+    pcSliceHeader->setRefFrameList( &cRefList0Bot, BOT_FIELD, LIST_0 );
+    pcSliceHeader->setRefFrameList( &cRefList1Top, TOP_FIELD, LIST_1 );
+    pcSliceHeader->setRefFrameList( &cRefList1Bot, BOT_FIELD, LIST_1 );
+  }
+
+  //===== set co-located data =====
+  MbDataCtrl* pcMbDataCtrl0L1 = 0;
+  if( pcSliceHeader->isH264AVCCompatible() && pcSliceHeader->getSliceType() == B_SLICE )
+  {
+    ROT( rcRefListStruct.uiFrameIdCol == MSYS_UINT_MAX );
+    pcMbDataCtrl0L1 = m_pacControlData[ rcRefListStruct.uiFrameIdCol ].getMbDataCtrl();
+    ROF( pcMbDataCtrl0L1 );
+  }
+  rcControlData.setMbDataCtrl0L1( pcMbDataCtrl0L1 );
+
   return Err::m_nOK;
 }
 
@@ -3254,11 +2689,6 @@ LayerEncoder::xGetPredictionLists( RefFrameList&  rcRefList0,
 
 ErrVal
 LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
-                                  UInt          uiBaseLevel,
-                                  UInt          uiFrame,
-                                  Bool          bMotion,
-                                  RefFrameList* pcRefFrameList0,
-                                  RefFrameList* pcRefFrameList1,
                                   PicType       ePicType )
 {
   //===== init =====
@@ -3267,26 +2697,24 @@ LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
   rcControlData.setBaseLayerCtrl( 0 );
   rcControlData.setBaseLayerCtrlField( 0 );
 
-  Frame*     pcBaseFrame         = 0;
-  Frame*     pcBaseResidual      = 0;
+  RefFrameList* pcRefFrameList0     = &rcControlData.getRefListStruct().acRefFrameListRC[0];
+  RefFrameList* pcRefFrameList1     = &rcControlData.getRefListStruct().acRefFrameListRC[1];
+  Frame*        pcBaseFrame         = 0;
+  Frame*        pcBaseResidual      = 0;
   MbDataCtrl*   pcBaseDataCtrl      = 0;
-  MbDataCtrl*   pcBaseDataCtrlEL	  = 0;
-
   Bool          bBaseDataAvailable  = false;
-
-  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
+  SliceHeader*  pcSliceHeader       = rcControlData.getSliceHeader( ePicType );
   ROF( pcSliceHeader );
 
-  if( rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX )
+  if( rcControlData.getBaseLayerId() != MSYS_UINT_MAX )
   {
-     RNOK( m_pcH264AVCEncoder->getBaseLayerDataAvailability( pcBaseFrame,
-                                                             pcBaseResidual,
-                                                             pcBaseDataCtrl,
-                                                             rcControlData.getBaseLayerIdMotion      (),
-                                                             bMotion,
-                                                             bBaseDataAvailable,
-                                                             ePicType,
-                                                             pcSliceHeader->getTemporalId() ) );
+     RNOK( m_pcH264AVCEncoder->getBaseLayerDataAvlb( pcBaseFrame,
+                                                     pcBaseResidual,
+                                                     pcBaseDataCtrl,
+                                                     rcControlData.getBaseLayerId(),
+                                                     bBaseDataAvailable,
+                                                     ePicType,
+                                                     pcSliceHeader->getTemporalId() ) );
 
         // Get resampling mode & obtain again with same resolution interlaced-to-progressive check
     if( bBaseDataAvailable )
@@ -3306,10 +2734,8 @@ LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
                                                   pcBaseFrame,
                                                   pcBaseResidual,
                                                   pcBaseDataCtrl,
-                                                  pcBaseDataCtrlEL,
                                                   m_pcResizeParameters->getSpatialResolutionChangeFlag(),
-                                                  rcControlData.getBaseLayerIdMotion(),
-                                                  bMotion,
+                                                  rcControlData.getBaseLayerId(),
                                                   ePicType,
                                                   pcSliceHeader->getTemporalId() ) );
     }
@@ -3319,17 +2745,13 @@ LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
   //===== motion data =====
   if( pcBaseDataCtrl )
   {
-    if( pcBaseDataCtrlEL )
-    {
-      pcBaseDataCtrlEL->setSliceHeader( pcBaseDataCtrl->getSliceHeader() );
-      pcBaseDataCtrl = pcBaseDataCtrlEL;
-    }
     pcSliceHeader->setSCoeffResidualPredFlag( m_pcResizeParameters );
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( m_pcBaseLayerCtrl->upsampleMotion( pcSliceHeader, m_pcResizeParameters, pcBaseDataCtrl, pcRefFrameList0, pcRefFrameList1, m_pcResizeParameters->m_bFieldPicFlag, (m_uiEssRPChkEnable!=0), m_uiMVThres ) );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
-    if( m_pcResizeParameters->m_bIsMbAffFrame )
+    Bool bSNR = ( pcSliceHeader->getSCoeffResidualPredFlag() || pcSliceHeader->getTCoeffLevelPredictionFlag() );
+    if( m_pcResizeParameters->m_bIsMbAffFrame && !bSNR )
     {
       RNOK( m_pcBaseLayerCtrlField->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
       RNOK( m_pcBaseLayerCtrlField->upsampleMotion( pcSliceHeader, m_pcResizeParameters, pcBaseDataCtrl, pcRefFrameList0, pcRefFrameList1, true, (m_uiEssRPChkEnable!=0), m_uiMVThres ) );
@@ -3388,462 +2810,151 @@ Void LayerEncoder::setMCResizeParameters   (ResizeParameters*				resizeParameter
 }
 
 
-ErrVal
-LayerEncoder::xInitControlDataMotion( UInt          uiBaseLevel,
-                                      UInt          uiFrame,
-                                      Bool          bMotionEstimation,
-                                      PicType       ePicType )
-{
-  UInt            uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-  ControlData&    rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  SliceHeader*    pcSliceHeader   = rcControlData.getSliceHeader  ( ePicType );
-  ROF( pcSliceHeader );
-  Double          dScalFactor     = rcControlData.getScalingFactor();
-  Double          dQpPredData     = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    dQpPredData = m_adBaseQpLambdaMotion[ uiBaseLevel ] = pcGenericRC->m_pcJSVMParams->qp;
-  }
-  // JVT-W043 }
-  if( m_bExplicitQPCascading )
-  {
-    UInt  uiTLevel               = m_uiDecompositionStages - uiBaseLevel;
-    dQpPredData                  = m_adBaseQpLambdaMotion[ uiBaseLevel ] + m_adDeltaQPTLevel[ uiTLevel ];
-  }
-  Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
-  Int             iQp               = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
-
-  // JVT-AD021 {
-  dLambda *= xGetGamma( dQpPredData , rcControlData );
-  // JVT-AD021 }
-
-  pcSliceHeader->setSliceHeaderQp( iQp );
-  rcControlData. setLambda       ( dLambda );
-
-  if( bMotionEstimation )
-  {
-    RefFrameList* pcRefFrameList0 = &rcControlData.getPrdFrameList( LIST_0 );
-    RefFrameList* pcRefFrameList1 = &rcControlData.getPrdFrameList( LIST_1 );
-    m_pcResizeParameters->updatePicParameters( m_papcFrame[ uiFrameIdInGOP ]->getPicParameters( ePicType ) );
-    RNOK( xInitBaseLayerData( rcControlData,uiBaseLevel, uiFrame, true, pcRefFrameList0, pcRefFrameList1, ePicType) );
-  }
-
-  return Err::m_nOK;
-}
 
 
 ErrVal
-LayerEncoder::xInitControlDataLowPass( UInt           uiFrameIdInGOP,
-                                       UInt           uiBaseLevel,
-                                       UInt           uiFrame,
-                                       PicType        ePicType )
+LayerEncoder::xInitControlData( UInt    uiFrameIdInGOP,
+                                UInt    uiTemporalId,
+                                PicType ePicType )
 {
   ControlData&  rcControlData = m_pacControlData[ uiFrameIdInGOP ];
-  SliceHeader* pcSliceHeader  = rcControlData.getSliceHeader( ePicType );
+  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
   ROF( pcSliceHeader );
 
-  Double        dScalFactor   = rcControlData.getScalingFactor();
-  Double        dQP           = m_dBaseQpLambdaMotionLP - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-  if( m_bExplicitQPCascading )
-  {
-    dQP                       = m_dBaseQpLambdaMotionLP + m_adDeltaQPTLevel[ 0 ];
-  }
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    dQP = m_dBaseQpLambdaMotionLP = pcGenericRC->m_pcJSVMParams->qp;
-  }
-  // JVT-W043 }
-  Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
-  dQP                           = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-  if( m_bExplicitQPCascading )
-  {
-    dQP                         = m_dBaseQPResidual + m_adDeltaQPTLevel[ 0 ];
-  }
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    dQP = m_dBaseQPResidual = pcGenericRC->m_pcJSVMParams->qp;
-  }
-  // JVT-W043 }
-  Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
+  //===== set base layer data =====
+  RNOK( xSetBaseLayerData( uiFrameIdInGOP, ePicType ) );
 
-  // JVT-AD021 {
-  dLambda *= xGetGamma( dQP , rcControlData );
-  // JVT-AD021 }
-
-  pcSliceHeader->setSliceHeaderQp ( iQP );
+  //===== set QP & lambda =====
+  Double  dBaseQPMot  = ( uiTemporalId ? m_adBaseQpLambdaMotion[ m_uiDecompositionStages - uiTemporalId ] : m_dBaseQpLambdaMotionLP );
+  Double  dBaseQPRes  = m_dBaseQPResidual;
+  Double  dDeltaQpStd = -6.0 * log10( rcControlData.getScalingFactor() ) / log10( 2.0 );
+  Double  dDeltaQp    = ( m_bExplicitQPCascading ? m_adDeltaQPTLevel[ uiTemporalId ] : dDeltaQpStd );
+  Double  dQPMot      = dBaseQPMot + dDeltaQp;
+  Double  dQPRes      = dBaseQPRes + dDeltaQp;
+  if( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    dQPMot  = pcGenericRC->m_pcJSVMParams->qp;
+    dQPRes  = pcGenericRC->m_pcJSVMParams->qp;
+  }
+  Double  d2powQPX    = pow( 2.0, gMin( 52.0, dQPMot ) / 3.0 - 4.0 );
+  Double  dLambda     = 0.85 * d2powQPX * xGetGamma( dQPMot, rcControlData );
+  Int     iQPRes      = gMax( MIN_QP, gMin( MAX_QP, (Int)floor( dQPRes + 0.5 ) ) );
+  pcSliceHeader->setSliceHeaderQp ( iQPRes  );
   rcControlData. setLambda        ( dLambda );
 
-  RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-  RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-  UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-  RNOK( xGetPredictionLists( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_REF_BASE_PIC, false ) );
-  m_apcBaseFrame[0]->clearExtended();
-  m_apcBaseFrame[1]->clearExtended();
+  //===== create reference lists =====
+  RNOK( xGetAndSetPredictionLists( rcControlData, uiFrameIdInGOP, ePicType, true ) );
 
+  //===== update picture, base layer parameters, and weighted prediction =====
   m_pcResizeParameters->updatePicParameters( m_papcFrame[ uiFrameIdInGOP ]->getPicParameters( ePicType ) );
-  RNOK( xInitBaseLayerData( rcControlData,uiBaseLevel,uiFrame, false, &rcRefFrameList0, &rcRefFrameList1, ePicType ) );
-
+  RNOK( xInitBaseLayerData( rcControlData, ePicType ) );
   /* el & has correspongding bl frame & bl does wp then use bl wts */
-  if((m_uiDependencyId > 0 && m_bBaseLayerWp &&
-      rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX) )
+  if( m_uiDependencyId > 0 && m_bBaseLayerWp && rcControlData.getBaseLayerId() != MSYS_UINT_MAX )
   {
-      /* use same wts as bl */
-      pcSliceHeader->setBasePredWeightTableFlag(true);
+    /* use same wts as bl */
+    pcSliceHeader->setBasePredWeightTableFlag( true );
   }
   else
   {
-      /* call function to calculate the weights */
-      m_pcSliceEncoder->xSetPredWeights( *pcSliceHeader,
-                                         m_papcFrame[uiFrameIdInGOP],
-                                         rcRefFrameList0,
-                                         rcRefFrameList1 );
-      pcSliceHeader->setBasePredWeightTableFlag(false);
+    /* call function to calculate the weights */
+    m_pcSliceEncoder->xSetPredWeights( *pcSliceHeader, m_papcFrame[uiFrameIdInGOP], rcControlData.getRefListStruct() );
+    pcSliceHeader->setBasePredWeightTableFlag( false );
   }
-
-  rcControlData.getPrdFrameList ( LIST_0 ).reset();
-//TMM_WP
-
   return Err::m_nOK;
 }
 
 
 ErrVal
-LayerEncoder::xInitControlDataHighPass( UInt          uiFrameIdInGOP,
-                                        UInt          uiBaseLevel,
-                                        UInt          uiFrame,
-                                        PicType       ePicType )
+LayerEncoder::xGetInitialOutputDelay( UInt& ruiInitDelay, UInt uiTemporalLevel )
 {
-  ControlData&  rcControlData = m_pacControlData[ uiFrameIdInGOP ];
-  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-
-  Double        dScalFactor   = rcControlData.getScalingFactor();
-  Double        dQP           = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-  if( m_bExplicitQPCascading )
+  Int iMinDelay   = MSYS_INT_MAX;
+  Int iCodingNum  = 0;
+  for( UInt uiCodingIndex = 0; uiCodingIndex <= (1<<MAX_DSTAGES); uiCodingIndex++ )
   {
-    UInt  uiTLevel            = m_uiDecompositionStages - uiBaseLevel;
-    dQP                       = m_dBaseQPResidual + m_adDeltaQPTLevel[ uiTLevel ];
-  }
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    dQP = m_dBaseQPResidual = pcGenericRC->m_pcJSVMParams->qp;
-  }
-  // JVT-W043 }
-  Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
-  Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
-
-  // JVT-AD021 {
-  dLambda *= xGetGamma( dQP , rcControlData );
-  // JVT-AD021 }
-
-  pcSliceHeader->setSliceHeaderQp ( iQP );
-  rcControlData. setLambda        ( dLambda );
-
-  RefFrameList* pcRefFrameList0 = &rcControlData.getPrdFrameList( LIST_0 );
-  RefFrameList* pcRefFrameList1 = &rcControlData.getPrdFrameList( LIST_1 );
-  m_pcResizeParameters->updatePicParameters( m_papcFrame[ uiFrameIdInGOP ]->getPicParameters( ePicType ) );
-  RNOK( xInitBaseLayerData( rcControlData, uiBaseLevel, uiFrame, false, pcRefFrameList0, pcRefFrameList1, ePicType ) );
-
-  return Err::m_nOK;
-}
-
-ErrVal
-LayerEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame, PicType ePicType ) //TMM
-{
-  UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-  Frame*     pcIntraRecFrame = m_apcFrameTemp  [0];
-
-  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-
-  RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-  RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-  UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-
-    //===== get reference frame lists =====
-  RNOK( xGetPredictionLists( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_MOTION_ESTIMATION, true ) );
-  RefFrameList acRefFieldList0[2];
-  RefFrameList acRefFieldList1[2];
-  pcSliceHeader->setRefFrameList( &rcRefFrameList0, ePicType, LIST_0 );
-  pcSliceHeader->setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
-  if( pcSliceHeader->isMbaffFrame() )
-  {
-    RNOK( gSetFrameFieldLists( acRefFieldList0[0], acRefFieldList0[1], rcRefFrameList0 ) );
-    RNOK( gSetFrameFieldLists( acRefFieldList1[0], acRefFieldList1[1], rcRefFrameList1 ) );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[0]), TOP_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[1]), BOT_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[0]), TOP_FIELD, LIST_1 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[1]), BOT_FIELD, LIST_1 );
-  }
-
-    // JVT-W043 {
-    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    UInt  uiFrameIdInGOP  = m_auiCodingIndexToFrameId[ uiCodingIndex ];
+    UInt  uiTemporalId    = ( uiFrameIdInGOP == MSYS_UINT_MAX ? MSYS_UINT_MAX : m_auiFrameIdToTemporalId[ uiFrameIdInGOP ] );
+    if( uiFrameIdInGOP != MSYS_UINT_MAX && uiTemporalId <= uiTemporalLevel )
     {
-      pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
-      pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
-      pcGenericRC->m_pcJSVMParams->type = B_SLICE;
-      pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
-      pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
-      pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
-    }
-    // JVT-W043 }
-
-    //===== set lambda and QP =====
-    RNOK( xInitControlDataMotion  ( uiBaseLevel, uiFrame, true, ePicType ) );
-
-  //S051{
-  m_pcSliceEncoder->setUseBDir(true);
-  if(m_bEncSIP)
-  {
-    if(m_bH264AVCCompatible||!rcControlData.getSliceHeader( ePicType )->getDirectSpatialMvPredFlag())
-    {
-      if( uiFrameIdCol != MSYS_UINT_MAX)
+      Int iDisplayNum = (Int)uiFrameIdInGOP >> ( m_uiDecompositionStages - uiTemporalLevel );
+      Int iDelay      = iDisplayNum - iCodingNum;
+      if( iDelay < iMinDelay )
       {
-        SliceHeader* pcSliceHeaderL1 = m_pacControlData[uiFrameIdCol].getSliceHeader( ePicType );
-        if( xSIPCheck( pcSliceHeaderL1->getPoc() ) )
-        {
-          m_pcSliceEncoder->setUseBDir(false);
-        }
+        iMinDelay = iDelay;
       }
+      iCodingNum++;
     }
   }
-//S051}
-
-//TMM_WP
-  /* el & has correspongding bl frame & bl uses wp then use bl wts */
-  if((m_uiDependencyId > 0 && m_bBaseLayerWp &&
-      rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX) )
-  {
-      /* use same wts as bl */
-      pcSliceHeader->setBasePredWeightTableFlag(true);
-  }
-  else
-  {
-      /* call function to calculate the weights */
-      m_pcSliceEncoder->xSetPredWeights( *pcSliceHeader,
-                                         pcFrame,
-                                         rcRefFrameList0,
-                                         rcRefFrameList1
-                                         );
-      pcSliceHeader->setBasePredWeightTableFlag(false);
-  }
-//TMM_WP
-  // JVT-R057 LA-RDO{
-  if(m_bLARDOEnable)
-  {
-    pcFrame->initChannelDistortion();
-    m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
-  }
-// JVT-R057 LA-RDO}
-
-  //===== motion estimation =====
-  if( pcSliceHeader->isMbaffFrame() )
-  {
-    MbDataCtrl* pcMbDataCtrlCol = ( uiFrameIdCol == MSYS_UINT_MAX ? 0 : m_pacControlData[uiFrameIdCol].getMbDataCtrl() );
-    RNOK( xMotionEstimationMbAff( &rcRefFrameList0,
-                                  &rcRefFrameList1,
-                                  pcMbDataCtrlCol,
-                                  pcFrame,
-                                  pcIntraRecFrame,
-                                  rcControlData,
-                                  m_uiNumMaxIter,
-                                  m_uiIterSearchRange,
-                                  uiFrameIdInGOP ) );
-  }
-  else
-  {
-    MbDataCtrl* pcMbDataCtrlCol = ( uiFrameIdCol == MSYS_UINT_MAX ? 0 : m_pacControlData[uiFrameIdCol].getMbDataCtrl() );
-    RNOK( xMotionEstimation ( &rcRefFrameList0,
-                              &rcRefFrameList1,
-                              pcMbDataCtrlCol,
-                              pcFrame,
-                              pcIntraRecFrame,
-                              rcControlData,
-                              m_uiNumMaxIter,
-                              m_uiIterSearchRange,
-                              uiFrameIdInGOP ,
-                              ePicType ) );
-  }
+  ROF( iMinDelay <= 0 );
+  ruiInitDelay = UInt( -iMinDelay );
   return Err::m_nOK;
 }
 
-
 ErrVal
-LayerEncoder::xDecompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicType ePicType ) //TMM
+LayerEncoder::xSetCodingNumbers( UInt uiCodingIndex )
 {
-  UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-  Frame*     pcResidual      = m_pcResidual;
-  Frame*     pcMCFrame       = m_apcFrameTemp  [0];
-
-  SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-
-  RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-  RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-  UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-
-  //===== get reference frame lists =====
-  RNOK( xGetPredictionLists( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_GET_RESIDUAL, false ) );
-  RefFrameList acRefFieldList0[2];
-  RefFrameList acRefFieldList1[2];
-  pcSliceHeader->setRefFrameList( &rcRefFrameList0, ePicType, LIST_0 );
-  pcSliceHeader->setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
-  if( pcSliceHeader->isMbaffFrame() )
+  ROF( uiCodingIndex <= (1<<MAX_DSTAGES) );
+  if(  uiCodingIndex == 0 ) // first frame in sequence: reset all
   {
-    RNOK( gSetFrameFieldLists( acRefFieldList0[0], acRefFieldList0[1], rcRefFrameList0 ) );
-    RNOK( gSetFrameFieldLists( acRefFieldList1[0], acRefFieldList1[1], rcRefFrameList1 ) );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[0]), TOP_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[1]), BOT_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[0]), TOP_FIELD, LIST_1 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[1]), BOT_FIELD, LIST_1 );
-  }
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
-    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
-    pcGenericRC->m_pcJSVMParams->type = B_SLICE;
-    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
-    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
-    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
-  }
-  // JVT-W043 }
-
-  //===== set lambda and QP =====// warnnig false in 7.8
-    RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, true, ePicType ) );
-
-  setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
-
-  //===== prediction =====
-    RNOK( xMotionCompensation  ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1, rcControlData.getMbDataCtrl(), *pcSliceHeader ) );
-    RNOK( pcFrame->prediction  ( pcMCFrame, pcFrame,        ePicType ) );
-
-  //===== set residual =====
-    RNOK( pcResidual->copy     ( pcFrame                  , ePicType ) );
-    RNOK( xZeroIntraMacroblocks( pcResidual, rcControlData, ePicType ) );
-
+    for( UInt uiTId = 0; uiTId <= MAX_DSTAGES; uiTId++ )
+    {
+      m_auiCodingNumber[ uiTId ] = 0;
+      RNOK( xGetInitialOutputDelay( m_auiInitialDelay[ uiTId ], uiTId ) );
+    }
     return Err::m_nOK;
-}
-
-
-ErrVal
-LayerEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& rcPicBufferInputList, PicType ePicType ) //TMM
-{
-  UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-  Frame*     pcResidual     = m_pcResidual;
-  Frame*     pcMCFrame       = m_apcFrameTemp  [0];
-
-  setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
-
-  SliceHeader*  pcSliceHeader = m_pacControlData[ uiFrameIdInGOP ].getSliceHeader( ePicType );
-  ROF( pcSliceHeader );
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
-    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
-    pcGenericRC->m_pcJSVMParams->type = B_SLICE;
-    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
-    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
-    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
   }
-  // JVT-W043 }
-
-    //===== get reference frame lists =====
-    RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-    RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-    UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-
-    RNOK( xGetPredictionLists( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_RECONSTRUCTION, false ) );
-    RefFrameList acRefFieldList0[2];
-    RefFrameList acRefFieldList1[2];
-    pcSliceHeader->setRefFrameList( &rcRefFrameList0, ePicType, LIST_0 );
-    pcSliceHeader->setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
-    if( pcSliceHeader->isMbaffFrame() )
-    {
-      RNOK( gSetFrameFieldLists( acRefFieldList0[0], acRefFieldList0[1], rcRefFrameList0 ) );
-      RNOK( gSetFrameFieldLists( acRefFieldList1[0], acRefFieldList1[1], rcRefFrameList1 ) );
-      pcSliceHeader->setRefFrameList( &(acRefFieldList0[0]), TOP_FIELD, LIST_0 );
-      pcSliceHeader->setRefFrameList( &(acRefFieldList0[1]), BOT_FIELD, LIST_0 );
-      pcSliceHeader->setRefFrameList( &(acRefFieldList1[0]), TOP_FIELD, LIST_1 );
-      pcSliceHeader->setRefFrameList( &(acRefFieldList1[1]), BOT_FIELD, LIST_1 );
-    }
-
-    //===== prediction =====
-    RNOK( xMotionCompensation         ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1,
-                                      rcControlData.getMbDataCtrl(), *pcSliceHeader ) );
-
-    RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame, ePicType ) );
-   //--
-    //----- store non-deblocked signal for inter-layer prediction -----
-    RNOK( m_pcSubband->copy( pcFrame, ePicType ) );
-
-    // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
-    {
-      m_pcSubband->setChannelDistortion(pcFrame);
-    }
-    // JVT-R057 LA-RDO}
-
-    if( ! pcSliceHeader->getNoInterLayerPredFlag() )
-    {
-      m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
-    }
-
-    //===== de-blocking =====
-    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, pcResidual, rcControlData.getMbDataCtrl(), 0, rcControlData.getSpatialScalability() ) );
-
-    if( ePicType == ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) )
-    {
-      RNOK( m_apcFrameTemp[ 5 ]->uninitHalfPel    ()                    );
-      RNOK( m_apcFrameTemp[ 5 ]->removeFieldBuffer( ePicType )          );
-      RNOK( m_apcFrameTemp[ 5 ]->copy             ( pcFrame, ePicType ) );
-    }
-
+  UInt  uiFrameIdInGop  = m_auiCodingIndexToFrameId [ uiCodingIndex   ];
+  UInt  uiTemporalId    = m_auiFrameIdToTemporalId  [ uiFrameIdInGop  ];
+  for( UInt uiTId = uiTemporalId; uiTId <= MAX_DSTAGES; uiTId++ )
+  {
+    m_auiCodingNumber[uiTId]++;
+  }
   return Err::m_nOK;
 }
 
-//--
+ErrVal
+LayerEncoder::xGetRelativeOutputDelay( UInt& ruiDelay, UInt uiFrameIdInGOP, UInt uiTemporalLevel )
+{
+  UInt  uiGlobalFNum    = ( m_uiGOPNumber << m_uiDecompositionStages ) + uiFrameIdInGOP;
+  UInt  uiDisplayNumber = uiGlobalFNum >> ( m_uiDecompositionStages - uiTemporalLevel );
+  UInt  uiCodingNumber  = m_auiCodingNumber[ uiTemporalLevel ];
+  ROF(  uiDisplayNumber << ( m_uiDecompositionStages - uiTemporalLevel ) == uiGlobalFNum );
+  Int   iDelay          = (Int)uiDisplayNumber - (Int)uiCodingNumber;
+  ROF(  iDelay + (Int)m_auiInitialDelay[ uiTemporalLevel ] >= 0 );
+  ruiDelay              = UInt( iDelay + (Int)m_auiInitialDelay[ uiTemporalLevel ] );
+  return Err::m_nOK;
+}
 
 
 ErrVal
-LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
-                                 UInt                uiFrame,
-                                 AccessUnitData&     rcAccessUnitData,
-                                 PicOutputDataList&  rcPicOutputDataList )
+LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
+                              UInt            uiTemporalId,
+                              UInt            uiFrameIdInGOP,
+                              AccessUnitData& rcAccessUnitData,
+                              PicBufferList&  rcPicBufferInputList )
 {
-  rbKeyPicCoded         = false;
-  UInt   uiFrameIdInGOP = uiFrame << m_uiDecompositionStages;
+  rbPictureCoded = false;
   ROTRS( uiFrameIdInGOP > m_uiGOPSize, Err::m_nOK );
 
-  PicType eFirstPic = ( m_pbFieldPicFlag[uiFrameIdInGOP] ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
-  if( m_pacControlData[uiFrameIdInGOP].getSliceHeader( eFirstPic )->getIdrFlag() )
+  PicOutputDataList cPicOutputDataList;
+  Bool    bFieldCoded     = m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
+  UInt    uiNumPics       = ( bFieldCoded ? 2 : 1 );
+  PicType eFirstPicType   = ( bFieldCoded ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
+  PicType eLastPicType    = ( bFieldCoded ? ( m_bBotFieldFirst ? TOP_FIELD : BOT_FIELD ) : FRAME );
+  if( m_pacControlData[ uiFrameIdInGOP ].getSliceHeader( eFirstPicType )->getIdrFlag() )
   {
     ::memset( m_abCoded, 0x00, sizeof( m_abCoded ) );
   }
   m_abCoded[uiFrameIdInGOP] = true;
 
-  //===== check for first GOP =====
-  if( uiFrame == 0 && m_uiGOPNumber )
+  //===== check whether picture was already coded in last GOP =====
+  if( uiFrameIdInGOP == 0 && m_uiGOPNumber )
   {
     //====== don't code first anchor picture if it was coded within the last GOP =====
     RNOK( m_papcFrame[ uiFrameIdInGOP ]->copyAll( m_pcAnchorFrameReconstructed ) );
     RNOK( m_apcBaseFrame[0]->copyAll          (  m_apcBaseFrame[1] ) );
     RNOK( m_apcBaseFrame[0]->copyPicParameters( *m_apcBaseFrame[1] ) );
     // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
+    if( m_bLARDOEnable )
     {
       m_apcBaseFrame[0]->copyChannelDistortion( m_apcBaseFrame[1] );
       m_papcFrame   [0]->copyChannelDistortion( m_apcBaseFrame[1] );
@@ -3852,177 +2963,234 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
     // JVT-R057 LA-RDO}
     return Err::m_nOK;
   }
-  //JVT-W051 {
-  if ( rbKeyPicCoded == 0 )
+  else
   {
-    Int iPicType = ( m_pbFieldPicFlag[ uiFrameIdInGOP ] ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
-    PicType ePicType               = PicType( iPicType );
-    ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
-    SliceHeader* pcSliceHeader           = rcControlData.getSliceHeader( ePicType );
-    m_uiProfileIdc      = pcSliceHeader->getSPS().getProfileIdc();
-    m_uiLevelIdc        = pcSliceHeader->getSPS().getLevelIdc();
-    m_bConstraint0Flag  = pcSliceHeader->getSPS().getConstrainedSet0Flag();
-    m_bConstraint1Flag  = pcSliceHeader->getSPS().getConstrainedSet1Flag();
-    m_bConstraint2Flag  = pcSliceHeader->getSPS().getConstrainedSet2Flag();
-    m_bConstraint3Flag  = pcSliceHeader->getSPS().getConstrainedSet3Flag();
+    rbPictureCoded = true;
+  }
+  
+  //===== set conformance point data =====
+  //JVT-W051 {
+  if( uiFrameIdInGOP == 0 )
+  {
+    const SequenceParameterSet& rcSPS = m_pacControlData[ uiFrameIdInGOP ].getSliceHeader( eFirstPicType )->getSPS();
+    m_uiProfileIdc      = rcSPS.getProfileIdc();
+    m_uiLevelIdc        = rcSPS.getLevelIdc();
+    m_bConstraint0Flag  = rcSPS.getConstrainedSet0Flag();
+    m_bConstraint1Flag  = rcSPS.getConstrainedSet1Flag();
+    m_bConstraint2Flag  = rcSPS.getConstrainedSet2Flag();
+    m_bConstraint3Flag  = rcSPS.getConstrainedSet3Flag();
   }
   //JVT-W051 }
 
-  rbKeyPicCoded                         = true;
   UInt          uiBits          = 0;
   ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
-  MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl ();
-  Frame*     pcFrame         = m_papcFrame     [ uiFrameIdInGOP ];
-  Frame*     pcResidual      = m_pcResidual;
-  Frame*     pcPredSignal    = m_apcFrameTemp  [ 0 ];
-  Frame*     pcBLRecFrame    = m_apcFrameTemp  [ 1 ];
+  MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
+  MbDataCtrl*   pcRCMbDataCtrl  = m_pcRedundantCtrl;      // for redundant coded pictures
+  Frame*        pcFrame         = m_papcFrame     [ uiFrameIdInGOP ];
+  Frame*        pcResidual      = m_pcResidual;
+  Frame*        pcOrgFrame      = m_apcFrameTemp  [ 2 ];
+  Frame*        pcPredSignal    = m_apcFrameTemp  [ 3 ];
+  Frame*        pcRCFrame       = m_apcFrameTemp  [ 4 ];  // for redundant coded pictures
+  Frame*        pcRCResidual    = m_apcFrameTemp  [ 5 ];  // for redundant coded pictures
+  Frame*        pcRCBLResidual  = m_apcFrameTemp  [ 6 ];  // for redundant coded pictures
+  Frame*        pcRCBLIntraRec  = m_apcFrameTemp  [ 7 ];  // for redundant coded pictures
 
-  const Bool bFieldCoded =  m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
-
-  UInt    uiNumPics     = ( bFieldCoded ? 2 : 1 );
-  PicType eFirstPicType = ( bFieldCoded ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
-  PicType eLastPicType  = ( bFieldCoded ? ( m_bBotFieldFirst ? TOP_FIELD : BOT_FIELD ) : FRAME );
+  //----- set original frame ----
+  RNOK( pcOrgFrame->copyAll( pcFrame ) );
+  
+  //===== loop over pictures =====
   for( UInt uiPicType = 0; uiPicType < uiNumPics; uiPicType++ )
   {
-    PicType ePicType    = ( uiPicType ? eLastPicType : eFirstPicType );
-    RNOK( xSetBaseLayerData( uiFrameIdInGOP, ePicType ) );
-
-    SliceHeader* pcSliceHeader           = rcControlData.getSliceHeader( ePicType );
+    ExtBinDataAccessorList& rcBPSEIOutputList = rcAccessUnitData.getBPSEINalUnitList();
+    ExtBinDataAccessorList& rcSEIOutputList   = rcAccessUnitData.getSEINalUnitList();
+    ExtBinDataAccessorList& rcOutputList      = rcAccessUnitData.getNalUnitList();
+    ExtBinDataAccessorList& rcRedOutputList   = rcAccessUnitData.getRedNalUnitList();
+    PicType                 ePicType          = ( uiPicType ? eLastPicType : eFirstPicType );
+    SliceHeader*            pcSliceHeader     = rcControlData.getSliceHeader( ePicType );
+    ROF( pcSliceHeader );
     //JVT-W047
     m_bOutputFlag = pcSliceHeader->getOutputFlag();
     //JVT-W047
-    ROF( pcSliceHeader );
-
-    ExtBinDataAccessorList& rcOutputList    = rcAccessUnitData.getNalUnitList();
-    ExtBinDataAccessorList& rcRedOutputList = rcAccessUnitData.getRedNalUnitList();
-
+    
+    
+    //===== update rate control =====
     // JVT-W043 {
-    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    if( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
     {
-      pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
-      pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
-      pcGenericRC->m_pcJSVMParams->type =
-        ( uiFrame > 0 && (uiFrame % pcJSVMParams->m_uiIntraPeriod) != 0 ) ?
-        ( ( pcGenericRC->m_pcJSVMParams->current_frame_number % m_uiGOPSize == 0 ) ? P_SLICE : B_SLICE ) : I_SLICE;
-      pcGenericRC->m_pcJSVMParams->nal_reference_idc = 1;
-      pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;
-
-      pcQuadraticRC->rc_init_pict(1, 0, 1, 1.0F);
-      if ( pcJSVMParams->m_uiIntraPeriod != 1 )
+      UInt uiFrameNumberInSeq                           = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
+      pcGenericRC->m_pcJSVMParams->current_mb_nr        = 0;
+      pcGenericRC->m_pcJSVMParams->current_frame_number = uiFrameNumberInSeq;
+      pcJSVMParams->CurrGopLevel                        = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+      pcGenericRC->m_pcJSVMParams->type                 = ( uiFrameNumberInSeq > 0 && ( uiFrameNumberInSeq % pcJSVMParams->m_uiIntraPeriod ) != 0 ) ?
+                                                            ( ( pcGenericRC->m_pcJSVMParams->current_frame_number % m_uiGOPSize == 0 ) ? P_SLICE : B_SLICE ) : I_SLICE;
+      pcGenericRC->m_pcJSVMParams->nal_reference_idc    = ( pcJSVMParams->CurrGopLevel == 0 ? 0 : 1 );
+      pcGenericRC->m_pcJSVMParams->number               = pcGenericRC->m_pcJSVMParams->current_frame_number;
+      pcQuadraticRC->rc_init_pict( 1, 0, 1, 1.0F );
+      if( pcJSVMParams->m_uiIntraPeriod != 1 || uiTemporalId != 0 )
+      {
         pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+      }
       else
+      {
         pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC1(0);
+      }
     }
     // JVT-W043 }
 
-    //===== initialize =====
-    RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1, uiFrame, ePicType ) );
 
+    //===== set layer representation parameters =====
+    RNOK( xInitControlData( uiFrameIdInGOP, uiTemporalId, ePicType ) );
+
+
+    //===== non-required layer representation SEI =====
     //NonRequired JVT-Q066 (06-04-08){{
-    if(m_uiDependencyId != 0 && m_uiNonRequiredWrite != 0)
+    if( m_uiDependencyId != 0 && m_uiNonRequiredWrite != 0 )
     {
       if( pcSliceHeader->getNoInterLayerPredFlag() || m_uiDependencyId - pcSliceHeader->getRefLayerDependencyId() > 1 || pcSliceHeader->getRefLayerQualityId() != 3 )
       {
         rcAccessUnitData.CreatNonRequiredSei();
       }
-      xSetNonRequiredSEI(pcSliceHeader, rcAccessUnitData.getNonRequiredSei());
-      if(m_uiNonRequiredWrite == 2 && rcAccessUnitData.getNonRequiredSei() != NULL)
+      xSetNonRequiredSEI( pcSliceHeader, rcAccessUnitData.getNonRequiredSei() );
+      if( m_uiNonRequiredWrite == 2 && rcAccessUnitData.getNonRequiredSei() != NULL )
       {
-        xWriteNonRequiredSEI(rcOutputList, rcAccessUnitData.getNonRequiredSei(), uiBits);
+        xWriteNonRequiredSEI( rcSEIOutputList, rcAccessUnitData.getNonRequiredSei(), uiBits );
       }
     }
     //NonRequired JVT-Q066 (06-04-08)}}
 
+
+    //===== HRD =====
     // JVT-V068 HRD {
-    if ( pcSliceHeader->getIdrFlag() && m_bEnableHrd )
+    if( pcSliceHeader->getIdrFlag() && m_bEnableHrd )
     {
       SEI::BufferingPeriod *pcBufferingPeriodSei = NULL;
-      for (UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++)
+      // AVC compatible
+      for( UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++ )
       {
-        UInt uiDependencyId = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
-        UInt uiTemporalLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
-        UInt uiQualityLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
-        UInt uiIndex = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
-        RNOK( m_apcScheduler->get(uiIndex)->createBufferingSei( pcBufferingPeriodSei, m_pcParameterSetMng, (uiDependencyId<<4)+uiQualityLevel ) );
-        if ( uiTemporalLevel == m_pcSPS->getVUI()->getNumTemporalLevels() - 1 && uiDependencyId == 0 && uiQualityLevel == 0 )
+        UInt uiDependencyId   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
+        UInt uiTemporalLevel  = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
+        UInt uiQualityLevel   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
+        UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
+        if( uiTemporalLevel == m_pcSPS->getVUI()->getNumTemporalLevels() - 1 && uiDependencyId == 0 && uiQualityLevel == 0 )
         {
-          // AVC compatible layer
-          SEI::MessageList  cSEIMessageList;
-          cSEIMessageList.push_back(pcBufferingPeriodSei);
-          RNOK( xWriteSEI(rcOutputList,cSEIMessageList,uiBits) );
-        }
-        else
-        {
-          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcBufferingPeriodSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits) );
+          RNOK( m_apcScheduler->get(uiIndex)->createBufferingSei( pcBufferingPeriodSei, m_pcParameterSetMng, (uiDependencyId<<4)+uiQualityLevel ) );
+          SEI::MessageList cSEIMessageList;
+          cSEIMessageList.push_back( pcBufferingPeriodSei );
+          RNOK( xWriteSEI( rcBPSEIOutputList, cSEIMessageList, uiBits ) );
         }
       }
-      ETRACE_LAYER(0);
+      // nested
+      for( UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++ )
+      {
+        UInt uiDependencyId   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
+        UInt uiTemporalLevel  = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
+        UInt uiQualityLevel   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
+        UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
+        if( uiTemporalLevel != m_pcSPS->getVUI()->getNumTemporalLevels() - 1 || uiDependencyId != 0 || uiQualityLevel != 0 )
+        {
+          RNOK( m_apcScheduler->get(uiIndex)->createBufferingSei( pcBufferingPeriodSei, m_pcParameterSetMng, (uiDependencyId<<4)+uiQualityLevel ) );
+          RNOK( xWriteNestingSEIforHrd( rcBPSEIOutputList, pcBufferingPeriodSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
+        }
+      }
     }
-
-    if ( m_bEnableHrd )
+    if( m_bEnableHrd )
     {
       SEI::PicTiming *pcPicTimingSei = NULL;
-      for (UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++)
+      // AVC compatible
+      for( UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++ )
       {
-        UInt uiDependencyId = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
-        UInt uiTemporalLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
-        UInt uiQualityLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
-        UInt uiIndex = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
-        RNOK( m_apcScheduler->get(uiIndex)->createTimingSei( pcPicTimingSei, m_pcSPS->getVUI(), 0, *pcSliceHeader, bFieldCoded, uiLayer ) );
-        if ( uiTemporalLevel == m_pcSPS->getVUI()->getNumTemporalLevels() - 1 && uiDependencyId == 0 && uiQualityLevel == 0 )
+        UInt uiDependencyId   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
+        UInt uiTemporalLevel  = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
+        UInt uiQualityLevel   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
+        UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
+        if( uiTemporalLevel >= uiTemporalId )
         {
-          // AVC compatible layer
-          SEI::MessageList  cSEIMessageList;
-          cSEIMessageList.push_back(pcPicTimingSei);
-          RNOK( xWriteSEI(rcOutputList,cSEIMessageList,uiBits) );
+          if( uiTemporalLevel == m_pcSPS->getVUI()->getNumTemporalLevels() - 1 && uiDependencyId == 0 && uiQualityLevel == 0 )
+          {
+            UInt uiDpbDelay = 0;
+            RNOK( xGetRelativeOutputDelay( uiDpbDelay, uiFrameIdInGOP, uiTemporalLevel ) );
+            RNOK( m_apcScheduler->get(uiIndex)->createTimingSei( pcPicTimingSei, m_pcSPS->getVUI(), uiDpbDelay, *pcSliceHeader, bFieldCoded, uiLayer ) );
+            SEI::MessageList  cSEIMessageList;
+            cSEIMessageList.push_back(pcPicTimingSei);
+            RNOK( xWriteSEI(rcSEIOutputList,cSEIMessageList,uiBits) );
+          }
+        }
+      }
+      // nested
+      for( UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++ )
+      {
+        UInt uiDependencyId   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
+        UInt uiTemporalLevel  = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
+        UInt uiQualityLevel   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
+        UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
+        if( uiTemporalLevel >= uiTemporalId )
+        {
+          if( uiTemporalLevel != m_pcSPS->getVUI()->getNumTemporalLevels() - 1 || uiDependencyId != 0 || uiQualityLevel != 0 )
+          {
+            UInt uiDpbDelay = 0;
+            RNOK( xGetRelativeOutputDelay( uiDpbDelay, uiFrameIdInGOP, uiTemporalLevel ) );
+            RNOK( m_apcScheduler->get(uiIndex)->createTimingSei( pcPicTimingSei, m_pcSPS->getVUI(), uiDpbDelay, *pcSliceHeader, bFieldCoded, uiLayer ) );
+            RNOK( xWriteNestingSEIforHrd(rcSEIOutputList, pcPicTimingSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
+          }
+        }
+      }
+    }
+    // JVT-V068 HRD }
+
+    //===== TL0 Dep Rep SEI =====
+    if( m_pcCodingParameter->getTl0DepRepIdxSeiEnable() )
+    {
+      if( uiTemporalId == 0 )
+      {
+        if( uiFrameIdInGOP == 0 ) // first AU
+        {
+          m_uiTl0DepRepIdx = 0;
         }
         else
         {
-          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
+          m_uiTl0DepRepIdx = (m_uiTl0DepRepIdx + 1)%256;
+        }
+        if( pcSliceHeader->getIdrFlag() )
+        {
+          m_uiLastIdrPicId = pcSliceHeader->getIdrPicId();
         }
       }
-      ETRACE_LAYER(0);
+      UInt uiDependencyId = pcSliceHeader->getLayerCGSSNR       ();
+      UInt uiQualityId    = pcSliceHeader->getQualityLevelCGSSNR();
+      if( !uiQualityId )
+      {
+        if(  uiDependencyId )
+        {
+          RNOK( writeNestingTl0DepRepIdxSEIMessage( rcSEIOutputList, uiTemporalId, uiDependencyId, m_uiTl0DepRepIdx, m_uiLastIdrPicId, uiBits ) );
+        }
+        else
+        {
+          RNOK( writeTl0DepRepIdxSEI( rcSEIOutputList, m_uiTl0DepRepIdx, m_uiLastIdrPicId, uiBits ) );
+        }
+      }
     }
-    // JVT-V068 HRD }
-    // JVT-W049 {
-    if((pcSliceHeader->getPPS().getEnableRedundantKeyPicCntPresentFlag())&&(pcSliceHeader->getDependencyId()==0))
+
+    //===== scene info =====
+    if( m_pcCodingParameter->getNestingSEIEnable() && m_pcCodingParameter->getSceneInfoEnable() )
     {
-      RNOK(xWriteRedundantKeyPicSEI ( rcOutputList, uiBits ));
+      UInt uiDependencyId = pcSliceHeader->getLayerCGSSNR       ();
+      UInt uiQualityId    = pcSliceHeader->getQualityLevelCGSSNR();
+      if( !uiQualityId )
+      {
+        RNOK( writeNestingSceneInfoSEIMessage( rcSEIOutputList, uiTemporalId, uiDependencyId, uiBits ) );
+      }
+    }
+
+    //===== redundant key pic SEI =====
+    // JVT-W049 {
+    if( pcSliceHeader->getPPS().getEnableRedundantKeyPicCntPresentFlag() && pcSliceHeader->getDependencyId() == 0 )
+    {
+      RNOK( xWriteRedundantKeyPicSEI( rcSEIOutputList, uiBits ) );
     }
     // JVT-W049 }
 
-    //===== base layer encoding =====
-    // JVT-Q054 Red. Picture {
-    //===== primary picture coding =====
-    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
-    {
-      pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
-      if( rcControlData.getBaseLayerSbb() )
-  			m_apcFrameTemp[9]->copy((rcControlData.getBaseLayerSbb()),ePicType);//RPIC bug fix
-    }
-    // JVT-Q054 Red. Picture }
-    RNOK( pcBLRecFrame->copy      ( pcFrame, ePicType ) );
 
-    // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
-    {
-      pcFrame->initChannelDistortion();
-      m_apcBaseFrame[uiFrame]->initChannelDistortion();
-      if( uiFrame == 0 )
-      {
-        ROT( m_uiGOPNumber );
-        pcFrame->zeroChannelDistortion();
-        m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(NULL);
-      }
-      else
-      {
-        m_pcSliceEncoder->getMbEncoder()->setFrameEcEp( m_apcBaseFrame[0] );
-      }
-      pcBLRecFrame->setChannelDistortion(pcFrame);
-
-    }
-    // JVT-R057 LA-RDO}
-
+    //===== update statistics =====
     if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
     {
       m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits;
@@ -4032,120 +3200,203 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
       m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits;
     }
 
-    RNOK( xEncodeLowPassSignal( rcOutputList, rcControlData,
-                                pcFrame, pcBLRecFrame, pcResidual, pcPredSignal,
-                                uiBits, rcPicOutputDataList, uiFrameIdInGOP, ePicType ) );
-    // JVT-W043 {
-    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    //===== preparation of redundant coded pictures (copy original data) =====
+    if( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
     {
-      pcQuadraticRC->rc_update_pict_frame( uiBits );
-      pcQuadraticRC->rc_update_pict( uiBits );
-      /* update quadratic R-D model */
-      if ( (pcGenericRC->m_pcJSVMParams->type == P_SLICE ||
-        (pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number) )
-        && pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
-        pcQuadraticRC->updateRCModel();
-      else if ( (pcGenericRC->m_pcJSVMParams->type == P_SLICE ||
-        (pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number) )
-        && !(pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag)
-        && pcGenericRC->m_iNoGranularFieldRC == 0 )
-        pcQuadraticRC->updateRCModel();
+      RNOK( pcRCFrame->copyAll( pcFrame ) );
+      if( rcControlData.getBaseLayerSbb() )   RNOK( pcRCBLResidual->copyAll( rcControlData.getBaseLayerSbb() ) );
+      if( rcControlData.getBaseLayerRec() )   RNOK( pcRCBLIntraRec->copyAll( rcControlData.getBaseLayerRec() ) );
     }
-    // JVT-W043 }
-    // JVT-Q054 Red. Picture {
-    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+    
+    //===== encode primary picture =====
     {
-      //RPIC bug fix {
-			MbDataCtrl* pcMbDataCtrlTemp=m_pacControlData[uiFrameIdInGOP].getMbDataCtrl();
-			m_pcRedundantCtrl->reset();
-      m_pacControlData[uiFrameIdInGOP].setMbDataCtrl(m_pcRedundantCtrl);
-			MbDataCtrl* pcBaseLayerCtrlTemp=m_pacControlData[uiFrameIdInGOP].getBaseLayerCtrl();
-			m_pcRedundant1Ctrl->reset();
-      m_pacControlData[uiFrameIdInGOP].setMbDataCtrl(m_pcRedundant1Ctrl);
-			m_apcFrameTemp[6]->copy(pcBLRecFrame,ePicType);
-			m_apcFrameTemp[7]->copy(pcResidual,ePicType);
-			m_apcFrameTemp[8]->copy(pcPredSignal,ePicType);
-      if( rcControlData.getBaseLayerSbb() )
+      ROT( pcSliceHeader->getRedundantPicCnt() );
+      // JVT-R057 LA-RDO{
+      if( m_bLARDOEnable )
       {
-        m_apcFrameTemp[10]->copy((rcControlData.getBaseLayerSbb()),ePicType);
-        rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[9],ePicType);
+        pcFrame->initChannelDistortion();
+        if( uiTemporalId == 0 )
+        {
+          m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->initChannelDistortion();
+          if( uiFrameIdInGOP == 0 )
+          {
+            ROT( m_uiGOPNumber );
+            pcFrame->zeroChannelDistortion();
+            m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(NULL);
+          }
+          else
+          {
+            m_pcSliceEncoder->getMbEncoder()->setFrameEcEp( m_apcBaseFrame[0] );
+          }
+        }
+        else
+        {
+          UInt  uiTmpBaseLevel      = m_uiDecompositionStages - uiTemporalId;
+          UInt  uiTmpFrameIdInLevel = uiFrameIdInGOP >> uiTmpBaseLevel;
+          UInt  uiFrameIdEcEp       = ( uiTmpFrameIdInLevel - 1 ) << uiTmpBaseLevel;
+          m_pcSliceEncoder->getMbEncoder()->setFrameEcEp( m_papcFrame[ uiFrameIdEcEp ] );
+        }
       }
-      //RPIC bug fix }
-      // in current version, slice repetition is supported for each primary coded slice
-      UInt  uiRedundantPicNum = 1;  // number of redundant pictures for each primary coded picture
-      UInt  uiRedundantPicCnt = 0;
-      for ( uiRedundantPicCnt = 1; uiRedundantPicCnt <= uiRedundantPicNum; uiRedundantPicCnt++)
-      {
-        pcSliceHeader->setRedundantPicCnt( uiRedundantPicCnt );
+      // JVT-R057 LA-RDO}
 
-        RNOK( pcBLRecFrame->copy  ( pcFrame,ePicType ) );
-        RNOK( xEncodeLowPassSignal( rcRedOutputList, rcControlData,
-                                    pcFrame, pcBLRecFrame, pcResidual, pcPredSignal,
-                                    uiBits, rcPicOutputDataList, uiFrameIdInGOP, ePicType ) );
+      //S051{
+      m_pcSliceEncoder->setUseBDir( true );
+      if( m_bEncSIP )
+      {
+        if( m_bH264AVCCompatible || !rcControlData.getSliceHeader()->getDirectSpatialMvPredFlag() )
+        {
+          if( rcControlData.getRefListStruct().uiFrameIdCol != MSYS_UINT_MAX )
+          {
+            SliceHeader* pcSliceHeaderL1 = m_pacControlData[ rcControlData.getRefListStruct().uiFrameIdCol ].getSliceHeader( ePicType );
+            if( xSIPCheck( pcSliceHeaderL1->getPoc() ) )
+            {
+              m_pcSliceEncoder->setUseBDir( false );
+            }
+          }
+        }
       }
+      //S051}
+
+      //----- encode primary layer representation -----
+      RNOK( xEncodeLayerRepresentation( rcOutputList, rcControlData,
+                                        pcOrgFrame, pcFrame, pcResidual, pcPredSignal,
+                                        uiBits, cPicOutputDataList, uiFrameIdInGOP, ePicType ) );
+
+      //----- store unfiltered reconstruction for inter-layer prediction -----
+      RNOK( m_pcSubband->copy( pcFrame, ePicType ) );
+
+      //----- integrity check SEI ----
+      //JVT-W052
+      if( m_pcH264AVCEncoder->getCodingParameter()->getIntegrityCheckSEIEnable() && m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
+      {
+        if( m_pcH264AVCEncoder->getCodingParameter()->getNumberOfLayers() - 1 == m_pcLayerParameters->getLayerId() && m_pcH264AVCEncoder->m_pcIntegrityCheckSEI->getNumInfoEntriesMinus1() != MSYS_UINT_MAX )
+        {
+          xWriteIntegrityCheckSEI( rcSEIOutputList, m_pcH264AVCEncoder->m_pcIntegrityCheckSEI, uiBits );
+          m_pcH264AVCEncoder->m_pcIntegrityCheckSEI = 0;
+        }
+      }
+      //JVT-W052
+
+      //----- update rate control parameters -----
+      // JVT-W043 {
+      if( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+      {
+        pcQuadraticRC->rc_update_pict_frame( uiBits );
+        pcQuadraticRC->rc_update_pict( uiBits );
+        /* update quadratic R-D model */
+        if( ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ||
+            ( pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number ) )
+           && pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
+          pcQuadraticRC->updateRCModel();
+        else if ( ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ||
+                  ( pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number ) )
+                 && !( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
+                 && pcGenericRC->m_iNoGranularFieldRC == 0 )
+        pcQuadraticRC->updateRCModel();
+      }
+      // JVT-W043 }
+    }
+    
+    //===== encode redundant pictures =====
+    // JVT-Q054 Red. Picture {
+    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() && ( uiTemporalId == 0 || !pcSliceHeader->getPPS().getRedundantKeyPicCntPresentFlag() ) )
+    {
+      // set temporary data for redundant coded pictures
+      Frame* pcBLResidual = rcControlData.getBaseLayerSbb ();
+      Frame* pcBLIntraRec = rcControlData.getBaseLayerRec ();
+      if( rcControlData.getBaseLayerSbb () )  rcControlData.setBaseLayerSbb( pcRCBLResidual );
+      if( rcControlData.getBaseLayerRec () )  rcControlData.setBaseLayerRec( pcRCBLIntraRec );
+      rcControlData.setMbDataCtrl( pcRCMbDataCtrl );
+      
+      // in current version, slice repetition is supported for each primary coded slice
+      UInt uiRedundantPicNum = 1;  // number of redundant pictures for each primary coded picture
+      UInt uiRedundantPicCnt = 0;
+      for( uiRedundantPicCnt = 1; uiRedundantPicCnt <= uiRedundantPicNum; uiRedundantPicCnt++)
+      {
+        pcSliceHeader ->setRedundantPicCnt( uiRedundantPicCnt );
+        pcRCMbDataCtrl->reset();
+        pcRCMbDataCtrl->clear();
+        RNOK( xEncodeLayerRepresentation  ( rcRedOutputList, rcControlData,
+                                            pcOrgFrame, pcRCFrame, pcRCResidual, pcPredSignal,
+                                            uiBits, cPicOutputDataList, uiFrameIdInGOP, ePicType ) );
+      }
+
+      // reset status
       pcSliceHeader->setRedundantPicCnt( 0 );
-      //RPIC bug fix {
-      m_pacControlData[uiFrameIdInGOP].setMbDataCtrl(pcMbDataCtrlTemp);
-			m_pacControlData[uiFrameIdInGOP].setBaseLayerCtrl(pcBaseLayerCtrlTemp);
-			pcBLRecFrame->copy(m_apcFrameTemp[6],ePicType);
-			pcResidual->copy(m_apcFrameTemp[7],ePicType);
-			pcPredSignal->copy(m_apcFrameTemp[8],ePicType);
-      if( rcControlData.getBaseLayerSbb() )
-  			rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[10],ePicType);
-      //RPIC bug fix }
+      if( rcControlData.getBaseLayerSbb () )  rcControlData.setBaseLayerSbb( pcBLResidual );
+      if( rcControlData.getBaseLayerRec () )  rcControlData.setBaseLayerRec( pcBLIntraRec );
+      rcControlData.setMbDataCtrl( pcMbDataCtrl );
     }
     // JVT-Q054 Red. Picture }
 
-
-    // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
-    {
-      m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(NULL);
-      pcBLRecFrame->setChannelDistortion(NULL);
-    }
-    // JVT-R057 LA-RDO}
-
+    
+    //===== update parameters =====
     m_uiNewlyCodedBits += uiBits;
-    m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] ++;
-    if( ePicType==(m_bBotFieldFirst?TOP_FIELD:BOT_FIELD) ) // counted twice
-    m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] --;
-
+    m_auiNumFramesCoded[ pcSliceHeader->getTemporalId() ] ++;
+    if( ePicType == ( m_bBotFieldFirst ? TOP_FIELD : BOT_FIELD ) ) // counted twice
+    {
+      m_auiNumFramesCoded[ pcSliceHeader->getTemporalId() ] --;
+    }
     if( ! pcSliceHeader->getNoInterLayerPredFlag() )
     {
       m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
     }
 
     //===== deblock and store picture for prediction of following low-pass frames =====
-    //ROF( pcSliceHeader->getNumRefIdxActive( LIST_0 ) == ( pcSliceHeader->isIntraSlice() ? 0 : 1 ) );
-    ROF( pcSliceHeader->getNumRefIdxActive( LIST_1 ) == 0 );
-
-    //----- store for inter-layer prediction (non-deblocked version) -----
-    RNOK( m_pcSubband->copy( pcBLRecFrame, ePicType ) );
+    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, pcResidual, pcMbDataCtrl, 0, rcControlData.getSpatialScalability() ) );
+    if( uiTemporalId == 0 )
+    {
+      RNOK( m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->copy( pcFrame, ePicType ) );
+      m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->setPoc( *pcSliceHeader );
+      m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->copyPicParameters( *m_papcFrame[uiFrameIdInGOP] );
+    }
 
     // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
+    if( m_bLARDOEnable )
     {
-      m_apcBaseFrame[uiFrame]->copyChannelDistortion( pcFrame );
-      m_pcSubband->setChannelDistortion(pcFrame);
+      m_pcSubband->setChannelDistortion( pcFrame );
+      if( uiTemporalId == 0 )
+      {
+        m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->copyChannelDistortion( pcFrame );
+      }
     }
     // JVT-R057 LA-RDO}
 
-    //----- de-blocking -----
-    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBLRecFrame, pcResidual, pcMbDataCtrl, 0, rcControlData.getSpatialScalability() ) );
 
-    //----- store for prediction of following low-pass pictures -----
-    ROF( pcSliceHeader->getNalRefIdc() );
-    RNOK( m_apcBaseFrame[uiFrame]->copy( pcBLRecFrame, ePicType ) );
-    m_apcBaseFrame[uiFrame]->setPoc( *pcSliceHeader );
-    m_apcBaseFrame[uiFrame]->copyPicParameters( *m_papcFrame[uiFrameIdInGOP] );
 
-    RNOK( pcFrame->copy( pcBLRecFrame, ePicType ) );
+    //===== trace =====
+    ETRACE_DECLARE( Int  iDQIdBase = Int( 16 * pcSliceHeader->getLayerCGSSNR() + pcSliceHeader->getQualityLevelCGSSNR() ) );
+    ETRACE_LAYER  ( iDQIdBase );
+    ETRACE_NEWPIC;
+    for( UInt uiMGSFragment = 0; pcSliceHeader->getSPS().getMGSCoeffStop( uiMGSFragment ) < 16; uiMGSFragment++ )
+    {
+      ETRACE_LAYER( iDQIdBase + Int( uiMGSFragment + 1 ) );
+      ETRACE_NEWPIC;
+    }
+    ETRACE_LAYER  ( iDQIdBase );
+  }
+  if( uiTemporalId == 0 )
+  {
+    RNOK( xUpdateLowPassRec( uiFrameIdInGOP >> m_uiDecompositionStages ) );
   }
 
-  RNOK( xUpdateLowPassRec( uiFrame ) );
-
+  //===== finish =====
+  UInt  uiBaseLevel         = m_uiDecompositionStages - uiTemporalId;
+  UInt  uiFrameIdInLevel    = uiFrameIdInGOP >> uiBaseLevel;
+  RNOK( xCalculateAndAddPSNR  ( uiBaseLevel, uiFrameIdInLevel, rcPicBufferInputList, cPicOutputDataList ) );
+  RNOK( xCalculateTiming      ( cPicOutputDataList, uiFrameIdInLevel ) );
+  RNOK( xOutputPicData        ( cPicOutputDataList ) );
+  RNOK( xClearBufferExtensions() );
+  m_uiLastCodedFrameIdInGOP = uiFrameIdInGOP;
+  m_uiLastCodedTemporalId   = uiTemporalId;
+  if( uiTemporalId == 0 && uiFrameIdInGOP == m_uiGOPSize )
+  {
+    RNOK( m_pcAnchorFrameReconstructed->copyAll( m_papcFrame[ m_uiGOPSize ] ) );
+  }
   return Err::m_nOK;
 }
+
+
 
 ErrVal
 LayerEncoder::xUpdateLowPassRec( UInt uiLowPassIndex )
@@ -4162,207 +3413,6 @@ LayerEncoder::xUpdateLowPassRec( UInt uiLowPassIndex )
 }
 
 
-ErrVal
-LayerEncoder::xEncodeNonKeyPicture( UInt               uiBaseLevel,
-                                    UInt               uiFrame,
-                                    AccessUnitData&    rcAccessUnitData,
-                                    PicOutputDataList& rcPicOutputDataList,
-                                    PicType            ePicType )
-{
-  UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-  UInt          uiBitsRes       = 0;
-
-  Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-  Frame*     pcOrgFrame      = m_papcFrame     [uiFrameIdInGOP];
-  Frame*     pcResidual      = m_pcResidual;
-  Frame*     pcPredSignal    = m_apcFrameTemp  [0];
-  Frame*     pcBLRecFrame    = m_apcFrameTemp  [1];
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-
-  const Bool bFieldCoded    =  m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
-  m_abCoded[uiFrameIdInGOP] = true;
-  UInt uiBits          = 0;
-
-  // JVT-W043 {
-  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-  {
-    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
-    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
-    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
-    pcGenericRC->m_pcJSVMParams->type =
-        ( uiFrame > 0 && (uiFrame % pcJSVMParams->m_uiIntraPeriod) != 0 ) ?
-        ( ( pcGenericRC->m_pcJSVMParams->current_frame_number % m_uiGOPSize == 0 ) ? P_SLICE : B_SLICE ) : I_SLICE;
-    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
-    pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;
-
-    pcQuadraticRC->rc_init_pict(1, 0, 1, 1.0F);
-    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
-  }
-  // JVT-W043 }
-  SliceHeader*  pcSliceHeader          = rcControlData.getSliceHeader( ePicType );
-  //JVT-W047
-  m_bOutputFlag = pcSliceHeader->getOutputFlag();
-  //JVT-W047
-  ROF( pcSliceHeader );
-
-  ExtBinDataAccessorList& rcOutputList    = rcAccessUnitData.getNalUnitList();
-  ExtBinDataAccessorList& rcRedOutputList = rcAccessUnitData.getRedNalUnitList();
-
-  RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame, ePicType  ) );
-
-  //NonRequired JVT-Q066 (06-04-08){{
-  if(m_uiDependencyId != 0 && m_uiNonRequiredWrite != 0)
-  {
-      if( pcSliceHeader->getNoInterLayerPredFlag() || m_uiDependencyId - pcSliceHeader->getRefLayerDependencyId() > 1 || pcSliceHeader->getRefLayerQualityId() != 3 )
-      {
-        rcAccessUnitData.CreatNonRequiredSei();
-      }
-      xSetNonRequiredSEI(pcSliceHeader, rcAccessUnitData.getNonRequiredSei());
-      if(m_uiNonRequiredWrite == 2 && rcAccessUnitData.getNonRequiredSei() != NULL)
-      {
-        xWriteNonRequiredSEI(rcOutputList, rcAccessUnitData.getNonRequiredSei(), uiBits);
-      }
-  }
-    //NonRequired JVT-Q066 (06-04-08)}}
-
-  // JVT-V068 HRD {
-    if ( m_bEnableHrd )
-    {
-      SEI::PicTiming *pcPicTimingSei = NULL;
-      for (UInt uiLayer = 0; uiLayer < m_pcSPS->getVUI()->getNumLayers(); uiLayer++)
-      {
-        UInt uiTemporalLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
-        UInt uiDependencyId = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getDependencyID();
-        UInt uiQualityLevel = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
-        UInt uiIndex = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
-        if (uiTemporalLevel >= m_pcSPS->getVUI()->getNumTemporalLevels() - uiBaseLevel - 1 )
-        {
-          RNOK( m_apcScheduler->get(uiIndex)->createTimingSei( pcPicTimingSei, m_pcSPS->getVUI(), 0, *pcSliceHeader, bFieldCoded, uiLayer ) );
-          if ( uiTemporalLevel == m_pcSPS->getVUI()->getNumTemporalLevels() - 1 && uiDependencyId == 0 && uiQualityLevel == 0 )
-          {
-            // AVC compatible layer
-            SEI::MessageList  cSEIMessageList;
-            cSEIMessageList.push_back(pcPicTimingSei);
-            RNOK( xWriteSEI(rcOutputList,cSEIMessageList,uiBits) );
-          }
-          else
-          {
-            RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
-          }
-          RNOK( addParameterSetBits ( uiBits ) );
-        }
-      }
-      ETRACE_LAYER(0);
-    }
-  //JVT-V068 HRD }
-
-    //===== base layer encoding =====
-    // JVT-Q054 Red. Picture {
-    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
-    {
-      pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
-    }
-
-    if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-    {
-      m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits;
-    }
-    else
-    {
-      m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits;
-    }
-
-    // JVT-Q054 Red. Picture }
-    {
-      RNOK( pcBLRecFrame->copy      ( pcFrame,   ePicType  ) );
-
-      //JVT-R057 LA-RDO{
-      //Bug_Fix JVT-R057 0806{
-      if(m_bLARDOEnable)
-      {
-        pcBLRecFrame->setChannelDistortion(pcFrame);
-        m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
-      }
-      //Bug_Fix JVT-R057 0806}
-      //JVT-R057 LA-RDO}
-      RNOK( xEncodeHighPassSignal   ( rcOutputList,
-                                      rcControlData,
-                                      pcOrgFrame,
-                                      pcBLRecFrame,
-                                      pcResidual,
-                                      pcPredSignal,
-                                      uiBits,
-                                      uiBitsRes, rcPicOutputDataList,
-                                      ePicType ) );
-    }
-    // JVT-W043 {
-    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
-    {
-      pcQuadraticRC->rc_update_pict_frame( uiBits );
-      pcQuadraticRC->rc_update_pict( uiBits );
-      if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE && pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
-        pcQuadraticRC->updateRCModel();
-      else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE && !(pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag)
-        && pcGenericRC->m_iNoGranularFieldRC == 0 )
-        pcQuadraticRC->updateRCModel();
-    }
-    // JVT-W043 }
-    //JVT-Q054 Red. Picture {
-    //JVT-W049 {
-    if ( (pcSliceHeader->getPPS().getRedundantPicCntPresentFlag())&& (!pcSliceHeader->getPPS().getRedundantKeyPicCntPresentFlag()))
-    //if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
-    //JVT-W049 }
-    {
-      // currently only slice repetition is supported for each primary coded slice
-      UInt  uiRedundantPicNum = 1;  // number of redundant picture for each primary coded picture
-      UInt  uiRedundantPicCnt = 0;
-      for ( uiRedundantPicCnt = 1; uiRedundantPicCnt <= uiRedundantPicNum; uiRedundantPicCnt++)
-      {
-          pcSliceHeader->setRedundantPicCnt( uiRedundantPicCnt );
-
-          RNOK( pcBLRecFrame->copy      ( pcFrame,      ePicType  ) );
-
-          //JVT-R057 LA-RDO{
-          if(m_bLARDOEnable)
-          {
-            pcBLRecFrame->setChannelDistortion(pcFrame);
-            m_pcSliceEncoder->getMbEncoder()->setFrameEcEp( m_papcFrame[(uiFrame-1)<<uiBaseLevel] );
-          }
-          //JVT-R057 LA-RDO}
-          RNOK( xEncodeHighPassSignal   ( rcRedOutputList,
-                                          rcControlData,
-                                          pcOrgFrame,
-                                          pcBLRecFrame,
-                                          pcResidual,
-                                          pcPredSignal,
-                                          uiBits,
-                                          uiBitsRes, rcPicOutputDataList,
-                                          ePicType  ) );
-
-      }
-      pcSliceHeader->setRedundantPicCnt( 0 );
-    }
-    // JVT-Q054 Red. Picture }
-
-    m_uiNewlyCodedBits += uiBits;
-    m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] ++;
-    if( ePicType==(m_bBotFieldFirst?TOP_FIELD:BOT_FIELD) ) // counted twice
-    m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] --;
-
-    RNOK( pcFrame->copy( pcBLRecFrame, ePicType ) );
-
-    RNOK( m_pcSubband->copy( pcFrame, ePicType ) );
-
-
-    // JVT-R057 LA-RDO{
-    if(m_bLARDOEnable)
-    {
-      m_pcSubband->setChannelDistortion(pcFrame);
-    }
-    // JVT-R057 LA-RDO}
-
-  return Err::m_nOK;
-}
 
 
 
@@ -4435,7 +3485,7 @@ LayerEncoder::initGOP( AccessUnitData& rcAccessUnitData,
     //==== copy picture zero =====
     PicOutputDataList cPicOutputDataList;
     Bool              bPicCoded = false;
-    RNOK( xEncodeKeyPicture ( bPicCoded, 0, rcAccessUnitData, cPicOutputDataList ) );
+    RNOK( xEncodePicture( bPicCoded, 0, 0, rcAccessUnitData, rcPicBufferInputList ) );
     ROT ( bPicCoded );
   }
   m_bGOPInitialized = true;
@@ -4444,654 +3494,7 @@ LayerEncoder::initGOP( AccessUnitData& rcAccessUnitData,
 
 
 
-//JVT-X046 {
-ErrVal
-LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList,
-													  RefFrameList*    pcRefFrameList0,
-													  RefFrameList*    pcRefFrameList1,
-                            MbDataCtrl*     pcMbDataCtrlCol,
-													  Frame*        pcOrigFrame,
-													  Frame*        pcIntraRecFrame,
-													  Frame*        pcMCFrame,
-													  Frame*        pcResidual,
-													  Frame*        pcPredSignal,
-													  ControlData&     rcControlData,
-													  UInt             uiNumMaxIter,
-													  UInt             uiIterSearchRange,
-													  UInt             uiFrameIdInGOP,
-													  PicType          ePicType,
-													  UInt&            ruiBits,
-													  UInt&            ruiBitsRes,
-													  PicOutputDataList&       rcPicOutputDataList,
-													  Frame*		   pcFrame,
-													  Frame*		   pcBLRecFrame,
-														UInt           uiBaseLevel )
-{
-	Bool          bCalcMv               = false;
-	Bool          bFaultTolerant        = false;
-	MbEncoder*    pcMbEncoder           =  m_pcSliceEncoder->getMbEncoder         ();
-	SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ( ePicType );
-	SliceHeader&  rcSH					        = rcSliceHeader;
-	MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
-	Frame*        pcBaseLayerFrame      =  rcControlData.getBaseLayerRec          ();
-	Frame*        pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
-	MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  UInt          uiMaxMvPerMb          = rcSliceHeader.getSPS().getMaxMVsPer2Mb () >> 1; // hard limit (don't take into account last macroblock)
 
-  ExtBinDataAccessorList  cTmpExtBinDataAccessorList;
-  ExtBinDataAccessorList  acExtBinDataAccessorList[16];
-  PicOutputDataList       acPicOutputDataList     [16];
-
-	RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
-	RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
-
-	RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
-	RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
-	const Bool    bMbAff   = rcSH.isMbaffFrame   ();
-
-
-	UInt  uiBitsSEI   = 0;
-	SliceHeader* pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-	ROF( pcSliceHeader );
-
-	//----- Subsequence SEI -----
-	if( m_bWriteSubSequenceSei &&   m_bH264AVCCompatible )
-	{
-		RNOK( xWriteSEI( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBitsSEI ) );
-	}
-
-
-	if( bMbAff )
-	{
-    RefFrameList acRefFrameList0[2];
-		RefFrameList acRefFrameList1[2];
-
-		RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
-		RNOK( gSetFrameFieldLists( acRefFrameList1[0], acRefFrameList1[1], *pcRefFrameList1 ) );
-
-		apcRefFrameList0[ TOP_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[0];
-		apcRefFrameList0[ BOT_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[1];
-		apcRefFrameList1[ TOP_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[0];
-		apcRefFrameList1[ BOT_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
-		apcRefFrameList0[     FRAME ] = pcRefFrameList0;
-		apcRefFrameList1[     FRAME ] = pcRefFrameList1;
-	}
-	else
-	{
-		RNOK( pcMCFrame->addFieldBuffer( ePicType ) );
-		apcRefFrameList0[ ePicType ] = pcRefFrameList0;
-		apcRefFrameList1[ ePicType ] = pcRefFrameList1;
-	}
-
-	if( ePicType!=FRAME )
-  {
-		if( pcOrigFrame )         RNOK( pcOrigFrame        ->addFieldBuffer( ePicType ) );
-		if( pcIntraRecFrame )     RNOK( pcIntraRecFrame    ->addFieldBuffer( ePicType ) );
-		if( pcBaseLayerFrame )    RNOK( pcBaseLayerFrame   ->addFieldBuffer( ePicType ) );
-		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->addFieldBuffer( ePicType ) );
-	}
-
-
-	FMO* pcFMO = rcControlData.getSliceHeader()->getFMO();
-	rcControlData.m_uiCurrentFirstMB=pcFMO->getFirstMacroblockInSlice(0);
-
-	for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
-	{
-		rcControlData.m_bSliceGroupAllCoded=false;
-		rcControlData.m_uiCurrentFirstMB = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
-		while(!rcControlData.m_bSliceGroupAllCoded)
-		{
-			if (!m_uiSliceMode)
-			{
-				rcControlData.m_bSliceGroupAllCoded = true;
-			}
-			UInt  muiBits      = 0;
-			UInt  muiBitsRes   = 0;
-			UInt  muiMbCoded   = 0;
-			UInt  uiBits       = 0;
-
-			rcSliceHeader.setFirstMbInSlice(rcControlData.m_uiCurrentFirstMB);
-			rcSliceHeader.setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
-			// JVT-S054 (2) (ADD)
-			rcSliceHeader.setNumMbsInSlice(rcSliceHeader.getFMO()->getNumMbsInSlice(rcSliceHeader.getFirstMbInSlice(), rcSliceHeader.getLastMbInSlice()));
-			UInt uiMbAddress       = rcSliceHeader.getFirstMbInSlice();
-			UInt uiLastMbAddress   = rcSliceHeader.getLastMbInSlice();
-			UInt uiNumMBInSlice;
-
-
-			//prefix unit{{
-			if( m_uiPreAndSuffixUnitEnable )
-			{
-				if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
-				{
-          RNOK( xWritePrefixUnit( acExtBinDataAccessorList[0], *pcSliceHeader, uiBits ) );
-				}
-			}
-			//prefix unit}}
-
-			//----- init NAL UNIT -----
-			RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
-			RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
-
-			//---- write Slice Header -----
-			ETRACE_NEWSLICE;
-			xAssignSimplePriorityId( pcSliceHeader );
-      if( pcSliceHeader->getSliceSkipFlag() )
-      {
-        UInt uiMaxMbsInSlice  = ( m_uiSliceMode == 1 ? m_uiSliceArgument : MSYS_UINT_MAX );
-        UInt uiNumSkipSlices  = min( uiMaxMbsInSlice, pcSliceHeader->getNumMbsInSlice() );
-        ROF( uiNumSkipSlices  > 0 );
-        pcSliceHeader->setNumMbsInSliceMinus1( uiNumSkipSlices - 1 );
-      }
-
-			RNOK( m_pcNalUnitEncoder->write( *pcSliceHeader ) );
-
-			m_pcSliceEncoder->m_pcMbCoder->m_uiSliceMode = m_uiSliceMode;
-			m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument = m_uiSliceArgument;
-			if (m_pcSliceEncoder->m_pcMbCoder->m_uiSliceMode==2)
-			{
-				m_pcSliceEncoder->m_pcMbCoder->m_uiSliceArgument -=
-					m_pcNalUnitEncoder->xGetBitsWriteBuffer()->getBitsWritten() + 4*8 +20;
-			}
-
-			//===== initialization =====
-      RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlCol ) );
-			if( ! m_bLoadMotionInfo )
-			{
-				RNOK( m_pcMotionEstimation->initSlice( rcSliceHeader ) );
-				RNOK( pcMbEncoder         ->initSlice( rcSliceHeader ) );
-				RNOK( m_pcMotionEstimation->getSW()->initSlice( rcSliceHeader ) );
-      }
-
-
-			ROF( m_pcSliceEncoder->m_bInitDone );
-
-			RNOK( m_pcSliceEncoder->m_pcControlMng->initSliceForCoding( *pcSliceHeader ) );
-
-			//====== initialization ======
-			YuvMbBuffer  cZeroBuffer;
-			cZeroBuffer.setAllSamplesToZero();
-			uiBits = m_pcSliceEncoder->m_pcMbCoder->getBitCount();
-
-			m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone=false;
-			//===== loop over macroblocks =====
-			for(  uiNumMBInSlice = 0; uiMbAddress <= uiLastMbAddress;  )
-			{
-				ETRACE_NEWMB( uiMbAddress );
-				bool bCoded;
-
-				MbDataAccess* pcMbDataAccess      = 0;
-				MbDataAccess* pcMbDataAccessBase  = 0;
-
-				UInt          uiMbY, uiMbX;
-				Double        dCost              = 0;
-
-				rcSliceHeader.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress     );
-
-				//===== init macroblock =====
-				RNOK  ( pcMbDataCtrl            ->initMb( pcMbDataAccess,     uiMbY, uiMbX ) );
-				if    ( pcBaseLayerCtrl )
-				{
-					RNOK( pcBaseLayerCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
-				}
-
-				if( ! m_bLoadMotionInfo )
-				{
-					//===== initialisation =====
-					RNOK( m_pcYuvFullPelBufferCtrl->initMb( uiMbY, uiMbX, false           ) );
-					RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX, false           ) );
-					RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
-
-          if( ! pcSliceHeader->getNoInterLayerPredFlag() )
-          {
-            pcMbEncoder->setBaseModeAllowedFlag( m_apabBaseModeFlagAllowedArrays[0][uiMbAddress] );
-          }
-
-          RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
-						                                      pcMbDataAccessBase,
-						                                      *pcRefFrameList0,
-						                                      *pcRefFrameList1,
-						                                      pcBaseLayerFrame    ? pcBaseLayerFrame   ->getPic( ePicType ) : NULL,
-						                                      pcBaseLayerResidual ? pcBaseLayerResidual->getPic( ePicType ) : NULL,
-						                                      *pcOrigFrame                              ->getPic( ePicType ),
-						                                      *pcIntraRecFrame                          ->getPic( ePicType ),
-                                                  uiMaxMvPerMb,
-                                                  m_bMCBlks8x8Disable,
-                                                  m_bBiPred8x8Disable,
-						                                      uiNumMaxIter,
-						                                      uiIterSearchRange,
-						                                      rcControlData.getLambda(),
-						                                      dCost,
-						                                      true ) );
-
-					const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-					pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
-
-					pcMCFrame->getFullPelYuvBuffer()->getYuvBufferCtrl().initMb(uiMbY,uiMbX,0);
-
-          pcMbEncoder->setBaseLayerRec( pcBaseLayerFrame ? pcBaseLayerFrame->getPic( ePicType ) : NULL );
-
-					RNOK( pcMbEncoder->compensatePrediction( *pcMbDataAccess,
-						                                        pcMCFrame->getPic( eMbPicType ),
-						                                        *apcRefFrameList0 [ eMbPicType ],
-						                                        *apcRefFrameList1 [ eMbPicType ],
-						                                        bCalcMv, bFaultTolerant ) );
-
-					RNOK( pcOrigFrame->predictionSlices  ( pcOrigFrame,pcMCFrame,  uiMbY, uiMbX) );
-
-					// store the new prediction frame that is obtained by invoking the special MC
-					RNOK( pcResidual->copyMb(pcOrigFrame, uiMbY, uiMbX) );
-					RNOK( pcBLRecFrame->copyMb(pcOrigFrame,uiMbY,uiMbX) );
-					if( pcMbDataAccess->getMbData().isIntra() )
-					{
-						YuvMbBuffer cZeroMbBuffer;
-						cZeroMbBuffer.setAllSamplesToZero();
-						pcResidual->getPic( pcMbDataAccess->getMbPicType() )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
-					}
-
-					RNOK( m_pcSliceEncoder->m_pcControlMng  ->initMbForCoding ( *pcMbDataAccess,    uiMbY, uiMbX, false, false ) );
-
-					if (rcControlData.getBaseLayerCtrl())
-					{
-						RNOK( rcControlData.getBaseLayerCtrl()->initMb  ( pcMbDataAccessBase, uiMbY, uiMbX ) );
-					}
-					pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
-
-
-					if( pcMbDataAccess->getMbData().isIntra() )
-					{
-						dCost = 0;
-            if( ! pcSliceHeader->getNoInterLayerPredFlag() )
-            {
-              m_pcSliceEncoder->m_pcMbEncoder->setBaseModeAllowedFlag( m_apabBaseModeFlagAllowedArrays[0][uiMbAddress] );
-            }
-
-            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
-
-						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess,
-							                                                      pcMbDataAccessBase,
-							                                                      pcBLRecFrame                  ->getPic( ePicType ),
-							                                                      pcBLRecFrame                  ->getPic( ePicType ),
-							                                                      pcResidual               ->getPic( ePicType ),
-							                                                      rcControlData.getBaseLayerRec() ? rcControlData.getBaseLayerRec()->getPic( ePicType ) : NULL,
-							                                                      pcPredSignal             ->getPic( ePicType ),
-							                                                      rcControlData.getLambda(),
-							                                                      dCost ) );
-
-						uiNumMBInSlice++;
-						muiMbCoded++;
-						if (m_uiSliceMode==1)
-						{
-							if (uiNumMBInSlice >= m_uiSliceArgument)
-							{
-								RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, true, true ) );
-								rcControlData.m_uiCurrentFirstMB = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
-								rcSliceHeader.setNumMbsInSlice(uiNumMBInSlice);
-								if (rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1)
-									rcControlData.m_bSliceGroupAllCoded = true;
-								break;
-							}
-							else
-              {
-								RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-							}
-						}
-						else if (m_uiSliceMode==2)
-						{
-							RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-							if ((rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1) && (!m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone))
-								rcControlData.m_bSliceGroupAllCoded = true;
-							if (m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone)
-							{
-								rcControlData.m_uiCurrentFirstMB = uiMbAddress;
-								MbData* tempMbData;
-								tempMbData=pcMbDataCtrl->xGetMbData(rcControlData.m_uiCurrentFirstMB);
-								tempMbData->setSliceId( 0 );
-								break;
-							}
-						}
-						else
-						{
-							RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-						}
-					}
-					else
-					{
-            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
-
-						m_pcSliceEncoder->m_pcTransform->setClipMode( false );
-						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess,
-					                                                            pcFrame->getPic( ePicType ),
-					                                                            pcBLRecFrame   ->getPic( ePicType ),
-					                                                            pcResidual->getPic( ePicType ),
-					                                                            rcControlData.getBaseLayerSbb() ? rcControlData.getBaseLayerSbb()->getPic( ePicType ) : NULL,
-					                                                            bCoded,
-					                                                            rcControlData.getLambda(),
-					                                                            m_iMaxDeltaQp ) );
-
-						m_pcSliceEncoder->m_pcTransform->setClipMode( true );
-
-						uiNumMBInSlice++;
-
-						if (m_uiSliceMode==1)
-						{
-							if (uiNumMBInSlice >= m_uiSliceArgument)
-							{
-								RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, true, true ) );
-								rcControlData.m_uiCurrentFirstMB = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
-								rcSliceHeader.setNumMbsInSlice(uiNumMBInSlice);
-								if (rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1)
-									rcControlData.m_bSliceGroupAllCoded = true;
-								break;
-							}
-							else
-							{
-								RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-							}
-						}
-						else if (m_uiSliceMode==2)
-						{
-							RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-							if ((rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1) && (!m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone))
-								rcControlData.m_bSliceGroupAllCoded = true;
-							if (m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone)
-							{
-								rcControlData.m_uiCurrentFirstMB = uiMbAddress;
-								MbData* tempMbData;
-								tempMbData=pcMbDataCtrl->xGetMbData(rcControlData.m_uiCurrentFirstMB);
-								tempMbData->setSliceId( 0 );
-								RNOK( pcOrigFrame->inversepredictionSlices  ( pcOrigFrame,pcMCFrame,  uiMbY, uiMbX) );
-								break;
-							}
-						}
-						else
-						{
-							RNOK( m_pcSliceEncoder->m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, (uiMbAddress == uiLastMbAddress ), true ) );
-						}
-						if( bCoded )
-						{
-							muiMbCoded++;
-						}
-
-						RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
-					}
-				}
-				else
-				{
-					//===== load prediction data =====
-					RNOK( pcMbDataAccess->getMbData().loadAll( m_pMotionInfoFile ) );
-				}
-
-				uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress);
-
-				if (uiMbAddress==-1)
-				{
-					rcControlData.m_bSliceGroupAllCoded=true;
-					break;
-				}
-			}
-
-			muiBits += m_pcSliceEncoder->m_pcMbCoder->getBitCount() - uiBits;
-
-			//----- close NAL UNIT -----
-			UInt auiBits[16];
-      RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, cTmpExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
-      for( Int iMGSIdx = 0; cTmpExtBinDataAccessorList.size(); iMGSIdx++ )
-      {
-        acExtBinDataAccessorList[iMGSIdx].push_back( cTmpExtBinDataAccessorList.popFront() );
-        auiBits[iMGSIdx] += 4*8; // start code
-      }
-      muiBits = auiBits[0];
-
-			PicOutputData cPicOutputData;
-      cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader()->getNoInterLayerPredFlag() && rcControlData.getSliceHeader()->getFirstMbInSlice() == 0;
-      cPicOutputData.iPicType      = rcControlData.getSliceHeader()->getPicType();
-			cPicOutputData.Poc           = rcControlData.getSliceHeader()->getPoc                  ();
-			cPicOutputData.FrameType[0]  = rcControlData.getSliceHeader()->getSliceType            () == B_SLICE ? 'B' :
-			                               rcControlData.getSliceHeader()->getSliceType            () == P_SLICE ? 'P' : 'I';
-			cPicOutputData.FrameType[1]  = rcControlData.getSliceHeader()->getUseRefBasePicFlag()            ? 'K' : ' ';
-			cPicOutputData.FrameType[2]  = '\0';
-			cPicOutputData.DependencyId  = rcControlData.getSliceHeader()->getLayerCGSSNR          ();
-			cPicOutputData.QualityId     = rcControlData.getSliceHeader()->getQualityLevelCGSSNR   ();
-			cPicOutputData.TemporalId    = rcControlData.getSliceHeader()->getTemporalId        ();
-			cPicOutputData.Qp            = rcControlData.getSliceHeader()->getSliceQp                ();
-			cPicOutputData.Bits          = muiBits + uiBitsSEI;
-			cPicOutputData.YPSNR         = 0.0;
-			cPicOutputData.UPSNR         = 0.0;
-			cPicOutputData.VPSNR         = 0.0;
-      acPicOutputDataList[0].push_back( cPicOutputData );
-
-      for( UInt uiFrag = 0; true; )
-      {
-        if( pcSliceHeader->getSPS().getMGSCoeffStop( uiFrag ) == 16 )
-        {
-          break;
-        }
-        uiFrag++;
-        cPicOutputData.QualityId++;
-        cPicOutputData.uiBaseLayerId      = pcSliceHeader->getLayerCGSSNR();
-        cPicOutputData.uiBaseQualityLevel = cPicOutputData.QualityId - 1;
-        cPicOutputData.Bits               = auiBits[uiFrag];
-        acPicOutputDataList[uiFrag].push_back( cPicOutputData );
-        if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-        {
-          m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()+uiFrag] += auiBits[uiFrag];
-        }
-        else
-        {
-          m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += auiBits[uiFrag];
-        }
-        ruiBits += auiBits[uiFrag];
-      }
-
-      if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
-      {
-        m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += muiBits+uiBitsSEI;
-      }
-      else
-      {
-        m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += muiBits+uiBitsSEI;
-      }
-
-      ruiBits     += muiBits+uiBitsSEI;
-			ruiBitsRes  += muiBitsRes;
-			uiBitsSEI =0;
-		}
-	}
-
-  for( UInt uiMGSIdx = 0; uiMGSIdx < 16; uiMGSIdx++ )
-  {
-    rcOutExtBinDataAccessorList += acExtBinDataAccessorList [uiMGSIdx];
-    rcPicOutputDataList         += acPicOutputDataList      [uiMGSIdx];
-    acExtBinDataAccessorList[uiMGSIdx].clear();
-    acPicOutputDataList     [uiMGSIdx].clear();
-  }
-
-	if( ePicType!=FRAME )
-	{
-		if( pcOrigFrame )         RNOK( pcOrigFrame        ->removeFieldBuffer( ePicType ) );
-		if( pcIntraRecFrame )     RNOK( pcIntraRecFrame    ->removeFieldBuffer( ePicType ) );
-		if( pcBaseLayerFrame )    RNOK( pcBaseLayerFrame   ->removeFieldBuffer( ePicType ) );
-		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->removeFieldBuffer( ePicType ) );
-	}
-
-  if( !pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getSCoeffResidualPredFlag() )
-  {
-    m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
-  }
-
-  if( pcSliceHeader->getTCoeffLevelPredictionFlag() )
-  {
-    //===== update state prior to deblocking
-    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
-  }
-
-	ETRACE_NEWFRAME;
-	return Err::m_nOK;
-}
-
-ErrVal
-LayerEncoder::xEncodeNonKeyPictureSlices( UInt                uiBaseLevel,
-                                          UInt                uiFrame,
-                                          AccessUnitData&     rcAccessUnitData,
-                                          PicBufferList&			rcPicBufferInputList,
-                                          PicOutputDataList&  rcPicOutputDataList,
-                                          PicType             ePicType )
-{
-	UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
-	UInt          uiBits          = 0;
-	UInt          uiBitsRes       = 0;
-	ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-	Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-	Frame*     pcIntraRecFrame = m_apcFrameTemp  [0];
-  Frame*     pcResidual      = m_pcResidual;
-	Frame*     pcMCFrame       = m_apcFrameTemp  [1];
-  Frame*     pcOrgFrame      = m_papcFrame     [uiFrameIdInGOP];
-	Frame*     pcPredSignal    = m_apcFrameTemp  [2];
-	Frame*     pcBLRecFrame    = m_apcFrameTemp  [3];
-
-	m_abCoded[uiFrameIdInGOP] = true;
-
-	SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
-	ROF( pcSliceHeader );
-
-	ExtBinDataAccessorList& rcOutputList  = rcAccessUnitData.getNalUnitList ();
-
-	RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
-	RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
-  UInt          uiFrameIdCol    = MSYS_UINT_MAX;
-
-	//===== get reference frame lists =====
-  RNOK( xGetPredictionLists     ( rcRefFrameList0, rcRefFrameList1, uiFrameIdCol, uiFrameIdInGOP, ePicType, RLU_MOTION_ESTIMATION, true ) );
-  RefFrameList acRefFieldList0[2];
-  RefFrameList acRefFieldList1[2];
-  pcSliceHeader->setRefFrameList( &rcRefFrameList0, ePicType, LIST_0 );
-  pcSliceHeader->setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
-  if( pcSliceHeader->isMbaffFrame() )
-  {
-    RNOK( gSetFrameFieldLists( acRefFieldList0[0], acRefFieldList0[1], rcRefFrameList0 ) );
-    RNOK( gSetFrameFieldLists( acRefFieldList1[0], acRefFieldList1[1], rcRefFrameList1 ) );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[0]), TOP_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList0[1]), BOT_FIELD, LIST_0 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[0]), TOP_FIELD, LIST_1 );
-    pcSliceHeader->setRefFrameList( &(acRefFieldList1[1]), BOT_FIELD, LIST_1 );
-  }
-
-  //===== set lambda and QP =====
-	RNOK( xInitControlDataMotion  ( uiBaseLevel, uiFrame, true, ePicType ) );
-
-  {
-    //----- set slice header QP (residual QP) ----
-    Double  dQP = m_dBaseQPResidual - 6.0 * log10( rcControlData.getScalingFactor() ) / log10( 2.0 );
-    if( m_bExplicitQPCascading )
-    {
-      dQP = m_dBaseQPResidual + m_adDeltaQPTLevel[ m_uiDecompositionStages - uiBaseLevel ];
-    }
-    Int iQP = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
-    pcSliceHeader->setSliceHeaderQp( iQP );
-  }
-
-	//NonRequired JVT-Q066 (06-04-08){{
-	if(m_uiDependencyId != 0 && m_uiNonRequiredWrite != 0)
-	{
-		if( pcSliceHeader->getNoInterLayerPredFlag() || m_uiDependencyId - pcSliceHeader->getRefLayerDependencyId() > 1 || pcSliceHeader->getRefLayerQualityId() != 3 )
-		{
-			rcAccessUnitData.CreatNonRequiredSei();
-		}
-		xSetNonRequiredSEI(pcSliceHeader, rcAccessUnitData.getNonRequiredSei());
-		if(m_uiNonRequiredWrite == 2 && rcAccessUnitData.getNonRequiredSei() != NULL)
-		{
-			xWriteNonRequiredSEI(rcOutputList, rcAccessUnitData.getNonRequiredSei(), uiBits);
-		}
-	}
-	//NonRequired JVT-Q066 (06-04-08)}}
-
-	//===== base layer encoding =====
-	// JVT-Q054 Red. Picture {
-	if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
-	{
-		pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
-	}
-	// JVT-Q054 Red. Picture }
-
-	//S051{
-	m_pcSliceEncoder->setUseBDir(true);
-	if(m_bEncSIP)
-	{
-		if(m_bH264AVCCompatible||!rcControlData.getSliceHeader()->getDirectSpatialMvPredFlag())
-		{
-      if( uiFrameIdCol != MSYS_UINT_MAX)
-      {
-        SliceHeader* pcSliceHeaderL1 = m_pacControlData[uiFrameIdCol].getSliceHeader( ePicType );
-        if( xSIPCheck( pcSliceHeaderL1->getPoc() ) )
-        {
-          m_pcSliceEncoder->setUseBDir(false);
-        }
-      }
-		}
-	}
-	//S051}
-
-	//TMM_WP
-	/* el & has correspongding bl frame & bl uses wp then use bl wts */
-	if((m_uiDependencyId > 0 && m_bBaseLayerWp &&
-		rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX) )
-	{
-		/* use same wts as bl */
-		pcSliceHeader->setBasePredWeightTableFlag(true);
-	}
-	else
-	{
-		/* call function to calculate the weights */
-		m_pcSliceEncoder->xSetPredWeights( *pcSliceHeader,
-			pcFrame,
-			rcRefFrameList0,
-			rcRefFrameList1
-			//rcRefFrameList0.getEntry(0),
-			//rcRefFrameList1.getEntry(0),
-			);
-		pcSliceHeader->setBasePredWeightTableFlag(false);
-	}
-	//TMM_WP
-	// JVT-R057 LA-RDO{
-	if(m_bLARDOEnable)
-	{
-		pcFrame->initChannelDistortion();
-		m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
-	}
-	// JVT-R057 LA-RDO}
-
-	//JVT-R057 LA-RDO{
-	//Bug_Fix JVT-R057 0806{
-	if(m_bLARDOEnable)
-	{
-		pcBLRecFrame->setChannelDistortion(pcFrame);
-		m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
-	}
-	//Bug_Fix JVT-R057 0806}
-	//JVT-R057 LA-RDO}
-
-  MbDataCtrl* pcMbDataCtrlCol = ( uiFrameIdCol == MSYS_UINT_MAX ? 0 : m_pacControlData[uiFrameIdCol].getMbDataCtrl() );
-  RNOK(xEncodeHighPassSignalSlices(rcOutputList,&rcRefFrameList0,&rcRefFrameList1,pcMbDataCtrlCol,pcFrame,
-    pcIntraRecFrame,pcMCFrame,pcResidual,pcPredSignal,rcControlData,
-    m_uiNumMaxIter,m_uiIterSearchRange,uiFrameIdInGOP,ePicType,
-    uiBits,uiBitsRes,rcPicOutputDataList,pcOrgFrame,pcBLRecFrame,uiBaseLevel) );
-
-	m_uiNewlyCodedBits += uiBits;
-	m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] ++;
-  if( ePicType==(m_bBotFieldFirst?TOP_FIELD:BOT_FIELD) ) // counted twice
-  m_auiNumFramesCoded [ pcSliceHeader->getTemporalId() ] --;
-
-	RNOK( pcFrame->copy( pcBLRecFrame, ePicType ) );
-  RNOK( m_pcSubband->copy( pcFrame, ePicType ) );
-  // JVT-R057 LA-RDO{
-  if(m_bLARDOEnable)
-    m_pcSubband->setChannelDistortion(pcFrame);
-  // JVT-R057 LA-RDO}
-
-	return Err::m_nOK;
-}
-//JVT-X046 }
 ErrVal
 LayerEncoder::process( UInt             uiAUIndex,
                        AccessUnitData&  rcAccessUnitData,
@@ -5107,8 +3510,6 @@ LayerEncoder::process( UInt             uiAUIndex,
 // JVT-V068 HRD }
 
   //===== init some parameters =====
-  g_nLayer        = m_uiQualityLevelCGSSNR;
-  ETRACE_LAYER(     g_nLayer );
   if( m_bLARDOEnable )
   {
     m_pcSliceEncoder->getMbEncoder()->setLARDOEnable( m_bLARDOEnable );
@@ -5132,8 +3533,10 @@ LayerEncoder::process( UInt             uiAUIndex,
   //JVT-X046 }
 
   UInt   uiCodingIndex   = ( m_bFirstGOPCoded ? uiAUIndex + 1 : uiAUIndex );
-  UInt   uiFrameIdInGOP  = m_auiCodingIndexToFrameId[ uiCodingIndex ];
+  UInt   uiFrameIdInGOP  = m_auiCodingIndexToFrameId[ uiCodingIndex  ];
   ROTRS( uiFrameIdInGOP  > m_uiGOPSize, Err::m_nOK );
+  RNOK( xSetCodingNumbers( uiCodingIndex ) );
+  UInt   uiTemporalId    = m_auiFrameIdToTemporalId [ uiFrameIdInGOP ];
   UInt   uiSliceMode     = m_uiSliceMode;
   UInt   uiSliceArgument = m_uiSliceArgument;
   if(    uiSliceMode != 2 )
@@ -5147,60 +3550,11 @@ LayerEncoder::process( UInt             uiAUIndex,
       m_pcSliceEncoder->m_uiSliceArgument = m_uiSliceArgument;
     }
   }
-  Bool   bKeyPicture     = ( ( uiFrameIdInGOP % ( 1U << m_uiDecompositionStages ) ) == 0 );
-  if(    bKeyPicture )
-  {
-    //===== KEY PICTURE =====
-    Bool              bPicCoded   = false;
-    UInt              uiKeyFrmIdx = ( uiFrameIdInGOP ? 1 : 0 );
-    PicOutputDataList cPicOutputDataList;
-    RNOK( xEncodeKeyPicture     ( bPicCoded,               uiKeyFrmIdx, rcAccessUnitData,      cPicOutputDataList ) );
-    ROF ( bPicCoded );
-    RNOK( xCalculateAndAddPSNR  ( m_uiDecompositionStages, uiKeyFrmIdx, rcPicBufferInputList,  cPicOutputDataList ) );
-    RNOK( xCalculateTiming      ( cPicOutputDataList,      uiKeyFrmIdx ) );
-    RNOK( xOutputPicData        (                                                              cPicOutputDataList ) );
-    if  ( uiKeyFrmIdx == 1 )
-    {
-      RNOK( m_pcAnchorFrameReconstructed->copyAll( m_papcFrame[ m_uiGOPSize ] ) );
-    }
-    m_uiLastCodedFrameIdInGOP = uiKeyFrmIdx << m_uiDecompositionStages;
-    m_uiLastCodedTemporalId   = 0;
-  }
-  else
-  {
-    //===== NON-KEY PICTURE =====
-    PicOutputDataList cPicOutputDataList;
-    UInt    uiLevel         = m_uiDecompositionStages - m_auiFrameIdToTemporalId[ uiFrameIdInGOP ];
-    UInt    uiFrame         = uiFrameIdInGOP >> uiLevel;
-    Bool    bFieldCoded     = m_pbFieldPicFlag[ uiFrameIdInGOP ];
-    UInt    uiNumPics       = ( bFieldCoded ? 2 : 1 );
-    PicType eFirstPicType   = ( bFieldCoded ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
-    PicType eLastPicType    = ( bFieldCoded ? ( m_bBotFieldFirst ? TOP_FIELD : BOT_FIELD ) : FRAME );
-    for( UInt uiPicType = 0; uiPicType < uiNumPics; uiPicType++ )
-    {
-      PicType ePicType      = ( uiPicType ? eLastPicType : eFirstPicType );
-      RNOK( xSetBaseLayerData           ( uiFrameIdInGOP, ePicType ) );
-      if ( m_uiSliceMode )
-      {
-        RNOK( xEncodeNonKeyPictureSlices( uiLevel, uiFrame, rcAccessUnitData, rcPicBufferInputList, cPicOutputDataList, ePicType ) );
-        RNOK( xCompositionFrame         ( uiLevel, uiFrame, rcPicBufferInputList,                     ePicType ) );
-      }
-      else
-      {
-        RNOK( xMotionEstimationFrame    ( uiLevel, uiFrame,                                           ePicType ) );
-        RNOK( xDecompositionFrame       ( uiLevel, uiFrame,                                           ePicType ) );
-        RNOK( xEncodeNonKeyPicture      ( uiLevel, uiFrame, rcAccessUnitData,     cPicOutputDataList, ePicType ) );
-        RNOK( xCompositionFrame         ( uiLevel, uiFrame, rcPicBufferInputList,                     ePicType ) );
-      }
-    }
+  
+  Bool  bPicCoded = false;
+  RNOK( xEncodePicture( bPicCoded, uiTemporalId, uiFrameIdInGOP, rcAccessUnitData, rcPicBufferInputList ) );
+  ROF ( bPicCoded );  
 
-    RNOK( xCalculateAndAddPSNR          ( uiLevel, uiFrame, rcPicBufferInputList, cPicOutputDataList ) );
-    RNOK( xCalculateTiming              ( cPicOutputDataList, uiFrame ) );
-    RNOK( xOutputPicData                ( cPicOutputDataList ) );
-    RNOK( xClearBufferExtensions        () );
-    m_uiLastCodedFrameIdInGOP = uiFrameIdInGOP;
-    m_uiLastCodedTemporalId   = m_uiDecompositionStages - uiLevel;
-  }
   m_uiSliceMode     = uiSliceMode;
   m_uiSliceArgument = uiSliceArgument;
 
@@ -5415,7 +3769,7 @@ LayerEncoder::finish( UInt&    ruiNumCodedFrames,
       {
         for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel++ )
         {
-          if( uiBaseLayerIdCGSSNR < MAX_LAYERS ) //not base layer
+          if( uiBaseLayerIdCGSSNR < MAX_LAYERS && m_bInterLayerPrediction ) //not base layer and inter-layer predicted
           {
             if( uiQualityLevel ) // D > 0, T = 0, Q != 0
               dBits = aaadCurrBits[uiLayerIdCGSSNR][uiLevel][uiQualityLevel-1];
@@ -5434,7 +3788,7 @@ LayerEncoder::finish( UInt&    ruiNumCodedFrames,
         for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel++ )
         {
           dBits = 0;
-          if( uiBaseLayerIdCGSSNR < MAX_LAYERS ) //not base layer
+          if( uiBaseLayerIdCGSSNR < MAX_LAYERS && m_bInterLayerPrediction ) //not base layer and inter-layer predicted
           {
             ROT( uiBaseQualityLevelCGSSNR >= MAX_QUALITY_LEVELS );
             dBits = aaadCurrBits[uiBaseLayerIdCGSSNR][uiLevel][uiBaseQualityLevelCGSSNR];
@@ -5466,7 +3820,7 @@ LayerEncoder::finish( UInt&    ruiNumCodedFrames,
     {
       for( UInt uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
       {
-        if( m_uiBaseLayerId < MAX_LAYERS ) //not base layer
+        if( m_uiBaseLayerId < MAX_LAYERS && m_bInterLayerPrediction ) //not base layer and inter-layer predicted
         {
 // BUG_FIX liuhui{
           if( uiFGS ) // D > 0, T = 0, Q != 0
@@ -5489,7 +3843,7 @@ LayerEncoder::finish( UInt&    ruiNumCodedFrames,
       for( UInt uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
       {
         dBits = 0;
-        if( m_uiBaseLayerId < MAX_LAYERS ) //not base layer
+        if( m_uiBaseLayerId < MAX_LAYERS && m_bInterLayerPrediction ) //not base layer and inter-layer predicted
         {
           ROT( m_uiBaseQualityLevel >= MAX_QUALITY_LEVELS );
 // BUG_FIX liuhui{
@@ -5740,7 +4094,8 @@ LayerEncoder::xWritePrefixUnit( ExtBinDataAccessorList& rcOutExtBinDataAccessorL
     {
       return Err::m_nERR;
     }
-    ETRACE_HEADER( "PREFIX UNIT" );
+    ETRACE_LAYER  ( 0 );
+    ETRACE_HEADER ( "PREFIX UNIT" );
 
     RNOK( m_pcNalUnitEncoder->writePrefix( rcSH ) );
 
@@ -5830,28 +4185,139 @@ LayerEncoder::xWriteIntegrityCheckSEI(ExtBinDataAccessorList &rcOutExtBinDataAcc
   cSEIMessageList.push_back(pcSEIMessage);
   RNOK( m_pcNalUnitEncoder->write(cSEIMessageList) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit(uiBits) );
-
-  ROF( &m_cExtBinDataAccessor);
-  ROF( m_cExtBinDataAccessor.data());
-  UInt uiNewSize = m_cExtBinDataAccessor.size();
-  UChar* pucNewBuffer = new UChar[ uiNewSize];
-  ROF ( pucNewBuffer);
-  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.set(pucNewBuffer, uiNewSize);
-  m_cBinData.setMemAccessor( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.setMemAccessor(m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBits += 4*8;
   ruiBits += uiBits;
   return Err::m_nOK;
 }
 //JVT-W052
+
+// JVT-W062 {
+ErrVal 
+LayerEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTId, UInt uiDId, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId, UInt& ruiBits )
+{
+  SEI::ScalableNestingSei* pcScalableNestingSei;
+  RNOK( SEI::ScalableNestingSei::create( pcScalableNestingSei ) );
+
+  //===== set message =====
+  Bool bAllPicturesInAuFlag = 0;
+  pcScalableNestingSei->setAllPicturesInAuFlag( bAllPicturesInAuFlag );
+  if( bAllPicturesInAuFlag  == 0 )
+  {
+    UInt uiNumPictures    = 1;
+    UInt *uiDependencyId  = new UInt[uiNumPictures];
+    UInt *uiQualityLevel  = new UInt[uiNumPictures];
+    UInt uiTemporalId     = uiTId;
+    uiDependencyId[0]     = uiDId;
+    uiQualityLevel[0]     = 0;
+    pcScalableNestingSei->setNumPictures( uiNumPictures );
+    for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
+    {
+      pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
+      pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
+    }
+    pcScalableNestingSei->setTemporalId(uiTemporalId);
+    delete [] uiDependencyId;
+    delete [] uiQualityLevel;
+  }
+
+  SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI;
+  RNOK( SEI::Tl0DepRepIdxSei::create( pcTl0DepRepIdxSEI ) );
+
+  pcTl0DepRepIdxSEI->setTl0DepRepIdx( uiTl0DepRepIdx );
+  pcTl0DepRepIdxSEI->setEfIdrPicId( uiEfIdrPicId );
+
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                         ( pcScalableNestingSei );
+  cSEIMessageList.push_back                         ( pcTl0DepRepIdxSEI );
+  RNOK ( xInitExtBinDataAccessor                    ( m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->initNalUnit            (&m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->writeScalableNestingSei( cSEIMessageList ) );
+  RNOK ( m_pcNalUnitEncoder->closeNalUnit           ( uiBits ) );
+  RNOK ( xAppendNewExtBinDataAccessor               ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+
+  uiBits  += 4*8;
+  ruiBits += uiBits;
+  return Err::m_nOK;
+}
+
+ErrVal
+LayerEncoder::writeTl0DepRepIdxSEI( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId, UInt& ruiBits )
+{
+  SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI;
+  RNOK( SEI::Tl0DepRepIdxSei::create( pcTl0DepRepIdxSEI ) );
+
+  //===== set message =====
+  pcTl0DepRepIdxSEI->setTl0DepRepIdx( uiTl0DepRepIdx );
+  pcTl0DepRepIdxSEI->setEfIdrPicId( uiEfIdrPicId );
+
+  //===== write message =====
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                 ( pcTl0DepRepIdxSEI );
+  RNOK ( xInitExtBinDataAccessor            ( m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->initNalUnit    (&m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->write          ( cSEIMessageList ) );
+  RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
+  RNOK ( xAppendNewExtBinDataAccessor       ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+
+  uiBits  += 4*8;
+  ruiBits += uiBits;
+  return Err::m_nOK;
+}
+//JVT-W062 }
+
+ErrVal 
+LayerEncoder::writeNestingSceneInfoSEIMessage( ExtBinDataAccessorList &rcOutExtBinDataAccessorList, UInt uiTId, UInt uiDId, UInt& ruiBits )
+{
+  SEI::ScalableNestingSei* pcScalableNestingSei;
+  RNOK( SEI::ScalableNestingSei::create( pcScalableNestingSei ) );
+
+  //===== set message =====
+  Bool bAllPicturesInAuFlag = 0;
+  pcScalableNestingSei->setAllPicturesInAuFlag( bAllPicturesInAuFlag );
+  if( bAllPicturesInAuFlag  == 0 )
+  {
+    UInt uiNumPictures    = 1;
+    UInt *uiDependencyId  = new UInt[uiNumPictures];
+    UInt *uiQualityLevel  = new UInt[uiNumPictures];
+    UInt uiTemporalId     = uiTId;
+    uiDependencyId[0]     = uiDId;
+    uiQualityLevel[0]     = 0;
+    pcScalableNestingSei->setNumPictures( uiNumPictures );
+    for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
+    {
+      pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
+      pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
+    }
+    pcScalableNestingSei->setTemporalId(uiTemporalId);
+    delete [] uiDependencyId;
+    delete [] uiQualityLevel;
+  }
+
+  SEI::SceneInfoSei* pcSceneInfoSEI;
+  RNOK( SEI::SceneInfoSei::create( pcSceneInfoSEI ) );
+  pcSceneInfoSEI->setSceneInfoPresentFlag ( true );
+  pcSceneInfoSEI->setSceneId              ( 1 );
+  pcSceneInfoSEI->setSceneTransitionType  ( 0 );
+
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                         ( pcScalableNestingSei );
+  cSEIMessageList.push_back                         ( pcSceneInfoSEI );
+  RNOK ( xInitExtBinDataAccessor                    ( m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->initNalUnit            (&m_cExtBinDataAccessor ) );
+  RNOK ( m_pcNalUnitEncoder->writeScalableNestingSei( cSEIMessageList ) );
+  RNOK ( m_pcNalUnitEncoder->closeNalUnit           ( uiBits ) );
+  RNOK ( xAppendNewExtBinDataAccessor               ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+
+  uiBits  += 4*8;
+  ruiBits += uiBits;
+  return Err::m_nOK;
+}
+
 
 ErrVal
 LayerEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit )
@@ -5866,22 +4332,7 @@ LayerEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAcces
 
   RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
-
-  ROF( &m_cExtBinDataAccessor );
-  ROF( m_cExtBinDataAccessor.data() );
-  UInt    uiNewSize     = m_cExtBinDataAccessor.size();
-  UChar*  pucNewBuffer  = new UChar [ uiNewSize ];
-  ROF( pucNewBuffer );
-  memcpy( pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof( UChar ) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor );
-  m_cBinData              .reset          ();
-  m_cBinData              .set            (  pucNewBuffer, uiNewSize );
-  m_cBinData              .setMemAccessor ( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front     (  pcNewExtBinDataAccessor );
-  m_cBinData              .reset          ();
-  m_cBinData              .setMemAccessor ( m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBit += 4*8;
   ruiBit += uiBit;
@@ -5900,22 +4351,7 @@ LayerEncoder::xWriteSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI
   RNOK( m_pcNalUnitEncoder->initNalUnit(&m_cExtBinDataAccessor) );
   RNOK( m_pcNalUnitEncoder->write(rcSEIMessageList) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit(uiBits) );
-
-  ROF( &m_cExtBinDataAccessor);
-  ROF( m_cExtBinDataAccessor.data());
-  UInt uiNewSize = m_cExtBinDataAccessor.size();
-  UChar* pucNewBuffer = new UChar[ uiNewSize];
-  ROF ( pucNewBuffer);
-  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.set(pucNewBuffer, uiNewSize);
-  m_cBinData.setMemAccessor( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.setMemAccessor(m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBits += 4*8;
   ruiBits += uiBits;
@@ -5946,22 +4382,7 @@ LayerEncoder::xWriteNestingSEIforHrd(ExtBinDataAccessorList &rcOutExtBinDataAcce
   cSEIMessageList.push_back( pcSEIMessage );
   RNOK( m_pcNalUnitEncoder->writeScalableNestingSei(cSEIMessageList) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit(uiBits) );
-
-  ROF( &m_cExtBinDataAccessor);
-  ROF( m_cExtBinDataAccessor.data());
-  UInt uiNewSize = m_cExtBinDataAccessor.size();
-  UChar* pucNewBuffer = new UChar[ uiNewSize];
-  ROF ( pucNewBuffer);
-  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.set(pucNewBuffer, uiNewSize);
-  m_cBinData.setMemAccessor( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.setMemAccessor(m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBits += 4*8;
   ruiBits += uiBits;
@@ -5980,22 +4401,7 @@ LayerEncoder::xWriteSEIforAVCCompatibleHrd(ExtBinDataAccessorList &rcOutExtBinDa
   cSEIMessageList.push_back(pcSEIMessage);
   RNOK( m_pcNalUnitEncoder->write(cSEIMessageList) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit(uiBits) );
-
-  ROF( &m_cExtBinDataAccessor);
-  ROF( m_cExtBinDataAccessor.data());
-  UInt uiNewSize = m_cExtBinDataAccessor.size();
-  UChar* pucNewBuffer = new UChar[ uiNewSize];
-  ROF ( pucNewBuffer);
-  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.set(pucNewBuffer, uiNewSize);
-  m_cBinData.setMemAccessor( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.setMemAccessor(m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBits += 4*8;
   ruiBits += uiBits;
@@ -6037,7 +4443,7 @@ LayerEncoder::xCalculateTiming( PicOutputDataList&  rcPicOutputDataList, UInt ui
         uiBitCounts += m_apcScheduler->get((uiBaseLayerId<<7)+(iter->TemporalId<<4)+uiTmp)->getLayerBits();
     }
 
-    for (UInt uiTemporalId=iter->TemporalId; uiTemporalId<=m_uiDecompositionStages; uiTemporalId++)
+    for (UInt uiTemporalId=iter->TemporalId; uiTemporalId<=m_uiDecompositionStages-m_uiNotCodedStages; uiTemporalId++)
     {
       m_apcScheduler->get(((iter->DependencyId)<<7)+(uiTemporalId<<4)+(iter->QualityId))->setLayerBits(iter->QualityId == 0 ? uiBitCounts : iter->Bits); // if layer's quality_id == 0, store the sum of bits in all reference layers, otherwise, only store the bits of current layer.
       m_apcScheduler->get(((iter->DependencyId)<<7)+(uiTemporalId<<4)+(iter->QualityId))->calculateTiming(uiBitCounts, uiBitCounts, pcSH->getIdrFlag(), pcSH->getFieldPicFlag());
@@ -6096,22 +4502,7 @@ LayerEncoder::xWriteRedundantKeyPicSEI ( ExtBinDataAccessorList& rcOutExtBinData
   cSEIMessageList.push_back( pcRedundantPicSEI );
   RNOK( m_pcNalUnitEncoder->write(cSEIMessageList) );
   RNOK( m_pcNalUnitEncoder->closeNalUnit(uiBits) );
-
-  ROF( &m_cExtBinDataAccessor);
-  ROF( m_cExtBinDataAccessor.data());
-  UInt uiNewSize = m_cExtBinDataAccessor.size();
-  UChar* pucNewBuffer = new UChar[ uiNewSize];
-  ROF ( pucNewBuffer);
-  memcpy(pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof(UChar) );
-
-  ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
-  ROF( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.set(pucNewBuffer, uiNewSize);
-  m_cBinData.setMemAccessor( *pcNewExtBinDataAccessor );
-  rcOutExtBinDataAccessorList.push_front( pcNewExtBinDataAccessor);
-  m_cBinData.reset();
-  m_cBinData.setMemAccessor(m_cExtBinDataAccessor );
+  RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
 
   uiBits += 4*8;
   ruiBits += uiBits;
@@ -6180,216 +4571,6 @@ Bool LayerEncoder:: xSIPCheck	(UInt Poc)
 //S051}
 
 
-// TMM_INTERLACE{
-ErrVal
-LayerEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
-                                     RefFrameList*    pcRefFrameList1,
-                                     MbDataCtrl*      pcMbDataCtrlCol,
-                                     Frame*        pcOrigFrame,
-                                     Frame*        pcIntraRecFrame,
-                                     ControlData&     rcControlData,
-                                     UInt             uiNumMaxIter,
-                                     UInt             uiIterSearchRange,
-                                     UInt             uiFrameIdInGOP )
-{
-  MbEncoder*    pcMbEncoder							=  m_pcSliceEncoder->getMbEncoder         ();
-  SliceHeader&  rcSliceHeader						= *rcControlData.getSliceHeader           ( FRAME );
-  MbDataCtrl*   pcMbDataCtrl						=  rcControlData.getMbDataCtrl            ();
-  Frame*     pcBaseLayerFrame				=  rcControlData.getBaseLayerRec          ();
-  Frame*     pcBaseLayerResidual	    =  rcControlData.getBaseLayerSbb          ();
-  MbDataCtrl*   pcBaseLayerCtrl					=  rcControlData.getBaseLayerCtrl         ();
-  MbDataCtrl*   pcBaseLayerCtrlField    =  rcControlData.getBaseLayerCtrlField    ();
-  UInt          uiMaxMvPerMb            = rcSliceHeader.getSPS().getMaxMVsPer2Mb () >> 1; // hard limit (don't take into account last macroblock)
-
-  FMO* pcFMO = rcControlData.getSliceHeader( FRAME )->getFMO(); //TMM
-
-  for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
-  {
-    rcSliceHeader.setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
-    rcSliceHeader.setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
-    // JVT-S054 (2) (ADD)
-    rcSliceHeader.setNumMbsInSlice(rcSliceHeader.getFMO()->getNumMbsInSlice(rcSliceHeader.getFirstMbInSlice(), rcSliceHeader.getLastMbInSlice()));
-    UInt uiMbAddress       = rcSliceHeader.getFirstMbInSlice();
-    UInt uiLastMbAddress   = rcSliceHeader.getLastMbInSlice();
-    UInt uiNumMBInSlice;
-    //===== initialization =====
-    RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlCol ) );
-    if( ! m_bLoadMotionInfo )
-    {
-      RNOK( m_pcMotionEstimation->initSlice( rcSliceHeader ) );
-      RNOK( pcMbEncoder         ->initSlice( rcSliceHeader ) );
-    }
-    RefFrameList acRefFrameList0    [2];
-    RefFrameList acRefFrameList1    [2];
-
-    Frame* apcOrigFrame        [4] = { NULL, NULL, NULL, NULL };
-    Frame* apcIntraRecFrame    [4] = { NULL, NULL, NULL, NULL };
-    Frame* apcBaseLayerFrame   [4] = { NULL, NULL, NULL, NULL };
-    Frame* apcBaseLayerResidual[4] = { NULL, NULL, NULL, NULL };
-
-    RNOK( gSetFrameFieldArrays( apcOrigFrame,         pcOrigFrame         ) );
-    RNOK( gSetFrameFieldArrays( apcIntraRecFrame,     pcIntraRecFrame     ) );
-    RNOK( gSetFrameFieldArrays( apcBaseLayerFrame,    pcBaseLayerFrame    ) );
-    RNOK( gSetFrameFieldArrays( apcBaseLayerResidual, pcBaseLayerResidual ) );
-
-    RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
-    RNOK( gSetFrameFieldLists( acRefFrameList1[0], acRefFrameList1[1], *pcRefFrameList1 ) );
-
-    RefFrameList* apcRefFrameList0[4];
-    RefFrameList* apcRefFrameList1[4];
-
-    apcRefFrameList0[0] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[0];
-    apcRefFrameList0[1] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[1];
-    apcRefFrameList1[0] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[0];
-    apcRefFrameList1[1] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
-    apcRefFrameList0[2] = apcRefFrameList0[3] = pcRefFrameList0;
-    apcRefFrameList1[2] = apcRefFrameList1[3] = pcRefFrameList1;
-
-    YuvMbBuffer acIntYuvMbBuffer[2];
-
-    MbDataBuffer acMbData[2];
-    Bool   abSkipModeAllowed[4] = {true,true,true,true};
-    IntMbTempData cMbTempDataBase;
-
-    //===== loop over macroblocks =====
-    for(  uiNumMBInSlice = 0; uiMbAddress <= uiLastMbAddress; uiMbAddress+=2 )
-    {
-      Double adCost[2]  = {0,0};
-      for( Int eP = 0; eP < 4; eP++ )
-      {
-        MbDataAccess* pcMbDataAccess     = NULL;
-        MbDataAccess* pcMbDataAccessBase = NULL;
-        Double        dCost = 0;
-        UInt          uiMbY, uiMbX;
-
-        const Bool    bField = (eP < 2);
-        const UInt    uiMbAddressMbAff = uiMbAddress+(eP%2);
-
-        rcSliceHeader.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddressMbAff );
-
-        //===== init macroblock =====
-        RNOK  ( pcMbDataCtrl            ->initMb( pcMbDataAccess,     uiMbY, uiMbX ) );
-
-        if  (eP < 2 && pcBaseLayerCtrlField)  // field case
-        {
-          RNOK( pcBaseLayerCtrlField         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
-        }
-        else if ( eP >= 2 && pcBaseLayerCtrl)  //frame case
-        {
-          RNOK( pcBaseLayerCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
-        }
-
-        if( 0 == eP)
-        {
-          abSkipModeAllowed[1] = pcMbDataAccess->getDefaultFieldFlag(); // do not move
-          abSkipModeAllowed[3] = ! abSkipModeAllowed[1];
-        }
-        else if( eP%2 == 1 )
-        {
-          const MbData&	rcTopMb = pcMbDataAccess->getMbDataComplementary();
-          if ( rcTopMb.getSkipFlag() && ( pcMbDataAccess->getDefaultFieldFlag() != rcTopMb.getFieldFlag() ) )
-            abSkipModeAllowed[eP] = false;
-        }
-
-        if( ! m_bLoadMotionInfo )
-        {
-          pcMbDataAccess->setFieldMode( eP < 2 );
-          //===== initialisation =====
-          RNOK( m_pcYuvFullPelBufferCtrl->initMb( uiMbY, uiMbX, true ) );
-          RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX, true ) );
-          RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
-
-          if( ! rcSliceHeader.getNoInterLayerPredFlag() )
-          {
-            Int iFieldMode = ( eP < 2 ? 1 : 0 );
-            m_pcSliceEncoder->m_pcMbEncoder->setBaseModeAllowedFlag( m_apabBaseModeFlagAllowedArrays[iFieldMode][uiMbAddressMbAff] );
-          }
-
-          //===== estimate prediction data =====
-          RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
-                                                  pcMbDataAccessBase,
-                                                  *apcRefFrameList0    [eP],
-                                                  *apcRefFrameList1    [eP],
-                                                  apcBaseLayerFrame   [eP],
-                                                  apcBaseLayerResidual[eP],
-                                                  *apcOrigFrame        [eP],
-                                                  *apcIntraRecFrame    [eP],
-                                                  uiMaxMvPerMb,
-                                                  m_bMCBlks8x8Disable,
-                                                  m_bBiPred8x8Disable,
-                                                  uiNumMaxIter,
-                                                  uiIterSearchRange,
-                                                  rcControlData.getLambda(),
-                                                  dCost,
-                                                  abSkipModeAllowed   [eP]) );
-
-// TMM_INTERLACE {
-          /*if( m_bSaveMotionInfo )
-          {
-            //===== save prediction data =====
-       // saveAll is displaced because the Mvs are Ok but the other data could be modified (mode,...).
-       // Do it after m_pcSliceEncoder->encodeHighPassPicture
-       //            RNOK( pcMbDataAccess->getMbData().saveAll( m_pMotionInfoFile ) );
-          }*/
-// TMM_INTERLACE }
-        }
-        else
-        {
-          //===== load prediction data =====
-          RNOK( pcMbDataAccess->getMbData().loadAll( m_pMotionInfoFile ) );
-        }
-
-        if( adCost[eP>>1] != DOUBLE_MAX )
-        {
-          adCost [eP>>1] += dCost;
-        }
-        if( bField )
-        {
-          acMbData[eP].copy( pcMbDataAccess->getMbData() );
-          //TMM_INTERLACE
-          (&acIntYuvMbBuffer[eP])->loadBuffer( apcIntraRecFrame[eP]->getFullPelYuvBuffer() );
-        }
-      }
-      Bool bFieldMode = adCost[0] < adCost[1];
-
-      if ( m_bLoadMotionInfo )
-      {
-        char ch;
-        ROF( 1 == fread( &ch, sizeof(char), 1, m_pMotionInfoFile ) );
-        bFieldMode = ( ch == 1 );
-      }
-      if ( m_bSaveMotionInfo )
-      {
-        char ch = ( bFieldMode == true );
-        ROF( 1 == fwrite( &ch, sizeof(char), 1, m_pMotionInfoFile ) );
-      }
-
-  #ifdef RANDOM_MBAFF
-      bFieldMode = gBoolRandom();
-  #endif
-
-      if( bFieldMode )
-      {
-        // copy field modes back
-        UInt          uiMbY, uiMbX;
-        MbDataAccess* pcMbDataAccess = NULL;
-        rcSliceHeader.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress          );
-        RNOK( pcMbDataCtrl      ->initMb      ( pcMbDataAccess,     uiMbY, uiMbX ) );
-        pcMbDataAccess->getMbData().copy( acMbData[0] );
-        apcIntraRecFrame[0]->getFullPelYuvBuffer()->loadBuffer( &acIntYuvMbBuffer[0] );
-
-        pcMbDataAccess = NULL;
-        rcSliceHeader.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress+1        );
-        RNOK( pcMbDataCtrl      ->initMb      ( pcMbDataAccess,     uiMbY, uiMbX ) );
-        pcMbDataAccess->getMbData().copy( acMbData[1] );
-        apcIntraRecFrame[1]->getFullPelYuvBuffer()->loadBuffer( &acIntYuvMbBuffer[1] );
-      }
-       //uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress);
-       uiNumMBInSlice++;
-    }
-  }
-  return Err::m_nOK;
-}
 
 // JVT-AD021 {
 Double LayerEncoder::xGetGamma( double dQpPredData , ControlData & rcControlData )                        
@@ -6408,8 +4589,8 @@ Double LayerEncoder::xGetGamma( double dQpPredData , ControlData & rcControlData
     Double dBaseQpPredData = 0;                                                                           
     Int iBasePOC = 0;                                                                                     
     UInt uiBaseFrameSizeInMB = 0;                                                                         
-    if( Err::m_nOK == m_pcH264AVCEncoder->getBaseLayerQpPredData( rcControlData.getBaseLayerIdMotion() ,  
-      dBaseQpPredData , iBasePOC , uiBaseFrameSizeInMB ) )                                                
+    if( Err::m_nOK == m_pcH264AVCEncoder->getBaseLayerQpPredData( rcControlData.getBaseLayerId(),  
+                                                                  dBaseQpPredData, iBasePOC, uiBaseFrameSizeInMB ) )                                                
     {                                                                                                     
       if( m_iCurPOC == iBasePOC )                                                                         
       {                                                                                                   

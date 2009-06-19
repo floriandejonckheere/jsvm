@@ -33,8 +33,6 @@ typedef struct
 
   double        dQpModeDecision;                  // needed for encode
   double        dBaseQpResidual;                  // needed for encode
-  unsigned int  uiMotionFileMode;                 // needed for encode
-  std::string   cMotionFile;                      // needed for encode
 	std::string   cOrgFile;                         // needed for encode
 	std::string   cRecFile;                         // needed for encode
 	unsigned int  uiEntropyCodingModFlag;           // needed for encode
@@ -61,7 +59,6 @@ typedef struct
 	std::string     cPSNRBinary;                    // needed for encode (never changed) - config file
   std::string     cParameterFile;                 // needed for encode (never changed) - config file
   std::string     cBitStreamFile;                 // needed for encode (never changed) - config file
-  std::string     cMotionFolder;                  // needed for encode (never changed) - config file
   unsigned int    uiNumberOfLayers;               // needed for encode                 - config file
 	unsigned int    uiNumberOfCodedLayers;          // needed for encode (never changed)
   unsigned int    uiNumberOfFrames;               //                   (never changed) - config file
@@ -172,14 +169,13 @@ void encode( EncoderParameters& rcEncoderParameters )
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
   {
     LayerParameters& rcLayer = rcEncoderParameters.acLayerParameters[uiLayer];
-    sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -ilpred %u %u -blid %u %d ",
+    sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ec %u %u -ilpred %u %u -blid %u %d ",
       uiLayer, rcLayer.cOrgFile.c_str(),
       uiLayer, rcLayer.cRecFile.c_str(),
       uiLayer, rcLayer.dQpModeDecision,
       uiLayer, rcLayer.dBaseQpResidual,
       uiLayer, rcLayer.dBaseQpResidual,
       uiLayer, rcLayer.uiEntropyCodingModFlag,
-      uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
       uiLayer, rcLayer.uiInterLayerPredictionMode,
       uiLayer, rcLayer.iBaseLayerId );
     cCommandLineString  += acTempString;
@@ -262,10 +258,6 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     printf( "\n### QpModeDecision = %lf ###", rcLayer.dQpModeDecision );
     printf( "\n##################################\n" );
 
-		sprintf( acTempString, "%s/%s_layer%d.mot", rcEncoderParameters.cMotionFolder.c_str(), rcEncoderParameters.cLabel.c_str(), uiLayer );
-    rcLayer.cMotionFile         = acTempString;
-    rcLayer.uiMotionFileMode = 2;
-
 		if( rcEncoderParameters.uiNumberOfIterations > 1 || uiLayer == rcEncoderParameters.uiNumberOfCodedLayers-1 )
 		{
     //--- run ---
@@ -301,7 +293,6 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     if( ( uiCurr == uiPrev ) ||
 			  ( ( uiCurr >= uiMinTarget && uiCurr <= uiMaxTarget ) || dCurrQP >= MAX_QP || dCurrQP <= MIN_QP || rcLayer.uiNumIter >= rcEncoderParameters.uiNumberOfIterations ) )
     {
-      rcLayer.uiMotionFileMode     = ( rcEncoderParameters.uiNumberOfIterations == 1 ) ? 2 : 1;
 			rcLayer.dStartBaseQpResidual = rcLayer.dBaseQpResidual;
 			rcLayer.dStartQpModeDecision = rcLayer.dQpModeDecision;
       return;
@@ -398,8 +389,6 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
   cEncoderParameters.cParameterFile = acTempString;
   ROT( read_line( pFile, "%s",  acTempString ) );
   cEncoderParameters.cBitStreamFile = acTempString;
-  ROT( read_line( pFile, "%s",  acTempString ) );
-  cEncoderParameters.cMotionFolder  = acTempString;
   ROT( read_line( pFile, "%d",  &cEncoderParameters.uiNumberOfFrames ) );
 	ROT( read_line( pFile, "%d",  &cEncoderParameters.uiGOPSize ) );
 	ROT( read_line( pFile, "%d",  &cEncoderParameters.uiIntraPeriod ) );

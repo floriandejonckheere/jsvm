@@ -66,7 +66,7 @@ public:
     virtual ~SEIMessage()                                                       {}
     MessageType     getMessageType()                                      const { return m_eMessageType; }
     virtual ErrVal  write         ( HeaderSymbolWriteIf* pcWriteIf ) = 0;
-    virtual ErrVal  read          ( HeaderSymbolReadIf*   pcReadIf ) = 0;
+    virtual ErrVal  read          ( HeaderSymbolReadIf*  pcReadIf, ParameterSetMng* pcParameterSetMng ) = 0;
 
   protected:
     SEIMessage( MessageType eMessageType) : m_eMessageType( eMessageType ) {}
@@ -94,7 +94,7 @@ public:
   public:
     static ErrVal create( SubSeqInfo*&          rpcSEIMessage );
     ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf, ParameterSetMng* pcParameterSetMng );
     ErrVal        init  ( UInt                  uiSubSeqLayerNum,
                           UInt                  uiSubSeqId,
                           Bool                  bFirstRefPicFlag,
@@ -128,7 +128,7 @@ public:
     ErrVal    destroy ();
 //TMM_FIX
     ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
-    ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
+    ErrVal read           ( HeaderSymbolReadIf    *pcReadIf, ParameterSetMng* pcParameterSetMng);
 
 		Void setTlevelNestingFlag( Bool bFlag )                                   { m_temporal_id_nesting_flag = bFlag;                         }//SEI changes update
 		Void setPriorityIdSettingFlag( Bool bFlag )                               { m_priority_id_setting_flag = bFlag;                         }//JVT-W053
@@ -159,7 +159,7 @@ public:
 		Void setLayerConversionFlag ( UInt uilayer, Bool bFlag )                        { m_layer_conversion_flag [uilayer]         = bFlag;     }
 		Void setRewritingInfoFlag ( UInt uilayer, UInt bType, Bool bFlag )              { m_rewriting_info_flag             [uilayer][bType]  = bFlag;     }
 		Void setConversionTypeIdc ( UInt uilayer, UInt uiIdc )                          { m_conversion_type_idc   [uilayer]                   = uiIdc;     }
-		Void setRewritingProfileLevelIdc ( UInt uilayer, UInt bType, Int32 uiIdc )      { m_rewriting_profile_level_idc     [uilayer][bType]  = uiIdc;     }
+		Void setRewritingProfileLevelIdc ( UInt uilayer, UInt bType, UInt uiIdc )      { m_rewriting_profile_level_idc     [uilayer][bType]  = uiIdc;     }
 		Void setRewritingAvgBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_avg_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
 		Void setRewritingMaxBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_max_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
 //JVT-W046 }
@@ -306,7 +306,7 @@ public:
 		Bool   getLayerConversionFlag ( UInt uilayer )                   const { return m_layer_conversion_flag          [uilayer];        }
 		Bool   getRewritingInfoFlag ( UInt uilayer, UInt bType )         const { return m_rewriting_info_flag            [uilayer][bType]; }
 		UInt   getConversionTypeIdc ( UInt uilayer )                     const { return m_conversion_type_idc            [uilayer];        }
-		Int32  getRewritingProfileLevelIdc ( UInt uilayer, UInt bType )  const { return m_rewriting_profile_level_idc    [uilayer][bType]; }
+		UInt   getRewritingProfileLevelIdc ( UInt uilayer, UInt bType )  const { return m_rewriting_profile_level_idc    [uilayer][bType]; }
 		UInt   getRewritingAvgBitrateBPS ( UInt uilayer, UInt bType )       const { return xConvertToBPS( m_rewriting_avg_bitrate[uilayer][bType] ); }
 		UInt   getRewritingMaxBitrateBPS ( UInt uilayer, UInt bType )       const { return xConvertToBPS( m_rewriting_max_bitrate[uilayer][bType] ); }
     UInt   getRewritingAvgBitrateCode( UInt uilayer, UInt bType )       const { return m_rewriting_avg_bitrate[uilayer][bType]; }
@@ -383,7 +383,7 @@ public:
 		UInt getPrNumMinus1 ( UInt uilayer ) const { return m_pr_num_minus1 [uilayer]; }
 		UInt getPrDependencyId ( UInt uilayer ) const { return m_pr_dependency_id [uilayer]; }
 		UInt getPrId ( UInt uilayer, UInt uiIndex ) const { return m_pr_id [uilayer][uiIndex]; }
-		Int32 getPrProfileLevelIdc ( UInt uilayer, UInt uiIndex ) const { return m_pr_profile_level_idc [uilayer][uiIndex]; }
+		UInt getPrProfileLevelIdc ( UInt uilayer, UInt uiIndex ) const { return m_pr_profile_level_idc [uilayer][uiIndex]; }
     UInt getPrAvgBitrateCode( UInt uilayer, UInt uiIndex ) const { return m_pr_avg_bitrate [uilayer][uiIndex]; }
     UInt getPrMaxBitrateCode( UInt uilayer, UInt uiIndex ) const { return m_pr_max_bitrate [uilayer][uiIndex]; }
 		UInt getPrAvgBitrateBPS ( UInt uilayer, UInt uiIndex ) const { return xConvertToBPS( m_pr_avg_bitrate [uilayer][uiIndex] ); }
@@ -403,7 +403,7 @@ public:
 		void setPrNumMinus1 ( UInt uilayer, UInt uiPrNumMinus1 ) { m_pr_num_minus1 [uilayer] = uiPrNumMinus1; }
 		void setPrDependencyId ( UInt uilayer, UInt uiPrDependencyId ) { m_pr_dependency_id [uilayer] = uiPrDependencyId; }
 		void setPrId ( UInt uilayer, UInt uiIndex, UInt uiPrId ) { m_pr_id [uilayer][uiIndex] = uiPrId; }
-		void setPrProfileLevelIdx ( UInt uilayer, UInt uiIndex, Int32 uiPrProfileLevelIdc ) { m_pr_profile_level_idc [uilayer][uiIndex] = uiPrProfileLevelIdc; }
+		void setPrProfileLevelIdx ( UInt uilayer, UInt uiIndex, UInt uiPrProfileLevelIdc ) { m_pr_profile_level_idc [uilayer][uiIndex] = uiPrProfileLevelIdc; }
 		void setPrAvgBitrateBPS ( UInt uilayer, UInt uiIndex, Double dPrAvgBitrate ) { m_pr_avg_bitrate [uilayer][uiIndex] = xConvertFromBPS(dPrAvgBitrate); }
 		void setPrMaxBitrateBPS ( UInt uilayer, UInt uiIndex, Double dPrMaxBitrate ) { m_pr_max_bitrate [uilayer][uiIndex] = xConvertFromBPS(dPrMaxBitrate); }
     //JVT-W051 }
@@ -469,13 +469,13 @@ private:
 		Bool    m_layer_conversion_flag[MAX_SCALABLE_LAYERS];
 		Bool    m_rewriting_info_flag[MAX_SCALABLE_LAYERS][2];
 		UInt    m_conversion_type_idc[MAX_SCALABLE_LAYERS];
-		Int32   m_rewriting_profile_level_idc[MAX_SCALABLE_LAYERS][2];
+		UInt   m_rewriting_profile_level_idc[MAX_SCALABLE_LAYERS][2];
 		UInt    m_rewriting_avg_bitrate[MAX_SCALABLE_LAYERS][2];
 		UInt    m_rewriting_max_bitrate[MAX_SCALABLE_LAYERS][2];
  //JVT-W046 }
 	//SEI changes update }
 		//JVT-W051 {
-		Int32 m_layer_profile_level_idc[MAX_SCALABLE_LAYERS];
+		UInt m_layer_profile_level_idc[MAX_SCALABLE_LAYERS];
 		//JVT-W051 }
   //JVT-S036 lsj start
 
@@ -551,7 +551,7 @@ private:
 		UInt m_pr_dependency_id[MAX_LAYERS];
 		UInt m_pr_num_minus1[MAX_LAYERS];
     UInt m_pr_id[MAX_LAYERS][MAX_SIZE_PID];
-		Int32 m_pr_profile_level_idc[MAX_LAYERS][MAX_SIZE_PID];
+		UInt m_pr_profile_level_idc[MAX_LAYERS][MAX_SIZE_PID];
 		UInt m_pr_avg_bitrate[MAX_LAYERS][MAX_SIZE_PID];
 		UInt m_pr_max_bitrate[MAX_LAYERS][MAX_SIZE_PID];
 		//JVT-W051 & JVT064 }
@@ -567,7 +567,7 @@ private:
   public:
     static ErrVal create  ( SubPicSei*&        rpcSeiMessage );
     ErrVal        write    ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf  );
+    ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf, ParameterSetMng* pcParameterSetMng  );
 
     UInt getDependencyId  ()          const  { return m_uiDependencyId;        }
     Void setDependencyId ( UInt uiLayerId) { m_uiDependencyId = uiLayerId;  }
@@ -592,7 +592,7 @@ private:
 
     static ErrVal create  ( MotionSEI*&         rpcSeiMessage );
     ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf, ParameterSetMng* pcParameterSetMng );
     ErrVal        setSliceGroupId(UInt id);
   UInt          getSliceGroupId(){return m_slice_group_id[0];}
   };
@@ -607,7 +607,7 @@ private:
   public:
     static ErrVal create  ( PriorityLevelSEI*&         rpcSeiMessage );
     ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf, ParameterSetMng* pcParameterSetMng );
 
   UInt     getNumPriorityIds() { return m_uiNumPriorityIds;}
   Void     setNumPriorityIds(UInt ui) { m_uiNumPriorityIds = ui;}
@@ -633,7 +633,7 @@ private:
     static ErrVal create  (NonRequiredSei*&      rpcSeiMessage);
     ErrVal    destroy ();
     ErrVal    write  (HeaderSymbolWriteIf*    pcWriteIf);
-    ErrVal    read  (HeaderSymbolReadIf*    pcReadIf);
+    ErrVal    read  (HeaderSymbolReadIf*    pcReadIf, ParameterSetMng* pcParameterSetMng);
 
     UInt      getNumInfoEntriesMinus1()          const{ return m_uiNumInfoEntriesMinus1;}
     UInt      getEntryDependencyId(UInt uiLayer)      const{ return m_uiEntryDependencyId[uiLayer];}
@@ -673,7 +673,7 @@ private:
       ErrVal destroy ();
    //TMM_FIX
       ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
-      ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
+      ErrVal read           ( HeaderSymbolReadIf    *pcReadIf, ParameterSetMng* pcParameterSetMng);
       Void setNumLayers( UInt ui )                                        { m_uiNumLayers = ui;  }
       Void setLayerId ( UInt uiLayer, UInt uiId )                                { m_auiLayerId                              [uiLayer] = uiId; }
     Void setOutputFlag ( Bool bFlag )  { m_bOutputFlag = bFlag; }
@@ -700,7 +700,7 @@ private:
   public:
       static ErrVal create ( ScalableSeiDependencyChange*&      rpcSeiMessage);
       ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
-      ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
+      ErrVal read           ( HeaderSymbolReadIf    *pcReadIf, ParameterSetMng* pcParameterSetMng);
       Void setNumLayersMinus1( UInt ui )                                        { m_uiNumLayersMinus1 = ui;  }
       Void setDependencyId ( UInt uiLayer, UInt uiId )                                { m_auiLayerId                              [uiLayer] = uiId; }
     Void setLayerDependencyInfoPresentFlag ( UInt uiLayer, Bool bFlag ) { m_abLayerDependencyInfoPresentFlag[uiLayer] = bFlag; }
@@ -737,6 +737,7 @@ private:
       : SEIMessage(SCALABLE_NESTING_SEI)
       , m_bAllPicturesInAuFlag  (0)
     , m_uiNumPictures         (0)
+    , m_bHasBufferingPeriod( false )
     //, m_pcSEIMessage          (NULL)
     {}
 
@@ -744,12 +745,13 @@ private:
     static ErrVal create( ScalableNestingSei*&  rpcSEIMessage );
   ErrVal      destroy();
     ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf, ParameterSetMng* pcParameterSetMng );
     ErrVal        init  ( Bool                  m_bAllPicturesInAuFlag,
                         UInt                  m_uiNumPictures,
                         UInt*                 m_auiDependencyId,
                         UInt*                 m_auiQualityLevel
             );
+    Bool  bHasBufferingPeriod() const { return m_bHasBufferingPeriod; }
 
     Bool getAllPicturesInAuFlag()  const { return m_bAllPicturesInAuFlag; }
     UInt getNumPictures()          const { return m_uiNumPictures; }
@@ -773,6 +775,7 @@ private:
     UInt  m_uiNumPictures;
     UInt  m_auiDependencyId[MAX_LREP_IN_ACCESS_UNIT];
     UInt  m_auiQualityLevel[MAX_LREP_IN_ACCESS_UNIT];
+    Bool  m_bHasBufferingPeriod;
   };
 
 
@@ -786,7 +789,7 @@ private:
     static ErrVal create( SceneInfoSei*& rpcSceneInfoSei );
     ErrVal    destroy ();
     ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf);
-      ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+      ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf , ParameterSetMng* pcParameterSetMng);
 
     Bool getSceneInfoPresentFlag() const { return m_bSceneInfoPresentFlag; }
     UInt getSceneId()              const { return m_uiSceneId; }
@@ -842,16 +845,26 @@ private:
     };
 
   protected:
-    BufferingPeriod( ParameterSetMng*& rpcParameterSetMng ): SEIMessage( BUFFERING_PERIOD ), m_pcParameterSetMng( rpcParameterSetMng), m_uiSeqParameterSetId( 0 ) {}
+    BufferingPeriod( ParameterSetMng*& rpcParameterSetMng, Bool bSubsetSPS )
+      : SEIMessage( BUFFERING_PERIOD )
+      , m_pcParameterSetMng( rpcParameterSetMng)
+      , m_bSubsetSPS( bSubsetSPS )
+      , m_uiSeqParameterSetId( 0 ) 
+    {
+      m_apcHrd[0] = 0;
+      m_apcHrd[1] = 0;
+      m_abHrdParametersPresentFlag[0] = 0;
+      m_abHrdParametersPresentFlag[1] = 0;
+    }
 
   public:
-    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng );
+    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng, Bool bSubsetSPS );
     static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, BufferingPeriod * pcBufferingPeriod );
 
     virtual ~BufferingPeriod();
     SchedSel& getSchedSel( HRD::HrdParamType eHrdParamType, UInt uiNum ) { return m_aacSchedSel[eHrdParamType].get( uiNum ); }
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
-    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcParameterSetMng );
 
     ErrVal setHRD( UInt uiSPSId, Bool bSubSetSPS, const HRD* apcHrd[] );
 
@@ -859,8 +872,9 @@ private:
     const HRD* m_apcHrd[2];
     ParameterSetMng* m_pcParameterSetMng;
 
+    Bool m_bSubsetSPS;
     UInt m_uiSeqParameterSetId;
-    Bool m_bHrdParametersPresentFlag[2];
+    Bool m_abHrdParametersPresentFlag[2];
     StatBuf <DynBuf< SchedSel >, 2>  m_aacSchedSel;
   };
 
@@ -933,7 +947,7 @@ private:
 
     UInt getNumClockTs();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
-    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcParameterSetMng );
     PicStruct getPicStruct() const               { return m_ePicStruct; }
     Void      setPicStruct(PicStruct ePicStruct) { m_ePicStruct = ePicStruct; }
 
@@ -962,7 +976,7 @@ private:
     static ErrVal create( AVCCompatibleHRD*& rpcAVCCompatibleHRD, VUI* pcVUI );
 
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
-    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcParameterSetMng );
 
   private:
     VUI* m_pcVUI;
@@ -979,7 +993,7 @@ protected:
 public:
     static ErrVal create  ( RedundantPicSei*&      rpcSeiMessage );
     ErrVal        write   ( HeaderSymbolWriteIf*   pcWriteIf     );
-    ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf      );
+    ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf , ParameterSetMng* pcParameterSetMng     );
 
   Void setNumDIdMinus1( UInt ui )                                                                       { m_num_dId_minus1 = ui;                                                    }
 	Void setDependencyId ( UInt uidId, UInt uiId )                                                        { m_dependency_id[uidId] = uiId;                                            }
@@ -1024,13 +1038,13 @@ private:
 	class H264AVCCOMMONLIB_API IntegrityCheckSEI : public SEIMessage
 	{
 	protected:
-		IntegrityCheckSEI() : SEIMessage(INTEGRITY_CHECK_SEI)
+		IntegrityCheckSEI() : SEIMessage(INTEGRITY_CHECK_SEI), m_uinuminfoentriesminus1( MSYS_UINT_MAX )
 		{}
 	public:
 		static ErrVal create( IntegrityCheckSEI*& rpcIntegrityCheckSEI );
 		ErrVal    destroy ();
 		ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf);
-		ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+		ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf, ParameterSetMng* pcParameterSetMng );
 		UInt					getNumInfoEntriesMinus1()							{ return m_uinuminfoentriesminus1; }
 		UInt          getEntryDependencyId(UInt uilayer)		{ return m_uientrydependency_id[uilayer]; }
 		UInt          getQualityLayerCRC  (UInt uilayer)		{ return m_uiquality_layer_crc [uilayer]; }
@@ -1053,7 +1067,7 @@ protected:
 public:
   static ErrVal create  ( TLSwitchingPointSei*&      rpcSeiMessage );
   ErrVal        write   ( HeaderSymbolWriteIf*   pcWriteIf     );
-  ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf      );
+  ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf, ParameterSetMng* pcParameterSetMng      );
 
   Void setDeltaFrameNum( UInt ui )                                                                       { m_delta_frame_num = ui;                                                    }
 
@@ -1074,7 +1088,7 @@ private:
     static ErrVal create ( Tl0DepRepIdxSei*& rpcSeiMessage);
     ErrVal destroy       ();
     ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
-    ErrVal read          ( HeaderSymbolReadIf   *pcReadIf);
+    ErrVal read          ( HeaderSymbolReadIf   *pcReadIf, ParameterSetMng* pcParameterSetMng);
     UInt getTl0DepRepIdx()         const { return m_uiTl0DepRepIdx; }
     Void setTl0DepRepIdx           (UInt uiIdx) {m_uiTl0DepRepIdx = uiIdx;}
     UInt getEfIdrPicId()         const { return m_uiEfIdrPicId; }
@@ -1096,15 +1110,6 @@ private:
   static ErrVal write ( HeaderSymbolWriteIf*  pcWriteIf,
                         HeaderSymbolWriteIf*  pcWriteTestIf,
                         MessageList*          rpcSEIMessageList );
-  //JVT-T073 {
-  static ErrVal writeNesting        ( HeaderSymbolWriteIf*  pcWriteIf,
-                                      HeaderSymbolWriteIf*  pcWriteTestIf,
-                                      MessageList*          rpcSEIMessageList );
-  static ErrVal xWriteNesting       ( HeaderSymbolWriteIf*  pcWriteIf,
-                                      HeaderSymbolWriteIf*  pcWriteTestIf,
-                                      SEIMessage*           pcSEIMessage,
-                    UInt&                 uiBits );
- //JVT-T073 }
 
   // JVT-V068 {
   static ErrVal writeScalableNestingSei( HeaderSymbolWriteIf*  pcWriteIf,
@@ -1133,7 +1138,8 @@ protected:
                                       // JVT-V068 {
                                       ParameterSetMng*& rpcParameterSetMng,
                                       // JVT-V068 }
-                                      UInt                  uiSize );
+                                      UInt                  uiSize,
+                                      Bool                  bDQIdGt0 );
 public:
 
 

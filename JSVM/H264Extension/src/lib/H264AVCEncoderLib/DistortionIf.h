@@ -43,7 +43,7 @@ protected:
   virtual ~XDistortionIf() {}
 
 public:
-  virtual Void    loadOrgMbPelData( YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer ) = 0;
+  virtual Void    loadOrgMbPelData( const YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer ) = 0;
 
   virtual UInt    get8x8Cb        ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
   virtual UInt    get8x8Cr        ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;

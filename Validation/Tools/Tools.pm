@@ -158,8 +158,6 @@ sub InitSimu($;$)
     #or ($layer->{cropfilename}=$simu->{cropfilename});
     (defined $layer->{bitrate}) or $layer->{bitrate}=0;
     (defined $layer->{bitrateDS}) or $layer->{bitrateDS}=0;
-    $layer->{motionname}   = $param->{path_mot}.$simu->{name}."_L$l.mot" ;
-    $layer->{fgsname}      = $param->{path_fgs}.$simu->{name}."_L$l.dat";
     $layer->{reconname}    = $param->{path_tmp}.$simu->{name}."_rec_L$l.yuv";
     $layer->{basestream}   = $simu->{name}."_".$layer->{width}."x".$layer->{height}."_".$layer->{framerate};
     $layer->{origname}     = $param->{path_orig}.$layer->{basestream}.".yuv";

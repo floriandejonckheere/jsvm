@@ -198,20 +198,24 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
               uicrcVal = (((uicrcVal<<1) + BitVal ) & 0xffff)^(uicrcMsb*0x1021);
             }
             pcH264AVCEncoder->m_uicrcVal[uiLayerCGSSNR] = uicrcVal;
-            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setNumInfoEntriesMinus1(uiLayerCGSSNR);
-            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setEntryDependencyId(uiLayerCGSSNR,uiLayerCGSSNR);
-            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setQualityLayerCRC(uiLayerCGSSNR,uicrcVal);
+            UInt uiInfoEntry = pcH264AVCEncoder->m_pcIntegrityCheckSEI->getNumInfoEntriesMinus1();
+            if( uiInfoEntry == MSYS_UINT_MAX )
+            {
+              uiInfoEntry = 0;
+            }
+            else
+            {
+              UInt uiLastLayer = pcH264AVCEncoder->m_pcIntegrityCheckSEI->getEntryDependencyId(uiInfoEntry);
+              if( uiLastLayer < uiLayerCGSSNR )
+              {
+                uiInfoEntry++;
+              }
+            }
+            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setNumInfoEntriesMinus1(uiInfoEntry);
+            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setEntryDependencyId(uiInfoEntry,uiLayerCGSSNR);
+            pcH264AVCEncoder->m_pcIntegrityCheckSEI->setQualityLayerCRC(uiInfoEntry,uicrcVal);
           }
         }
-
-        //JVT-W052 bug_fixed
-        if(pcH264AVCEncoder->getCodingParameter()->getNumberOfLayers() == 1)
-        {
-          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setNumInfoEntriesMinus1(0);
-          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setEntryDependencyId(0,0);
-          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setQualityLayerCRC(0,0);
-        }
-        //JVT-W052 bug_fixed
       }
       //JVT-W052
     }
@@ -386,12 +390,9 @@ NalUnitEncoder::write( const SliceHeader& rcSH )
 {
   SliceHeader           cSH           = rcSH;
   HeaderSymbolWriteIf*  pcCurrWriteIf = m_pcHeaderSymbolWriteIf;
-  UInt                  uiSourceLayer = g_nLayer;
 
   for( UInt uiMGSFragment = 0; true; uiMGSFragment++ )
   {
-    ETRACE_DECLARE( Bool m_bTraceEnable = true );
-
     //----- modify copy of slice header -----
     cSH.setDependencyId                   ( rcSH.getLayerCGSSNR         () );
     cSH.setQualityId                      ( rcSH.getQualityLevelCGSSNR  () + uiMGSFragment );
@@ -415,14 +416,8 @@ NalUnitEncoder::write( const SliceHeader& rcSH )
     }
 
     //----- update -----
-    g_nLayer++;
-    ETRACE_LAYER( g_nLayer );
     pcCurrWriteIf = pcCurrWriteIf->getHeaderSymbolWriteIfNextSlice( true );
   }
-
-  ETRACE_DECLARE( Bool m_bTraceEnable = true );
-  g_nLayer = uiSourceLayer;
-  ETRACE_LAYER( g_nLayer );
 
   m_eNalUnitType  = rcSH.getNalUnitType ();
   m_eNalRefIdc    = rcSH.getNalRefIdc   ();
@@ -440,16 +435,6 @@ NalUnitEncoder::write( SEI::MessageList& rcSEIMessageList )
   return Err::m_nOK;
 }
 
-// JVT-T073 {
-ErrVal
-NalUnitEncoder::writeNesting( SEI::MessageList& rcSEIMessageList )
-{
-  RNOK( SEI::writeNesting( m_pcHeaderSymbolWriteIf, m_pcHeaderSymbolTestIf, &rcSEIMessageList ) );
-  m_eNalUnitType  = NAL_UNIT_SEI;
-  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_LOWEST;
-  return Err::m_nOK;
-}
-// JVT-T073 }
 
 // JVT-V068 {
 ErrVal

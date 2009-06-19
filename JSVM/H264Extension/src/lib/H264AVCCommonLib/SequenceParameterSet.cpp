@@ -193,7 +193,7 @@ SequenceParameterSet::getMaxDPBSize() const
   UInt              uiFrameSize = 384*getMbInFrame();
   ANOK( xGetLevelLimit( pcLevelLimit, getConvertedLevelIdc() ) );
   UInt uiNumDPBEntries  = pcLevelLimit->uiMaxDPBSizeX2 / ( 2*uiFrameSize );
-  uiNumDPBEntries       = min( uiNumDPBEntries, 16 );
+  uiNumDPBEntries       = gMin( uiNumDPBEntries, 16 );
   return uiNumDPBEntries;
 }
 
@@ -267,15 +267,18 @@ SequenceParameterSet::xGetLevelLimit( const LevelLimit*& rpcLevelLimit, Int iLev
 UInt
 SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbs )
 {
-  UInt uiFrameSize = uiMbY * uiMbX;
-  UInt uiMbPerSec  = ( uiFrameSize + ( ( uiRefLayerMbs + 1 ) >> 1 ) ) * uiOutFreq;
-  UInt uiDPBSizeX2 = (uiFrameSize*16*16*3/2) * uiNumRefPic * 2;
+  const UInt  uiLevelOrder[16] = { 10,9,11,12,13,  20,21,22,  30,31,32,  40,41,42,  50,51 };
 
-  for( Int n = 0; n < 52; n++ )
+  UInt        uiFrameSize      = uiMbY * uiMbX;
+  UInt        uiMbPerSec       = ( uiFrameSize + ( ( uiRefLayerMbs + 1 ) >> 1 ) ) * uiOutFreq;
+  UInt        uiDPBSizeX2      = (uiFrameSize*16*16*3/2) * uiNumRefPic * 2;
+
+  for( Int n = 0; n < 16; n++ )
   {
+    UInt              uiLevel = uiLevelOrder[n];
     const LevelLimit* pcLevelLimit;
 
-    if( Err::m_nOK == xGetLevelLimit( pcLevelLimit, n ) )
+    if( Err::m_nOK == xGetLevelLimit( pcLevelLimit, uiLevel ) )
     {
       UInt  uiMbPerLine  = (UInt)sqrt( (Double) pcLevelLimit->uiMaxFrameSize * 8 );
       if( ( uiMbPerLine                   >= uiMbX        ) &&
@@ -285,7 +288,7 @@ SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt 
           ( pcLevelLimit->uiMaxDPBSizeX2  >= uiDPBSizeX2  ) &&
           ( pcLevelLimit->uiMaxVMvRange   >= uiMvRange    )    )
       {
-        return n;
+        return uiLevel;
       }
     }
   }
@@ -298,8 +301,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
-  g_nLayer = 0;
-  ETRACE_LAYER(0);
+  ETRACE_LAYER  ( 0 );
   if( m_eNalUnitType == NAL_UNIT_SUBSET_SPS )
   {
     ETRACE_HEADER( "SUBSET SEQUENCE PARAMETER SET" );

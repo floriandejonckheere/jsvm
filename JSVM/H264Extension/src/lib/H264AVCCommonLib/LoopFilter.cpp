@@ -189,8 +189,7 @@ LoopFilter::process( SliceHeader&             rcSH,
       YuvPicBuffer* pcResidualBuffer  = ( pcResidual ? apcResidual[ eMbPicType ]->getFullPelYuvBuffer() : 0 );
 
       RNOK( xFilterMb( *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, pcInterLayerDBParameter, bSpatialScalabilityFlag, eLFPass ) ); //VB-JV 04/08
-
-	}
+	  }
   }
 
   return Err::m_nOK;

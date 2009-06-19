@@ -79,28 +79,29 @@ public:
   UInt    getMaxSliceSize     ( UInt          uiLayerId,
                                 UInt          uiAUIndex );
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
-																UInt&         ruiBaseLayerIdMotionOnly,
 																UInt          uiLayerId,
 																PicType       ePicType,
 																UInt					uiTemporalId );
 
-	ErrVal  getBaseLayerDataAvailability  ( Frame*&       pcFrame,
-																					Frame*&       pcResidual,
-																					MbDataCtrl*&  pcMbDataCtrl,
-																					UInt          uiBaseLayerId,
-																					Bool          bMotion,
-																					Bool&         bBaseDataAvailable,
-																					PicType       ePicType,
-																					UInt					uiTemporalId );
+  ErrVal getBaseLayerLevelIdc ( UInt          uiBaseLayerId,
+                                UInt&         uiLevelIdc,
+                                Bool&         bBiPred8x8Disable,
+                                Bool&         bMCBlks8x8Disable );
+
+  ErrVal  getBaseLayerDataAvlb( Frame*&       pcFrame,
+																Frame*&       pcResidual,
+																MbDataCtrl*&  pcMbDataCtrl,
+																UInt          uiBaseLayerId,
+																Bool&         bBaseDataAvailable,
+																PicType       ePicType,
+																UInt					uiTemporalId );
 
 	ErrVal  getBaseLayerData    ( SliceHeader&  rcELSH,
                                 Frame*&       pcFrame,
 																Frame*&       pcResidual,
 																MbDataCtrl*&  pcMbDataCtrl,
-																MbDataCtrl*&  pcMbDataCtrlEL,
 																Bool          bSpatialScalability,
 																UInt          uiBaseLayerId,
-																Bool					bMotion,
 																PicType       ePicType,
 																UInt					uiTemporalId );
 
@@ -110,10 +111,6 @@ public:
 
   Frame* getLowPassRec     ( UInt uiLayerId, UInt uiLowPassIndex );
   Frame* getELRefPic       ( UInt uiLayerId, UInt uiTemporalId, UInt uiFrameIdInTId );
-
-  // JVT-T073 {
-  ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
-// JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
 // JVT-V068 HRD {
@@ -137,10 +134,6 @@ public:
   ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag,
 												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
 // JVT-S080 LMI }
-// JVT-W062 {
-  ErrVal writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
-  ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
-// JVT-W062 }
 
   // JVT-AD021 {
   ErrVal getBaseLayerQpPredData ( UInt uiBaseLayerId , Double & dQpPredData , Int & uiPOC , UInt & uiFrameSizeInMB );
@@ -230,7 +223,8 @@ public:
 
   ErrVal          startPicture      ( const SequenceParameterSet& rcSPS );
   ErrVal          finishPicture     ( BinDataList&                rcBinDataList );
-  ErrVal          rewriteMb         ( MbDataAccess&               rcMbDataAccessSource );
+  ErrVal          rewriteMb         ( MbDataAccess&               rcMbDataAccessSource,
+                                      Bool                        bSendEOS );
 
 private:
   ErrVal          xCreate           ();
@@ -248,7 +242,8 @@ private:
   ErrVal          xAdjustMb         ( MbDataAccess&               rcMbDataAccessRewrite,
                                       Bool                        bBaseLayer );
   ErrVal          xEncodeMb         ( MbDataAccess&               rcMbDataAccessRewrite,
-                                      Bool                        bLastMbInSlice );
+                                      Bool                        bLastMbInSlice,
+                                      Bool                        bSendEOS );
 
 private:
   Bool                      m_bInitialized;

@@ -142,6 +142,7 @@ public:
     }
     Bool  getRestrictedSpatialResolutionChangeFlag() const
     {
+      ROFRS( getSpatialResolutionChangeFlag(),                                                                    true  );
       ROFRS( m_bFieldPicFlag          == m_bRefLayerFieldPicFlag,                                                 false );
       ROFRS( m_bIsMbAffFrame          == false,                                                                   false );
       ROFRS( m_bRefLayerIsMbAffFrame  == false,                                                                   false );

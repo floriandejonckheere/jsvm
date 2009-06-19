@@ -40,7 +40,7 @@ public:
   Bool    moreRBSPData      ();
 
 
-  Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess );
+  Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess, UInt& uiNextSkippedVLC );
   Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice();
   ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess );
@@ -90,11 +90,11 @@ private:
   ErrVal xGetRefFrame         ( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstIdx );
   ErrVal xGetMotionPredFlag   ( Bool& rbFlag );
   ErrVal xGetMvd              ( Mv& cMv );
-  ErrVal xPredictNonZeroCnt   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
+  ErrVal xPredictNonZeroCnt   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop, Bool bDC );
   ErrVal xPredictNonZeroCnt   ( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
   ErrVal xGetTrailingOnes16   ( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xCodeFromBitstream2D ( const UChar* aucCode, const UChar* aucLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
-  ErrVal xGetRunLevel         ( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess );
+  ErrVal xGetRunLevel         ( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess, Bool bDC );
   ErrVal xGetLevelVLC0        ( Int& iLevel );
   ErrVal xGetLevelVLCN        ( Int& iLevel, UInt uiVlcLength );
   ErrVal xGetRun              ( UInt uiVlcPos, UInt& uiRun  );

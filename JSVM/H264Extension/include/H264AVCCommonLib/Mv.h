@@ -106,8 +106,8 @@ public:
 
   Void limitComponents( const Mv& rcMvMin, const Mv& rcMvMax )
   {
-    m_sHor = min( rcMvMax.m_sHor, max( rcMvMin.m_sHor, m_sHor ) );
-    m_sVer = min( rcMvMax.m_sVer, max( rcMvMin.m_sVer, m_sVer ) );
+    m_sHor = gMin( rcMvMax.m_sHor, gMax( rcMvMin.m_sHor, m_sHor ) );
+    m_sVer = gMin( rcMvMax.m_sVer, gMax( rcMvMin.m_sVer, m_sVer ) );
   }
 
   static const Mv& ZeroMv() { return m_cMvZero; }

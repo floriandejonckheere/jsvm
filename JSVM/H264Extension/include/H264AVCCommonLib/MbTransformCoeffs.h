@@ -62,6 +62,10 @@ public:
   Void switchLevelCoeffData        ();
   Void add                         ( MbTransformCoeffs* pcCoeffs, Bool bLuma = true, Bool bChroma = true );
 
+  Bool  allCoeffsZero               ()  const;
+  Bool  allLevelsZero               ()  const;
+  Bool  allLevelsAndPredictionsZero ()  const;
+
 protected:
   TCoeff m_aaiLevel[24][16];
   UChar  m_aaucCoeffCount[24];

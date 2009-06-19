@@ -71,15 +71,19 @@ SliceReader::read( SliceHeader& rcSH,
   ROF( m_bInitDone );
 
 	//====== initialization ======
-  UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
-  Bool  bEndOfSlice   = false;
+  UInt  uiMbAddress       = rcSH.getFirstMbInSlice();
+  Bool  bEndOfSlice       = false;
+  UInt  uiNextSkippedVLC  = 0;
 
   RNOK( pcMbDataCtrl->initSlice( rcSH, PARSE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
   for( ruiMbRead = 0; !bEndOfSlice; ruiMbRead++ ) //--ICU/ETRI FMO Implementation
   {
-    DTRACE_NEWMB( uiMbAddress );
+    if( !uiNextSkippedVLC )
+    {
+      DTRACE_NEWMB( uiMbAddress );
+    }
 
     MbDataAccess* pcMbDataAccess      = 0;
     UInt          uiMbY, uiMbX;
@@ -95,7 +99,7 @@ SliceReader::read( SliceHeader& rcSH,
       pcMbDataAccess->setFieldMode( pcMbDataAccess->getDefaultFieldFlag() );
     }
 
-    RNOK( m_pcMbParser->read( *pcMbDataAccess, ruiMbRead, bEndOfSlice  ) );
+    RNOK( m_pcMbParser->read( *pcMbDataAccess, ruiMbRead, bEndOfSlice, uiNextSkippedVLC ) );
     UInt      uiMbIndex   = rcSH.getMbIndexFromAddress( uiMbAddress );
     MbStatus& rcMbStatus  = pacMbStatus[ uiMbIndex ];
     RNOK( rcMbStatus.update( &pcMbDataAccess->getSH() ) );
