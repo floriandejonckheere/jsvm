@@ -78,7 +78,7 @@ MbParser::read( MbDataAccess&  rcMbDataAccess,
     rcMbDataAccess.getMbData().clearIntraPredictionModes( true );
     RNOK( xSkipMb( rcMbDataAccess ) );
     rcMbDataAccess.getMbData().setBLSkipFlag( false );
-    rcMbDataAccess.getMbData().setResidualPredFlag( rcMbDataAccess.getSH().getDefaultResidualPredictionFlag() );
+    rcMbDataAccess.getMbData().setResidualPredFlag( rcMbDataAccess.getMbData().getInCropWindowFlag() ? rcMbDataAccess.getSH().getDefaultResidualPredictionFlag() : false );
     if( rcMbDataAccess.getSH().isBSlice() )
     {
       rcMbDataAccess.getMbData().setFwdBwd( 0x3333 );

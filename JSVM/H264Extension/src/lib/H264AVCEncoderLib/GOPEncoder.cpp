@@ -1673,7 +1673,7 @@ LayerEncoder::xSetSliceHeaderBase( SliceHeader& rcSliceHeader, UInt uiFrameIdInG
   rcSliceHeader.setQualityLevelCGSSNR             ( m_uiQualityLevelCGSSNR );
   rcSliceHeader.setBaseLayerCGSSNR                ( m_uiBaseLayerCGSSNR );
   rcSliceHeader.setBaseQualityLevelCGSSNR         ( m_uiBaseQualityLevelCGSSNR );
-  rcSliceHeader.setNoOutputOfPriorPicsFlag        ( uiFrameIdInGOP == 0 );
+  rcSliceHeader.setNoOutputOfPriorPicsFlag        ( false );
   rcSliceHeader.setLongTermReferenceFlag          ( m_bUseLongTermPics && bIdrFlag );
   rcSliceHeader.setLongTermFrameIdx               ( iLongTermIdx );
   return Err::m_nOK;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="H264AVCCommonLibStatic"
 	ProjectGUID="{5C23B105-7DEC-40A8-86B8-612F117880E9}"
 	TargetFrameworkVersion="131072"
@@ -48,7 +48,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				FloatingPointModel="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCCommonLib.h"
@@ -202,7 +202,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				FloatingPointModel="1"
 				UsePrecompiledHeader="0"

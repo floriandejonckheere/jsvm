@@ -1,6 +1,35 @@
 ﻿[Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_18 -> JSVM_9_18_1
+========================
+changes:
+- remove compiler errors for gcc 4.4.0 (provided by Marc-Antoine Arnaud)
+- bug fix: prevent decoder crash for IDR pictures with no_output_of_prior_pics_flag = 1 in middle of a stream
+- bug fix: prevent segmentation fault when accessing layer information in xChangeScalableSEIMesssage()
+- bug fix: use correct resampling parameters in motion resampling when a layer 
+           with ESS=2 and MGS refinement is present (provided by Haixia Shi)
+- bug fix: correct inference of residual_prediction_flag for SKIP macroblocks outside cropping window
+
+added validation scripts:
+- ESS2PlusMGS
+
+known bugs:
+- The reference layer chroma QPs for AVC rewriting are not correctly set when the reference and the current layer have different values of chroma_qp_index_offset.
+- The bit rate that is printed out during the encoder run is not correct when PAFF is selected.
+- The JSVM software doesn't correctly support the syntax element second_chroma_qp_index_offset.
+- The JSVM encoder accepts configurations in which different slices types are selected for MGS layers of the same dependency layer. This is not supported by the standard and results in incorrect bitstreams. It is suggested to add a check to the encoder.
+- The condition on the residual prediction signal in the deblocking filter is not correctly implemented.
+- The ESS parameters are not correctly set for MGS layers that are on top of spatial enhancement layers.
+- The Poc mode 2 is not correctly implemented at the decoder side.
+- The JSVM software does not implement the condition "ref_layer_dq_id greater than or equal to 0" specified in subclause G.9.1.
+- The JSVM software does set correctly the syntax element layer_profile_level_idc in SEI messages.
+- software manual should be updated/corrected regarding some points.
+- It was reported that the following AVC conformance streams cannot be correctly decoded with the JSVM decoder: FRExt2_Panasonic.avc, HPCAQ2LQ_BRCM_B, FREXT_MMCO4_SONY_B, FREXT1_PANASONIC_C, FREXT3_PANASONIC_D
+- Some of the errata issues reported in JVT-AF011 might also require a correction of the JSVM software.
+
+
+
 JSVM_9_17 -> JSVM_9_18
 ======================
 Decoder (and encoder) corrections

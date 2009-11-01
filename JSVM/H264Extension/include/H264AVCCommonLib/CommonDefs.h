@@ -218,7 +218,8 @@ enum SearchMode
   BLOCK_SEARCH  = 0,
   SPIRAL_SEARCH = 1,
   LOG_SEARCH    = 2,
-  FAST_SEARCH   = 3
+  FAST_SEARCH   = 3,
+  TZ_SEARCH     = 4
 };
 
 enum ResidualMode
@@ -283,5 +284,7 @@ typedef	enum
 //TMM_EC }}
 
 #define MAX_NUM_PD_FRAGMENTS                          12
+
+
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

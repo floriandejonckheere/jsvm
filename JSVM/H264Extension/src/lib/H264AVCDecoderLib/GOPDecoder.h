@@ -255,7 +255,8 @@ protected:
                                                   PicBufferList&              rcUnusedList,
                                                   Bool                        bOutputAll = false );
   //===== memory management =====
-  ErrVal              xMarkAllUnusedForRef      ( Bool                        bRemoveOutputFlag = false );
+  ErrVal              xMarkAllUnusedForRef      ( Bool                        bRemoveOutputFlag = false,
+                                                  PicBufferList*              pcUnusedList      = 0 );
   ErrVal              xSlidingWindow            ( UInt                        uiCurrFrameNum );
   ErrVal              xMMCO                     ( PocCalculator&              rcPocCalculator,
                                                   SliceHeader&                rcSliceHeader,
@@ -522,6 +523,7 @@ protected:
 
   //----- frame memories, control data, and references  -----
   ResizeParameters      m_cResizeParameters;
+  ResizeParameters      m_cResizeParametersAtQ0;
   CurrDPBUnit*          m_pcCurrDPBUnit;
   MbDataCtrl*           m_pcBaseLayerCtrl;
   MbDataCtrl*           m_pcBaseLayerCtrlField;

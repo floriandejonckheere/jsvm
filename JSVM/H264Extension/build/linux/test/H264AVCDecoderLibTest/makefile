@@ -1,58 +1,52 @@
 # the SOURCE definiton lets you move your makefile to another position
-CONFIG 				= CONSOLE
+CONFIG 		= CONSOLE
 
 # set directories to your wanted values
-SRC_DIR				= ../../../../src/test/H264AVCDecoderLibTest
-INC_DIR				= ../../../../include
-LIB_DIR				= ../../../../../../lib
-BIN_DIR				= ../../../../../../bin
-
-SRC_DIR1		=
-SRC_DIR2		=
-SRC_DIR3		=
-SRC_DIR4		=
+SRC_DIR		= ../../../../src/test/H264AVCDecoderLibTest
+INC_DIR		= ../../../../include
+LIB_DIR		= ../../../../../../lib
+BIN_DIR		= ../../../../../../bin
 
 USER_INC_DIRS	= -I$(SRC_DIR) 
 USER_LIB_DIRS	=
 
 # intermediate directory for object files
-OBJ_DIR				= ./objects
+OBJ_DIR		= ./objects
 
 # set executable name
-PRJ_NAME			= H264AVCDecoderLibTest
+PRJ_NAME		= H264AVCDecoderLibTest
 
 # defines to set
-DEFS				= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_LARGEFILE
+DEFS		= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_LARGEFILE
 
 # set objects
-OBJS          		= 	\
-					$(OBJ_DIR)/H264AVCDecoderLibTest.o \
-					$(OBJ_DIR)/DecoderParameter.o \
-					$(OBJ_DIR)/H264AVCDecoderTest.o \
+OBJS          	= \
+		$(OBJ_DIR)/H264AVCDecoderLibTest.o \
+		$(OBJ_DIR)/DecoderParameter.o \
+		$(OBJ_DIR)/H264AVCDecoderTest.o \
 
 # set libs to link with
-LIBS				= -ldl
+LIBS		= -ldl -lpthread
 
-DEBUG_LIBS			=
-RELEASE_LIBS		=
+DEBUG_LIBS		= -lH264AVCDecoderLibStaticd   -lH264AVCCommonLibStaticd   -lH264AVCVideoIoLibStaticd
+DEBUG32_LIBS	= -lH264AVCDecoderLibStatic32d -lH264AVCCommonLibStatic32d -lH264AVCVideoIoLibStatic32d
+DEBUG64_LIBS	= -lH264AVCDecoderLibStatic64d -lH264AVCCommonLibStatic64d -lH264AVCVideoIoLibStatic64d
 
-STAT_LIBS			= -lpthread
-DYN_LIBS			=
+DEBUG_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStaticd.a   $(LIB_DIR)/libH264AVCCommonLibStaticd.a   $(LIB_DIR)/libH264AVCVideoIoLibStaticd.a
+DEBUG32_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic32d.a $(LIB_DIR)/libH264AVCCommonLibStatic32d.a $(LIB_DIR)/libH264AVCVideoIoLibStatic32d.a
+DEBUG64_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic64d.a $(LIB_DIR)/libH264AVCCommonLibStatic64d.a $(LIB_DIR)/libH264AVCVideoIoLibStatic64d.a
 
+RELEASE_LIBS	= -lH264AVCDecoderLibStatic   -lH264AVCCommonLibStatic   -lH264AVCVideoIoLibStatic
+RELEASE32_LIBS	= -lH264AVCDecoderLibStatic32 -lH264AVCCommonLibStatic32 -lH264AVCVideoIoLibStatic32
+RELEASE64_LIBS	= -lH264AVCDecoderLibStatic64 -lH264AVCCommonLibStatic64 -lH264AVCVideoIoLibStatic64
 
-DYN_DEBUG_LIBS		= -lH264AVCDecoderLibd -lH264AVCCommonLibd -lH264AVCVideoIoLibd
-DYN_DEBUG_PREREQS		= $(LIB_DIR)/libH264AVCDecoderLibd.a $(LIB_DIR)/libH264AVCCommonLibd.a $(LIB_DIR)/libH264AVCVideoIoLibd.a
-STAT_DEBUG_LIBS		= -lH264AVCDecoderLibStaticd -lH264AVCCommonLibStaticd -lH264AVCVideoIoLibStaticd
-STAT_DEBUG_PREREQS		= $(LIB_DIR)/libH264AVCDecoderLibStaticd.a $(LIB_DIR)/libH264AVCCommonLibStaticd.a $(LIB_DIR)/libH264AVCVideoIoLibStaticd.a
-
-DYN_RELEASE_LIBS	= -lH264AVCDecoderLib -lH264AVCCommonLib -lH264AVCVideoIoLib
-DYN_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLib.a $(LIB_DIR)/libH264AVCCommonLib.a $(LIB_DIR)/libH264AVCVideoIoLib.a
-STAT_RELEASE_LIBS	= -lH264AVCDecoderLibStatic -lH264AVCCommonLibStatic -lH264AVCVideoIoLibStatic
-STAT_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic.a $(LIB_DIR)/libH264AVCCommonLibStatic.a $(LIB_DIR)/libH264AVCVideoIoLibStatic.a
+RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic.a   $(LIB_DIR)/libH264AVCCommonLibStatic.a   $(LIB_DIR)/libH264AVCVideoIoLibStatic.a
+RELEASE32_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic32.a $(LIB_DIR)/libH264AVCCommonLibStatic32.a $(LIB_DIR)/libH264AVCVideoIoLibStatic32.a
+RELEASE64_PREREQS	= $(LIB_DIR)/libH264AVCDecoderLibStatic64.a $(LIB_DIR)/libH264AVCCommonLibStatic64.a $(LIB_DIR)/libH264AVCVideoIoLibStatic64.a
 
 
 # name of the base makefile
-MAKE_FILE_NAME		= ../../common/makefile.base
+MAKE_FILE_NAME	= ../../common/makefile.base
 
 # include the base makefile
 include $(MAKE_FILE_NAME)

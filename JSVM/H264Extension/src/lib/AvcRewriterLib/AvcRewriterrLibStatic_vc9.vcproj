@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="AvcRewriterLibStatic"
 	ProjectGUID="{33896657-4671-433C-97FA-4DB40498C010}"
 	TargetFrameworkVersion="131072"
@@ -49,7 +49,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="AvcRewriterLib.h"
@@ -203,7 +203,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB;AVCREWRITERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="AvcRewriterLib.h"
 				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic/AvcRewriterLibStatic.pch"

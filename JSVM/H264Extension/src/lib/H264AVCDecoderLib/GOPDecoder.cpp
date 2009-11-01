@@ -889,7 +889,7 @@ DecodedPicBuffer::initCurrDPBUnit( CurrDPBUnit*&  rpcCurrDPBUnit,
     {
       if( m_bInitBufferDone )
       {
-        RNOK( xMarkAllUnusedForRef( rcSliceHeader.getNoOutputOfPriorPicsFlag() ) );
+        RNOK( xMarkAllUnusedForRef( rcSliceHeader.getNoOutputOfPriorPicsFlag(), &rcUnusedList ) );
         RNOK( xBumpingOutput      ( rcOutputList, rcUnusedList, true ) );
         RNOK( xCheckBufferStatus  () );
       }
@@ -1348,14 +1348,26 @@ DecodedPicBuffer::xBumpingOutput( PicBufferList& rcOutputList, PicBufferList& rc
 }
 
 ErrVal
-DecodedPicBuffer::xMarkAllUnusedForRef( Bool bRemoveOutputFlag )
+DecodedPicBuffer::xMarkAllUnusedForRef( Bool bRemoveOutputFlag, PicBufferList* pcUnusedList )
 {
+  ROT( bRemoveOutputFlag && !pcUnusedList );
   m_iMaxLongTermFrameIdx      = -1;
   DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
     RNOK( (*iter)->markUnusedForRef( FRAME, bRemoveOutputFlag ) );
+    if( bRemoveOutputFlag )
+    {
+      PicBuffer* pcPicBuffer = m_cPicBufferList.popFront();
+      ROF( pcPicBuffer );
+      ROF( pcPicBuffer->getBuffer() );
+      if( pcPicBuffer->isUsed() )
+      {
+        pcPicBuffer->setUnused();
+      }
+      pcUnusedList->push_back( pcPicBuffer );
+    }
   }
   m_pcLastDPBUnit           = 0;
   m_pcLastDPBUnitRefBasePic = 0;
@@ -2945,7 +2957,15 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
                                          ControlData&  rcControlData)
 {
   m_cResizeParameters.updateCurrLayerParameters( rcSliceHeader );
-  m_pcCurrDPBUnit->getFrame()->setPicParameters( m_cResizeParameters, &rcSliceHeader );
+  if( rcSliceHeader.getQualityId() == 0 )
+  {
+    m_cResizeParametersAtQ0 = m_cResizeParameters;
+  }
+  m_pcCurrDPBUnit->getFrame()->setPicParameters( m_cResizeParametersAtQ0, &rcSliceHeader );
+  if( m_pcCurrDPBUnit->getRefBasePic() )
+  {
+    m_pcCurrDPBUnit->getRefBasePic()->setPicParameters( m_cResizeParametersAtQ0, &rcSliceHeader );
+  }
 
   if( rcSliceHeader.getNoInterLayerPredFlag() || rcSliceHeader.getQualityId() )
   {
