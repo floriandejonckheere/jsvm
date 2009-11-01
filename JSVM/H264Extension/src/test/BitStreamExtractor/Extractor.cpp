@@ -2249,28 +2249,41 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   UInt uiScalableLayer = 0;
   for( uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
   {
- //JVT-S036 lsj start
-    if( uiWantedScalableLayer == MSYS_UINT_MAX && //-l, -t, -f
-      pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
-      pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer
-      )
+    //JVT-S036 lsj start
+    if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-l, -t, -f
     {
-      if( !(m_pcExtractorParameter->getKeepfExtraction() ) ) // -keepf is not in use
+      if( pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer    &&
+          pcOldScalableSei->getQualityId   ( uiScalableLayer ) >  uiMaxFGSLayer &&
+          !m_pcExtractorParameter->getKeepfExtraction() ) // -keepf is not in use
+      {
         bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+      }
     }
-    else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX &&  // -e
-            pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
-            pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer )
-          bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
-    else if( uiMaxBitrate == MSYS_UINT_MAX && //-sl
-            pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
-      pcOldScalableSei->getQualityId( uiScalableLayer ) > pcOldScalableSei->getQualityId( uiWantedScalableLayer ) )
-      bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
-    else if //-b
-      ( pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
-      pcOldScalableSei->getQualityId( uiScalableLayer ) > pcOldScalableSei->getQualityId( uiWantedScalableLayer ) )
-      bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
-//JVT-S036 lsj end
+    else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX )  // -e
+    {
+      if( pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
+          pcOldScalableSei->getQualityId   ( uiScalableLayer ) >  uiMaxFGSLayer )
+      {
+        bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+      }
+    }
+    else if( uiMaxBitrate == MSYS_UINT_MAX ) //-sl
+    {
+      if( pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
+          pcOldScalableSei->getQualityId   ( uiScalableLayer )       >  pcOldScalableSei->getQualityId   ( uiWantedScalableLayer ) )
+      {
+        bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+      }
+    }
+    else //-b
+    {
+      if( pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
+          pcOldScalableSei->getQualityId   ( uiScalableLayer )       >  pcOldScalableSei->getQualityId   ( uiWantedScalableLayer ) )
+      {
+        bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+      }
+    }
+    //JVT-S036 lsj end
     if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-l, -t, -f
     {
       if( m_pcExtractorParameter->getKeepfExtraction() ) // -keepf is in use

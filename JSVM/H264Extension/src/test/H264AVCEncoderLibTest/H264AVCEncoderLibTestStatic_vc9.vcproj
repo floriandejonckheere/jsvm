@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="H264AVCEncoderLibTestStatic"
 	ProjectGUID="{2B585AEA-D48A-412E-9DEB-ADB44FB79648}"
 	TargetFrameworkVersion="131072"
@@ -50,7 +50,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				FloatingPointModel="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCEncoderLibTest.h"
@@ -238,7 +238,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;EXCEL=1;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				StringPooling="true"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				FloatingPointModel="1"
 				UsePrecompiledHeader="0"

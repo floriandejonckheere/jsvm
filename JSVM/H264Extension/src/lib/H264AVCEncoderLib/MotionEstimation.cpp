@@ -276,29 +276,29 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&          rcMbDataA
   {
     switch( m_cParams.getSearchMode() )
     {
-    case 0:
+    case BLOCK_SEARCH:
       {
         xPelBlockSearch ( pcRefPelData[0], cMv, uiMinSAD );
       }
       break;
-    case 1:
+    case SPIRAL_SEARCH:
       {
         xPelSpiralSearch( pcRefPelData[0], cMv, uiMinSAD );
       }
       break;
-    case 2:
+    case LOG_SEARCH:
       {
         xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, false, m_iMaxLogStep << ( pcBSP ? 0 : 1 ) );
       }
       break;
-    case 3:
+    case FAST_SEARCH:
       {
         m_acMvCandList.push_back( rcMvPred );
         rcMbDataAccess.addMvPredictors( m_acMvCandList );
         xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, true, ( pcBSP ? 1 : 2 ) );
       }
       break;
-    case 4:
+    case TZ_SEARCH:
       {
         m_acMvCandList.push_back( rcMvPred );
         rcMbDataAccess.addMvPredictors( m_acMvCandList );

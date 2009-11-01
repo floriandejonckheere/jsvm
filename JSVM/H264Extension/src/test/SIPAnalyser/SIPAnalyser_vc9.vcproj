@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="gb2312"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="SIPAnalyser"
 	ProjectGUID="{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}"
 	RootNamespace="SIPAnalyser"
@@ -52,7 +52,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;H264AVCCOMMONLIB_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				StringPooling="true"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				FloatingPointModel="1"
 				UsePrecompiledHeader="0"
@@ -236,7 +236,7 @@
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCCOMMONLIB_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				FloatingPointModel="1"
 				PrecompiledHeaderFile=".\..\..\..\build\windows\test\SIPAnalyser\DebugStatic/SIPAnalyser.pch"
 				AssemblerListingLocation=".\..\..\..\build\windows\test\SIPAnalyser\DebugStatic/"
