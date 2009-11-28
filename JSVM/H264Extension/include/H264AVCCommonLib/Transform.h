@@ -45,9 +45,9 @@ public:
   // JVT-V035 functions for SVC to AVC rewrite
   ErrVal        predict4x4Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
   ErrVal        predict8x8Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
-  ErrVal        predictChromaBlocks       ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
-  ErrVal        predictScaledACCoeffs     ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp, const UChar* pucScale );
-  ErrVal        predictScaledChromaCoeffs ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp, const UChar* pucScaleCb, const UChar* pucScaleCr );
+  ErrVal        predictChromaBlocks       ( UInt uiComp, TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
+  ErrVal        predictScaledACCoeffs     ( UInt uiComp, TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, const UChar* pucScale );
+  ErrVal        predictScaledChromaCoeffs ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefCbQp, UInt uiRefCrQp, const UChar* pucScaleCb, const UChar* pucScaleCr );
   ErrVal        predictMb16x16            ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
   ErrVal        addPrediction4x4Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiDstQp, UInt uiRefQp, UInt &uiCoded  );
   ErrVal        addPrediction8x8Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  );

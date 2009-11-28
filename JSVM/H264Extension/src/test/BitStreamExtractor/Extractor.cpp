@@ -512,6 +512,8 @@ Extractor::xAnalyse()
       RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
       pcBinData = NULL;
     }
+
+    xSetROIParameters();
   }
 
   while( ! bEOS )
@@ -1175,9 +1177,6 @@ ErrVal
 Extractor::go()
 {
   RNOK ( xPrimaryAnalyse());
-
-  // ROI ICU/ETRI DS
-  xSetROIParameters();
 
   AllocateAndInitializeDatas();
 
@@ -2353,13 +2352,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
 
     if(pcNewScalableSei->getProfileLevelInfoPresentFlag(uiNumScalableLayer))
     {
-      pcNewScalableSei->setLayerProfileIdc(uiNumScalableLayer, pcOldScalableSei->getLayerProfileIdc( uiScalableLayer ) );
-			 //SEI changes update {
-      //pcNewScalableSei->setLayerConstraintSet0Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet0Flag( uiScalableLayer ) );
-      //pcNewScalableSei->setLayerConstraintSet1Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet1Flag( uiScalableLayer ) );
-      //pcNewScalableSei->setLayerConstraintSet2Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet2Flag( uiScalableLayer ) );
-      //pcNewScalableSei->setLayerConstraintSet3Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet3Flag( uiScalableLayer ) );
-      //pcNewScalableSei->setLayerLevelIdc(uiNumScalableLayer, pcOldScalableSei->getLayerLevelIdc( uiScalableLayer ) );
+      pcNewScalableSei->setLayerProfileLevelIdc( uiNumScalableLayer, pcOldScalableSei->getLayerProfileLevelIdc( uiScalableLayer ) );
     }
 
 		//else
@@ -4669,11 +4662,9 @@ for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; 
 void
 Extractor::xSetROIParameters()
 {
-
   init_ROI_ID();
+
   UInt m_uiNum_layers = m_pcH264AVCPacketAnalyzer->m_uiNum_layers;
-
-
 
   for(UInt ui=0; ui< m_uiNum_layers; ui++)
   {

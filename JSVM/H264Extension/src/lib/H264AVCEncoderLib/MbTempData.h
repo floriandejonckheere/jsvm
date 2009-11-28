@@ -37,20 +37,22 @@ public:
 
   Void    copyResidualDataTo  ( MbDataAccess&   rcMbDataAccess );
 
-  MbMotionData&       getMbMotionData   ( ListIdx eLstIdx ) { return m_acMbMotionData [ eLstIdx ]; }
-  MbMvData&           getMbMvdData      ( ListIdx eLstIdx ) { return m_acMbMvdData    [ eLstIdx ]; }
-  YuvMbBuffer&     getTempYuvMbBuffer()                  { return m_cTempYuvMbBuffer; }
-  MbDataAccess&       getMbDataAccess   ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
-  const SliceHeader&  getSH             ()            const { AOF_DBG(m_pcMbDataAccess); return m_pcMbDataAccess->getSH(); }
-  const CostData&     getCostData       ()            const { return *this; }
-  operator MbDataAccess&                ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
-  operator YuvMbBuffer*              ()                  { return this; }
+  MbMotionData&       getMbMotionData         ( ListIdx eLstIdx ) { return m_acMbMotionData [ eLstIdx ]; }
+  MbMvData&           getMbMvdData            ( ListIdx eLstIdx ) { return m_acMbMvdData    [ eLstIdx ]; }
+  YuvMbBuffer&        getTempYuvMbBuffer      ()                  { return m_cTempYuvMbBuffer; }
+  YuvMbBuffer&        getTempBLSkipResBuffer  ()                  { return m_cTempBLSkipResBuffer; }
+  MbDataAccess&       getMbDataAccess         ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
+  const SliceHeader&  getSH                   ()            const { AOF_DBG(m_pcMbDataAccess); return m_pcMbDataAccess->getSH(); }
+  const CostData&     getCostData             ()            const { return *this; }
+  operator MbDataAccess&                      ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
+  operator YuvMbBuffer*                       ()                  { return this; }
 
 protected:
   MbDataAccess*       m_pcMbDataAccess;
   MbMvData            m_acMbMvdData[2];
   MbMotionData        m_acMbMotionData[2];
-  YuvMbBuffer      m_cTempYuvMbBuffer;
+  YuvMbBuffer         m_cTempYuvMbBuffer;
+  YuvMbBuffer         m_cTempBLSkipResBuffer;
 };
 
 

@@ -468,13 +468,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
             uilayerProfileLevelIdc = uilayerProfileLevelIdc << 8;
             uilayerProfileLevelIdc += uiLayerLevelIdc;
             //JVT-W051 }
-            pcScalableSEI->setLayerProfileIdc(uiNumScalableLayer, uilayerProfileIdc);
-            //SEI changes update {
-						//pcScalableSEI->setLayerConstraintSet0Flag(uiNumScalableLayer, bLayerConstraintSet0Flag);
-      //      pcScalableSEI->setLayerConstraintSet1Flag(uiNumScalableLayer, bLayerConstraintSet1Flag);
-      //      pcScalableSEI->setLayerConstraintSet2Flag(uiNumScalableLayer, bLayerConstraintSet2Flag);
-      //      pcScalableSEI->setLayerConstraintSet3Flag(uiNumScalableLayer, bLayerConstraintSet3Flag);
-      //      pcScalableSEI->setLayerLevelIdc(uiNumScalableLayer, uiLayerLevelIdc);
+            pcScalableSEI->setLayerProfileLevelIdc( uiNumScalableLayer, uilayerProfileLevelIdc );
           }
 					//else
           //{//JVT-S036 lsj
@@ -642,9 +636,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
               pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 1 );
               if( uiL ) // D != 0, T != 0, Q = 0
               {
-                UInt uiBaseLayerCGSSNRId = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR() : rcLayer.getBaseLayerId());
-                UInt uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : rcLayer.getBaseQualityLevel());
-                uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? uiBaseQualityLevel : 0 );
+                UInt uiBaseLayerCGSSNRId = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR       () : rcLayer.getBaseLayerId() );
+                UInt uiBaseQualityLevel  = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : 0 );
   //bugfix delete
                 {
                   if( MSYS_UINT_MAX != getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel ) )
@@ -659,9 +652,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
             }
             else if ( uiL ) // D != 0,T = 0, Q = 0
             {
-              UInt uiBaseLayerCGSSNRId = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR() : rcLayer.getBaseLayerId());
-              UInt uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : rcLayer.getBaseQualityLevel());
-              uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? uiBaseQualityLevel : 0 );
+              UInt uiBaseLayerCGSSNRId = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR       () : rcLayer.getBaseLayerId() );
+              UInt uiBaseQualityLevel  = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : 0 );
 //bugfix delete
               uiDelta = uiNumScalableLayer - getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel );
               assert ( uiDelta > 0 );
@@ -1362,11 +1354,7 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setConstrainedSet2Flag                 ( rcLayerParameters.getConstrainedSet2Flag() );
     pcSPS->setConstrainedSet3Flag                 ( rcLayerParameters.getConstrainedSet3Flag() );
     pcSPS->setConvertedLevelIdc                   ( uiLevelIdc );
-    pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getScalingMatricesPresent() > 0 );
-    if( pcSPS->getSeqScalingMatrixPresentFlag() )
-    {
-      pcSPS->getSeqScalingMatrix().init( rcLayerParameters.getScalMatrixBuffer() );
-    }
+    pcSPS->setSeqScalingMatrixPresentFlag         ( false );
     pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
     pcSPS->setLog2MaxPicOrderCntLsb               ( gMin( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
@@ -1386,8 +1374,24 @@ H264AVCEncoder::xInitParameterSets()
     }
     else
     {
-      pcSPS->setAVCRewriteFlag(rcLayerParameters.getTCoeffLevelPredictionFlag());
-      pcSPS->setAVCAdaptiveRewriteFlag(rcLayerParameters.getAVCAdaptiveRewriteFlag());
+      Bool  bAVCRewrite       = rcLayerParameters.getTCoeffLevelPredictionFlag();
+      Bool  bAdaptiveRewrite  = rcLayerParameters.getAVCAdaptiveRewriteFlag   ();
+      if( bAVCRewrite )
+      {
+        for( UInt uiMGSEL = uiIndex + 1; uiMGSEL < m_pcCodingParameter->getNumberOfLayers() && !bAdaptiveRewrite; uiMGSEL++ )
+        {
+          if( m_pcCodingParameter->getLayerParameters( uiMGSEL ).getQualityLevelCGSSNR() == 0 )
+          {
+            break;
+          }
+          if( ! m_pcCodingParameter->getLayerParameters( uiMGSEL ).getTCoeffLevelPredictionFlag() )
+          {
+            bAdaptiveRewrite = true;
+          }
+        }
+      }
+      pcSPS->setAVCRewriteFlag          ( bAVCRewrite );
+      pcSPS->setAVCAdaptiveRewriteFlag  ( bAdaptiveRewrite );
     }
 
     pcSPS->setFrameMbsOnlyFlag										( ! rcLayerParameters.isInterlaced() );
@@ -1424,6 +1428,17 @@ H264AVCEncoder::xInitParameterSets()
 			pcSPS->setAdditionalExtension2Flag( false);
 		}
 	  //SSPS }
+    if( rcLayerParameters.getQualityLevelCGSSNR() ) // MGS enhancement
+    {
+      UInt                  uiCurrDId   = rcLayerParameters.getLayerCGSSNR        ();
+      UInt                  uiCurrQId   = rcLayerParameters.getQualityLevelCGSSNR ();
+      UInt                  uiCurrDQId  = ( uiCurrDId << 4 ) + uiCurrQId;
+      SequenceParameterSet* pcQ0SPS = 0;
+      RNOK( m_pcParameterSetMng->getActiveSPS   (  pcQ0SPS, uiCurrDQId - 1 ) );
+      RNOK( pcSPS->copySPSDataForMGSEnhancement ( *pcQ0SPS ) );
+    }
+
+
     //===== set picture parameter set parameters =====
     pcPPS->setReferencesSubsetSPS                   ( uiIndex > 0 );
     pcPPS->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1441,7 +1456,7 @@ H264AVCEncoder::xInitParameterSets()
       pcPPS->setPicInitQp                           ( gMin( 51, gMax( 0, (Int)pcGenericRC->m_pcJSVMParams->SetInitialQP ) ) );
     }
     // JVT-W043 }
-    pcPPS->setChomaQpIndexOffset                    ( 0 );
+    pcPPS->setChromaQpIndexOffset                   ( rcLayerParameters.getChromaQPIndexOffset() );
     pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
     pcPPS->setConstrainedIntraPredFlag              ( rcLayerParameters.getContrainedIntraPred() );
     pcPPS->setRedundantPicCntPresentFlag            ( rcLayerParameters.getUseRedundantSliceFlag() ); // JVT-Q054 Red. Picture
@@ -1458,8 +1473,12 @@ H264AVCEncoder::xInitParameterSets()
     }
     //JVT-W049 }
     pcPPS->setTransform8x8ModeFlag                  ( rcLayerParameters.getEnable8x8Trafo() > 0 );
-    pcPPS->setPicScalingMatrixPresentFlag           ( false );
-    pcPPS->set2ndChromaQpIndexOffset                ( 0 );
+    pcPPS->setPicScalingMatrixPresentFlag           ( rcLayerParameters.getScalingMatricesPresent() > 0 );
+    if( pcPPS->getPicScalingMatrixPresentFlag() )
+    {
+      pcPPS->getPicScalingMatrix().init             ( rcLayerParameters.getScalMatrixBuffer() );
+    }
+    pcPPS->set2ndChromaQpIndexOffset                ( rcLayerParameters.get2ndChromaQPIndexOffset() );
 
     pcPPS->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
     pcPPS->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
@@ -2060,7 +2079,7 @@ RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer 
   rcMbDataAccessRewrite.getMbData().setFwdBwd( uiFwdBwd );
 
   //===== clear 8x8 transform flag when required =====
-  if( ! rcMbDataAccessRewrite.getMbData().isIntra4x4() && ( rcMbDataAccessRewrite.getMbData().getMbCbp() & 0x0F ) == 0 && !rcMbDataAccessRewrite.getMbData().isIntraBL() )
+  if( ! rcMbDataAccessRewrite.getMbData().isIntra4x4() && ( rcMbDataAccessRewrite.getMbData().getMbCbp() & 0x0F ) == 0 )
   {
     rcMbDataAccessRewrite.getMbData().setTransformSize8x8( false );
   }

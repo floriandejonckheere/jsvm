@@ -61,20 +61,15 @@ public:
   Void setQp( const MbDataAccess& rcMbDataAccess, Bool bIntraMb )
   {
     Int   iLumaQp   = rcMbDataAccess.getMbData().getQp();
-    Int   iChromaQp = rcMbDataAccess.getSH().getChromaQp( iLumaQp );
+    Int   iCbQp     = rcMbDataAccess.getSH().getCbQp( iLumaQp );
+    Int   iCrQp     = rcMbDataAccess.getSH().getCrQp( iLumaQp );
     Bool  bRefPic   = rcMbDataAccess.getSH().getNalRefIdc () != NAL_REF_IDC_PRIORITY_LOWEST;
     Bool  bKeyPic   = rcMbDataAccess.getSH().getTemporalId() == 0;
     Bool  bOneThird = ( bKeyPic || ( bRefPic && bIntraMb ) );
 
     m_cLumaQp.setQp( iLumaQp, bOneThird );
-    if( iLumaQp == iChromaQp )
-    {
-      m_cChromaQp = m_cLumaQp;
-    }
-    else
-    {
-      m_cChromaQp.setQp( iChromaQp, bOneThird );
-    }
+    m_cCbQp  .setQp( iCbQp,   bOneThird );
+    m_cCrQp  .setQp( iCrQp,   bOneThird );
   }
 
   Void setDecompositionStages( Int iDStages )
@@ -83,12 +78,15 @@ public:
   }
 
 
-  const QpParameter&  getChromaQp ()  const { return m_cChromaQp; }
+  const QpParameter&  getCbQp     ()              const { return m_cCbQp; }
+  const QpParameter&  getCrQp     ()              const { return m_cCrQp; }
+  const QpParameter&  getChromaQp ( UInt uiIdx )  const { AOT( uiIdx > 1 ); return ( uiIdx ? getCrQp() : getCbQp() ); }
   const QpParameter&  getLumaQp   ()  const { return m_cLumaQp;   }
 
 protected:
   QpParameter m_cLumaQp;
-  QpParameter m_cChromaQp;
+  QpParameter m_cCbQp;
+  QpParameter m_cCrQp;
   Int         m_iDStages;
 };
 

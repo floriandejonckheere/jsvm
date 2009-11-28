@@ -796,23 +796,26 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
   RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp += uiBit << 3;
 
-  uiCtx = 1;
-
-  UInt  uiLeftChromaCbp   = rcMbDataAccess.getLeftChromaCbp ( 0, 16, false );
-  UInt  uiAboveChromaCbp  = rcMbDataAccess.getAboveChromaCbp( 0, 16, false );
-
-  a = uiLeftChromaCbp  > 0 ? 1 : 0;
-  b = uiAboveChromaCbp > 0 ? 2 : 0;
-
-  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, a + b ) ) );
-
-  if( uiBit )
+  if( rcMbDataAccess.getSH().getSPS().getChromaFormatIdc() )
   {
-    a = uiLeftChromaCbp  > 1 ? 1 : 0;
-    b = uiAboveChromaCbp > 1 ? 2 : 0;
+    uiCtx = 1;
 
-    RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( ++uiCtx, a + b ) ) );
-    uiCbp += (1 == uiBit) ? 32 : 16;
+    UInt  uiLeftChromaCbp   = rcMbDataAccess.getLeftChromaCbp ( 0, 16, false );
+    UInt  uiAboveChromaCbp  = rcMbDataAccess.getAboveChromaCbp( 0, 16, false );
+
+    a = uiLeftChromaCbp  > 0 ? 1 : 0;
+    b = uiAboveChromaCbp > 0 ? 2 : 0;
+
+    RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, a + b ) ) );
+
+    if( uiBit )
+    {
+      a = uiLeftChromaCbp  > 1 ? 1 : 0;
+      b = uiAboveChromaCbp > 1 ? 2 : 0;
+
+      RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( ++uiCtx, a + b ) ) );
+      uiCbp += (1 == uiBit) ? 32 : 16;
+    }
   }
 
   if( !uiCbp )

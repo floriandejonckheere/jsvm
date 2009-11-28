@@ -165,9 +165,7 @@ public:
 //JVT-W046 }
 		//SEI changes update }
 		Void setLayerOutputFlag      ( UInt uilayer,Bool bFlag )                       {m_layer_output_flag													[uilayer] = bFlag; }//JVT-W047 wxwan
-	//Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_idc                      [uilayer] = uiIdc; }
-
-		Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_level_idc                      [uilayer] = uiIdc; }//JVT-W051
+    Void setLayerProfileLevelIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_level_idc[uilayer] = uiIdc; }
   //JVT-S036 lsj start
     Void setAvgBitrateBPS ( UInt uilayer, Double dBitrate )                        { m_avg_bitrate                    [uilayer] = xConvertFromBPS( dBitrate ); }
     Void setMaxBitrateLayerBPS ( UInt uilayer, Double dBitrate )                    { m_max_bitrate_layer                [uilayer] = xConvertFromBPS( dBitrate ); }
@@ -316,7 +314,7 @@ public:
 		//JVT-W047 wxwan
 		Bool getLayerOutputFlag( UInt uilayer ) const { return m_layer_output_flag[uilayer]; }
 		//JVT-W047 wxwan
-		UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_level_idc[uilayer]; }//JVT-W051
+    UInt getLayerProfileLevelIdc( UInt uilayer ) const { return m_layer_profile_level_idc[uilayer]; }
   //JVT-S036 lsj start
 
     UInt getAvgBitrateCode ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
@@ -845,10 +843,12 @@ private:
     };
 
   protected:
-    BufferingPeriod( ParameterSetMng*& rpcParameterSetMng, Bool bSubsetSPS )
+    BufferingPeriod( ParameterSetMng*& rpcParameterSetMng, Bool bNested, UInt uiDQId, UInt uiTId )
       : SEIMessage( BUFFERING_PERIOD )
       , m_pcParameterSetMng( rpcParameterSetMng)
-      , m_bSubsetSPS( bSubsetSPS )
+      , m_bNested( bNested )
+      , m_uiDQId( uiDQId )
+      , m_uiTId( uiTId )
       , m_uiSeqParameterSetId( 0 ) 
     {
       m_apcHrd[0] = 0;
@@ -858,7 +858,7 @@ private:
     }
 
   public:
-    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng, Bool bSubsetSPS );
+    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng, Bool bNested = false, UInt uiDQId = 0, UInt uiTId = 0 );
     static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, BufferingPeriod * pcBufferingPeriod );
 
     virtual ~BufferingPeriod();
@@ -872,7 +872,9 @@ private:
     const HRD* m_apcHrd[2];
     ParameterSetMng* m_pcParameterSetMng;
 
-    Bool m_bSubsetSPS;
+    Bool  m_bNested;
+    UInt  m_uiDQId;
+    UInt  m_uiTId;
     UInt m_uiSeqParameterSetId;
     Bool m_abHrdParametersPresentFlag[2];
     StatBuf <DynBuf< SchedSel >, 2>  m_aacSchedSel;
@@ -1099,6 +1101,22 @@ private:
     UInt m_uiEfIdrPicId;
   };
 //JVT-W062 }
+
+
+  class H264AVCCOMMONLIB_API UnsupportedSei : public SEIMessage
+  {
+  protected:
+    UnsupportedSei  ( MessageType eMessageType, UInt uiSize );
+    ~UnsupportedSei ();
+  public:
+    static ErrVal create ( UnsupportedSei*&     rpcSeiMessage, MessageType eMessageType, UInt uiSize );
+    ErrVal destroy       ();
+    ErrVal write         ( HeaderSymbolWriteIf* pcWriteIf );
+    ErrVal read          ( HeaderSymbolReadIf*  pcReadIf, ParameterSetMng* pcParameterSetMng );
+  private:
+    UInt   m_uiSize;
+  };
+
   typedef MyList<SEIMessage*> MessageList;
 
   static ErrVal read  ( HeaderSymbolReadIf*   pcReadIf,
@@ -1136,13 +1154,9 @@ protected:
   static ErrVal xCreate             ( SEIMessage*&          rpcSEIMessage,
                                       MessageType           eMessageType,
                                       // JVT-V068 {
-                                      ParameterSetMng*& rpcParameterSetMng,
+                                      ParameterSetMng*&     rpcParameterSetMng,
                                       // JVT-V068 }
-                                      UInt                  uiSize,
-                                      Bool                  bDQIdGt0 );
-public:
-
-
+                                      UInt                  uiSize );
 };
 
 #if defined( WIN32 )

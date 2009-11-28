@@ -166,6 +166,19 @@
             		      #---------------#
                       # Test 6.6.1.9  #
                       #---------------#
+#                      {
+#          		        name          => "AVCBA-8", // not specified in conformance spec.
+#          		        mode          => 0,
+#          		        width         => ???,
+#          		        height        => ???,
+#          		        bitstreamname => "XXX.264",
+#          		        decodedname   => "XXX_???x???.yuv",
+#          		        origname      => "XXX.yuv",
+#          		        psnr          => 99.99,
+#		                  },		                  
+            		      #---------------#
+                      # Test 6.6.1.10  #
+                      #---------------#
                       {
           		        name          => "AVCMQ-1",
           		        mode          => 0,
@@ -177,7 +190,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.10 #
+                      # Test 6.6.1.11 #
                       #---------------#
                       {
           		        name          => "AVCMQ-2",
@@ -190,7 +203,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.11 #
+                      # Test 6.6.1.12 #
                       #---------------#
                       {
           		        name          => "AVCMQ-3",
@@ -203,7 +216,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.12 #
+                      # Test 6.6.1.13 #
                       #---------------#
                       {
           		        name          => "AVCMQ-4",
@@ -216,7 +229,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.13 #
+                      # Test 6.6.1.14 #
                       #---------------#
                       {
           		        name          => "AVCSL-1",
@@ -229,10 +242,10 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.14 #
+                      # Test 6.6.1.15 #
                       #---------------#
                       {
-          		        name          => "#AVCSL-2",
+          		        name          => "AVCSL-2",
           		        mode          => 0,
           		        width         => 176,
           		        height        => 144,
@@ -242,7 +255,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.15 #
+                      # Test 6.6.1.16 #
                       #---------------#
                       {
           		        name          => "AVCSQ-1",
@@ -255,46 +268,46 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.16 #
-                      #---------------#
-                      #{
-          		        #name          => "AVCFM-1",
-          		        #mode          => 0,
-          		        #width         => 176,
-          		        #height        => 144,
-          		        #bitstreamname => "FM1_BT_B.h264",
-          		        #decodedname   => "FM1_BT_B_176x144.yuv",
-          		        #origname      => "FM1_BT_B.yuv",
-          		        #psnr          => 99.99,
-		                  #},		                  
-            		      #---------------#
                       # Test 6.6.1.17 #
                       #---------------#
-                      #{
-          		        #name          => "AVCFM-2",
-          		        #mode          => 0,
-          		        #width         => 176,
-          		        #height        => 144,
-          		        #bitstreamname => "FM2_SVA_C.264",
-          		        #decodedname   => "FM2_SVA_C_rec_176x144.yuv",
-          		        #origname      => "FM2_SVA_C_rec.yuv",
-          		        #psnr          => 99.99,
-		                  #},		                  
+                      {
+          		        name          => "AVCFM-1",
+          		        mode          => 0,
+          		        width         => 176,
+          		        height        => 144,
+          		        bitstreamname => "FM1_BT_B.h264",
+          		        decodedname   => "FM1_BT_B_176x144.yuv",
+          		        origname      => "FM1_BT_B.yuv",
+          		        psnr          => 99.99,
+		                  },		                  
             		      #---------------#
                       # Test 6.6.1.18 #
                       #---------------#
-                     # {
-          		       # name          => "AVCFM-3",
-          		       # mode          => 0,
-          		       # width         => 176,
-          		       # height        => 144,
-          		       # bitstreamname => "FM1_FT_E.264",
-          		       # decodedname   => "FM1_FT_E_176x144.yuv",
-          		       # origname      => "FM1_FT_E.yuv",
-          		       # psnr          => 99.99,
-		                 # },		                  
+                      {
+          		        name          => "AVCFM-2",
+          		        mode          => 0,
+          		        width         => 176,
+          		        height        => 144,
+          		        bitstreamname => "FM2_SVA_C.264",
+          		        decodedname   => "FM2_SVA_C_rec_176x144.yuv",
+          		        origname      => "FM2_SVA_C_rec.yuv",
+          		        psnr          => 99.99,
+		                  },		                  
             		      #---------------#
                       # Test 6.6.1.19 #
+                      #---------------#
+                      {
+          		        name          => "AVCFM-3",
+          		        mode          => 0,
+          		        width         => 176,
+          		        height        => 144,
+          		        bitstreamname => "FM1_FT_E.264",
+          		        decodedname   => "FM1_FT_E_176x144.yuv",
+          		        origname      => "FM1_FT_E.yuv",
+          		        psnr          => 99.99,
+		                  },		                  
+            		      #---------------#
+                      # Test 6.6.1.20 #
                       #---------------#
                       {
           		        name          => "AVCCI-1",
@@ -307,7 +320,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.20 #
+                      # Test 6.6.1.21 #
                       #---------------#
                       {
           		        name          => "AVCCI-2",
@@ -320,7 +333,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.21 #
+                      # Test 6.6.1.22 #
                       #---------------#
                       {
           		        name          => "AVCCI-3",
@@ -333,20 +346,20 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.22 #
-                      #---------------#
-                     # {
-          		       # name          => "AVCFC-1",
-          		       # mode          => 0,
-          		       # width         => 352,
-          		       # height        => 288,
-          		       # bitstreamname => "CVFC1_Sony_C.jsv",
-          		       # decodedname   => "CVFC1_Sony_C_352x288.yuv",
-          		       # origname      => "CVFC1_Sony_C.yuv",
-          		       # psnr          => 99.99,
-		                 # },		                  
-            		      #---------------#
                       # Test 6.6.1.23 #
+                      #---------------#
+                      {
+          		        name          => "AVCFC-1",
+          		        mode          => 0,
+          		        width         => 352,
+          		        height        => 288,
+          		        bitstreamname => "CVFC1_Sony_C.jsv",
+          		        decodedname   => "CVFC1_Sony_C_352x288.yuv",
+          		        origname      => "CVFC1_Sony_C.yuv",
+          		        psnr          => 99.99,
+		                  },		                  
+            		      #---------------#
+                      # Test 6.6.1.24 #
                       #---------------#
                       {
           		        name          => "AVCAUD-1",
@@ -359,7 +372,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.24 #
+                      # Test 6.6.1.25 #
                       #---------------#
                       {
           		        name          => "AVCMIDR-1",
@@ -372,7 +385,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.25 #
+                      # Test 6.6.1.26 #
                       #---------------#
                       {
           		        name          => "AVCNRF-1",
@@ -385,7 +398,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #---------------#
-                      # Test 6.6.1.26 #
+                      # Test 6.6.1.27 #
                       #---------------#
                       {
           		        name          => "AVCMPS-1",
@@ -398,7 +411,7 @@
           		        psnr          => 99.99,
 		                  },		                  
             		      #-----------------#
-                      # Test   6.6.1.27 #
+                      # Test   6.6.1.28 #
             		      #-----------------#
                       {
           		        name          => "AVCBS-1",
@@ -411,7 +424,7 @@
           		        psnr => 99.99,
             		      },
             		      #-----------------#
-                      # Test   6.6.1.28 #
+                      # Test   6.6.1.29 #
             		      #-----------------#
     		              {
           		        name          => "AVCBS-2",
@@ -424,7 +437,7 @@
           		        psnr          => 99.99,
           		        },
             		      #-----------------#
-                      # Test   6.6.1.29 #
+                      # Test   6.6.1.30 #
             		      #-----------------#
                       {
           		        name          => "AVCBS-3",
@@ -437,7 +450,7 @@
           		        psnr          => 99.99,
             		      },
             		      #-----------------#
-                      # Test   6.6.1.30 #
+                      # Test   6.6.1.31 #
             		      #-----------------#
                       {
           		        name          => "AVCBS-4",
@@ -450,7 +463,7 @@
           		        psnr          => 99.99,
             		      },
             		      #-----------------#
-                      # Test   6.6.1.31 #
+                      # Test   6.6.1.32 #
             		      #-----------------#
                       {
           		        name          => "AVCBS-5",
@@ -458,7 +471,7 @@
           		        width         => 720,
           		        height        => 480,
           		        bitstreamname => "cvmp_mot_frm0_full_B.26l",
-          		        decodedname   => "SL1_SVA_B_720x480.yuv",
+          		        decodedname   => "cvmp_mot_frm0_full_B_720x480.yuv",
           		        origname      => "cvmp_mot_frm0_full_rec_B.yuv",
           		        psnr          => 99.99,
 		                  },

@@ -72,7 +72,8 @@ SliceDecoder::decode( SliceHeader&  rcSH,
                       MbDataCtrl*   pcMbDataCtrl,
                       MbDataCtrl*   pcMbDataCtrlBase,
                       Frame*        pcFrame,
-                      Frame*        pcResidual,
+                      Frame*        pcResidualLF,
+                      Frame*        pcResidualILPred,
                       Frame*        pcBaseLayer,
                       Frame*        pcBaseLayerResidual,
                       RefFrameList* pcRefFrameList0,
@@ -89,7 +90,8 @@ SliceDecoder::decode( SliceHeader&  rcSH,
 	if( ePicType != FRAME )
 	{
 		if( pcFrame )             RNOK( pcFrame->            addFieldBuffer( ePicType ) );
-		if( pcResidual )          RNOK( pcResidual->         addFieldBuffer( ePicType ) );
+    if( pcResidualLF )        RNOK( pcResidualLF->       addFieldBuffer( ePicType ) );
+    if( pcResidualILPred )    RNOK( pcResidualILPred->   addFieldBuffer( ePicType ) );
 		if( pcBaseLayer )         RNOK( pcBaseLayer->        addFieldBuffer( ePicType ) );
 		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->addFieldBuffer( ePicType ) );
 	}
@@ -115,7 +117,8 @@ SliceDecoder::decode( SliceHeader&  rcSH,
     RNOK( m_pcMbDecoder ->decode            ( *pcMbDataAccess,
                                               pcMbDataAccessBase,
                                               pcFrame                                  ->getPic( ePicType ),
-                                              pcResidual                               ->getPic( ePicType ),
+                                              pcResidualLF                             ->getPic( ePicType ),
+                                              pcResidualILPred                         ->getPic( ePicType ),
                                               pcBaseLayer         ? pcBaseLayer        ->getPic( ePicType ) : NULL,
                                               pcBaseLayerResidual ? pcBaseLayerResidual->getPic( ePicType ) : NULL,
                                               pcRefFrameList0,
@@ -135,7 +138,8 @@ SliceDecoder::decode( SliceHeader&  rcSH,
   if( ePicType!=FRAME )
 	{
 		if( pcFrame )             RNOK( pcFrame->            removeFieldBuffer( ePicType ) );
-		if( pcResidual )          RNOK( pcResidual->         removeFieldBuffer( ePicType ) );
+    if( pcResidualLF )        RNOK( pcResidualLF->       removeFieldBuffer( ePicType ) );
+    if( pcResidualILPred )    RNOK( pcResidualILPred->   removeFieldBuffer( ePicType ) );
 		if( pcBaseLayer )         RNOK( pcBaseLayer->        removeFieldBuffer( ePicType ) );
 		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->removeFieldBuffer( ePicType ) );
 	}
@@ -150,7 +154,8 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
                            MbDataCtrl*    pcMbDataCtrlBase,
                            MbDataCtrl*    pcMbDataCtrlBaseField,
                            Frame*         pcFrame,
-                           Frame*         pcResidual,
+                           Frame*         pcResidualLF,
+                           Frame*         pcResidualILPred,
                            Frame*         pcBaseLayer,
                            Frame*         pcBaseLayerResidual,
                            RefFrameList*  pcRefFrameList0,
@@ -183,12 +188,14 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
   apcRefFrameList1[1] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
 
   Frame* apcFrame            [4] = { NULL, NULL, NULL, NULL };
-  Frame* apcResidual         [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcResidualLF       [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcResidualILPred   [4] = { NULL, NULL, NULL, NULL };
   Frame* apcBaseLayer        [4] = { NULL, NULL, NULL, NULL };
   Frame* apcBaseLayerResidual[4] = { NULL, NULL, NULL, NULL };
 
 	RNOK( gSetFrameFieldArrays( apcFrame,             pcFrame             ) );
-  RNOK( gSetFrameFieldArrays( apcResidual,          pcResidual          ) );
+  RNOK( gSetFrameFieldArrays( apcResidualLF,        pcResidualLF        ) );
+  RNOK( gSetFrameFieldArrays( apcResidualILPred,    pcResidualILPred    ) );
   RNOK( gSetFrameFieldArrays( apcBaseLayer,         pcBaseLayer         ) );
   RNOK( gSetFrameFieldArrays( apcBaseLayerResidual, pcBaseLayerResidual ) );
 
@@ -245,7 +252,8 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
       RNOK( m_pcMbDecoder->decode ( *pcMbDataAccess,
                                     pcMbDataAccessBase,
                                     apcFrame            [uiLI],
-                                    apcResidual         [uiLI],
+                                    apcResidualLF       [uiLI],
+                                    apcResidualILPred   [uiLI],
                                     apcBaseLayer        [uiLI],
                                     apcBaseLayerResidual[uiLI],
                                     pcRefFrameList0F,
@@ -255,7 +263,8 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
   }
 
   if( pcFrame )             RNOK( pcFrame->            removeFrameFieldBuffer() );
-  if( pcResidual )          RNOK( pcResidual->         removeFrameFieldBuffer() );
+  if( pcResidualLF )        RNOK( pcResidualLF->       removeFrameFieldBuffer() );
+  if( pcResidualILPred )    RNOK( pcResidualILPred->   removeFrameFieldBuffer() );
   if( pcBaseLayer )         RNOK( pcBaseLayer->        removeFrameFieldBuffer() );
   if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->removeFrameFieldBuffer() );
 

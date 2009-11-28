@@ -44,6 +44,9 @@ public:
 
 	SequenceParameterSet& operator = ( const SequenceParameterSet& rcSPS );
 
+  Bool    doesFulfillMGSConstraint    ( const SequenceParameterSet& rcSPS )  const;
+  ErrVal  copySPSDataForMGSEnhancement( const SequenceParameterSet& rcSPS );
+
   static UInt   getLevelIdc               ( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbs );
   UInt          getMaxDPBSize             () const;
 
@@ -85,12 +88,11 @@ public:
   UInt                  getFrameHeightInMbs                   ()          const { return m_uiFrameHeightInMbs;}
   Bool                  getDirect8x8InferenceFlag             ()          const { return m_bDirect8x8InferenceFlag;}
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
-
 	Bool                  getFrameMbsOnlyFlag()                             const { return m_bFrameMbsOnlyFlag; }
 	Bool                  getMbAdaptiveFrameFieldFlag()                     const { return m_bMbAdaptiveFrameFieldFlag; }
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
-  Void  setDependencyId                            ( UInt        ui )          { m_uiDependencyId                             = ui; }
+  Void  setDependencyId                       ( UInt        ui )          { m_uiDependencyId                        = ui; }
   Void  setProfileIdc                         ( Profile     e  )          { m_eProfileIdc                           = e;  }
   Void  setConstrainedSet0Flag                ( Bool        b  )          { m_bConstrainedSet0Flag                  = b;  }
   Void  setConstrainedSet1Flag                ( Bool        b  )          { m_bConstrainedSet1Flag                  = b;  }
@@ -154,15 +156,25 @@ public:
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
-                NalUnitType           eNalUnitType );
+                NalUnitType           eNalUnitType,
+                Bool&                 rbCompletelyParsed );
+
 // TMM_ESS {
   Void setResizeParameters    ( const ResizeParameters& rcResizeParameters );
 
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
   //JVT-W046 {
-  Void  setChromaFormatIdc ( UInt ui ) { m_uiChromaFormatIdc = ui ;  }
-  UInt  getChromaFormatIdc () const    { return m_uiChromaFormatIdc; }
+  Void  setChromaFormatIdc      ( UInt ui ) { m_uiChromaFormatIdc       = ui; }
+  Void  setSeparateColourPlaneFlag( Bool b ) { m_bSeparateColourPlaneFlag = b; }
+  Void  setBitDepthLumaMinus8   ( UInt ui ) { m_uiBitDepthLumaMinus8    = ui; }
+  Void  setBitDepthChromaMinus8 ( UInt ui ) { m_uiBitDepthChromaMinus8  = ui; }
+  Void  setTransformBypassFlag  ( Bool b  ) { m_bTransformBypassFlag    = b; }
+  UInt  getChromaFormatIdc      ()  const { return m_uiChromaFormatIdc; }
+  Bool  getSeparateColourPlaneFlag() const { return m_bSeparateColourPlaneFlag; }
+  UInt  getBitDepthLumaMinus8   ()  const { return m_uiBitDepthLumaMinus8; }
+  UInt  getBitDepthChromaMinus8 ()  const { return m_uiBitDepthChromaMinus8; }
+  Bool  getTransformBypassFlag  ()  const { return m_bTransformBypassFlag; }
   Bool  getAVCHeaderRewriteFlag ()                const { return m_bAVCHeaderRewriteFlag; }
   Void  setAVCHeaderRewriteFlag ( Bool b )        { m_bAVCHeaderRewriteFlag = b; }
   Void  setBaseChromaPhaseXPlus1 ( UInt ui)       { m_uiBaseChromaPhaseXPlus1 = ui; }
@@ -240,6 +252,10 @@ protected:
   UInt          m_uiLevelIdc;
   UInt          m_uiSeqParameterSetId;
   UInt          m_uiChromaFormatIdc;//JVT-W046
+  Bool          m_bSeparateColourPlaneFlag;
+  UInt          m_uiBitDepthLumaMinus8;
+  UInt          m_uiBitDepthChromaMinus8;
+  Bool          m_bTransformBypassFlag;
 	Bool          m_bSeqScalingMatrixPresentFlag;
   ScalingMatrix m_cSeqScalingMatrix;
   UInt          m_uiLog2MaxFrameNum;

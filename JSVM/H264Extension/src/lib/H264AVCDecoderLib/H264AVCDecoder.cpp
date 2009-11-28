@@ -145,9 +145,8 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
         //===== required for parsing of slice headers =====
         SequenceParameterSet* pcSPS = NULL;
         RNOK( SequenceParameterSet::create( pcSPS ) );
-        RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType() ) );
+        RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType(), bCompletelyParsed ) );
         RNOK( m_pcParameterSetMngAUInit->store( pcSPS ) );
-        bCompletelyParsed = true;
         break;
       }
     case NAL_UNIT_PPS:
@@ -306,6 +305,7 @@ ErrVal
 H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
 {
   //===== parse NAL unit =====
+  Bool            bCompletelyParsed  = true;
   BinDataAccessor cBinDataAccessor;
   rcNonVCLNALUnit.getBinData()->setMemAccessor( cBinDataAccessor );
   RNOK  ( m_pcNalUnitParser   ->initNalUnit   ( cBinDataAccessor, ( rcNonVCLNALUnit.isScalableSEI     () ? -3 : 
@@ -317,7 +317,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
     {
       SequenceParameterSet* pcSPS = NULL;
       RNOK( SequenceParameterSet::create( pcSPS ) );
-      RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType() ) );
+      RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType(), bCompletelyParsed ) );
       RNOK( m_pcParameterSetMngDecode->store( pcSPS ) );
       printf("  NON-VCL: SEQUENCE PARAMETER SET (ID=%d)\n", pcSPS->getSeqParameterSetId() );
       break;
@@ -326,7 +326,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
     {
       SequenceParameterSet* pcSPS = NULL;
       RNOK( SequenceParameterSet::create( pcSPS ) );
-      RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType() ) );
+      RNOK( pcSPS->read( m_pcHeaderSymbolReadIf, m_pcNalUnitParser->getNalUnitType(), bCompletelyParsed ) );
       RNOK( m_pcParameterSetMngDecode->store( pcSPS ) );
       printf("  NON-VCL: SUBSET SEQUENCE PARAMETER SET (ID=%d)\n", pcSPS->getSeqParameterSetId() );
       break;
@@ -365,6 +365,9 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       EndOfSequence cEndOfSequence( *m_pcNalUnitParser );
       RNOK( cEndOfSequence.read   ( *m_pcHeaderSymbolReadIf ) );
       printf("  NON-VCL: END OF SEQUENCE\n" );
+#if IGNORE_TRAILING_BITS_IN_END_OF_SEQUENCE
+      bCompletelyParsed  = false;
+#endif
       break;
     }
   case NAL_UNIT_END_OF_STREAM: // just read, but ignore
@@ -372,6 +375,9 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       EndOfStream cEndOfStream( *m_pcNalUnitParser );
       RNOK( cEndOfStream.read ( *m_pcHeaderSymbolReadIf ) );
       printf("  NON-VCL: END OF STREAM\n" );
+#if IGNORE_TRAILING_BITS_IN_END_OF_STREAM
+      bCompletelyParsed  = false;
+#endif
       break;
     }
   case NAL_UNIT_FILLER_DATA: // just read, but ignore
@@ -391,7 +397,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       break;
     }
   }
-  RNOK( m_pcNalUnitParser->closeNalUnit() );
+  RNOK( m_pcNalUnitParser->closeNalUnit( bCompletelyParsed ) );
   return Err::m_nOK;
 }
 

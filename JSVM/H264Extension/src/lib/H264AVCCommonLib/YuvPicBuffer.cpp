@@ -1410,53 +1410,35 @@ ErrVal YuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
   return Err::m_nOK;
 }
 
-// Hanke@RWTH
-Bool YuvPicBuffer::isCurr4x4BlkNotZero ( LumaIdx cIdx )
+Bool
+YuvPicBuffer::isCurr4x4BlkNotZero( LumaIdx c4x4Idx )
 {
-  XPel* pPel      = getMbLumAddr();
-  Int   iStride   = getLStride();
-
-  for( Int iY = 0; iY<4; ++iY ) {
-    for( Int iX = 0; iX<4; ++iX )
-    {
-      if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX ] )
-        return true;
-    }
-  }
-  return false;
-}
-
-Bool YuvPicBuffer::isLeft4x4BlkNotZero ( LumaIdx cIdx )
-{
-  XPel* pPel      = getMbLumAddr();
-  Int   iStride   = getLStride();
-
-  for( Int iY = 0; iY<4; ++iY )
+  Int   iStride = getLStride  ();
+  XPel* pPel    = getMbLumAddr() + ( c4x4Idx.y() << 2 ) * iStride + ( c4x4Idx.x() << 2 );
+  for( Int iY = 0; iY < 4; iY++, pPel += iStride )
   {
-    for( Int iX = 0; iX<4; ++iX )
+    for( Int iX = 0; iX < 4; iX++ )
     {
-      if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX - 16 ] )
-        return true;
+      ROTRS( pPel[ iX ], true );
     }
   }
   return false;
 }
 
-Bool YuvPicBuffer::isAbove4x4BlkNotZero ( LumaIdx cIdx )
+Bool
+YuvPicBuffer::isCurr8x8BlkNotZero( B8x8Idx c8x8Idx )
 {
-  XPel* pPel      = getMbLumAddr();
-  Int   iStride   = getLStride();
-
-  for( Int iY = 0; iY<4; ++iY ) {
-    for( Int iX = 0; iX<4; ++iX )
+  Int   iStride = getLStride  ();
+  XPel* pPel    = getMbLumAddr() + ( c8x8Idx.y() << 2 ) * iStride + ( c8x8Idx.x() << 2 );
+  for( Int iY = 0; iY < 8; iY++, pPel += iStride )
+  {
+    for( Int iX = 0; iX < 8; iX++ )
     {
-      if ( pPel [ (cIdx.y()*4+iY - 16 )*iStride + cIdx.x()*4+iX ] )
-        return true;
+      ROTRS( pPel[ iX ], true );
     }
   }
   return false;
 }
-
 
 ErrVal YuvPicBuffer::setNonZeroFlags( UShort* pusNonZeroFlags, UInt uiStride )
 {

@@ -1,4 +1,54 @@
-﻿[Currently, all validation scripts work except for those that use error concealment features]
+﻿[Currently, all validation scripts work except for those that use error concealment features. The SVC conformance validation scripts show mismatches for several streams; it is believed that the JSVM decoding process is correct, 
+but the YUV files for the SVC conformance streams do not represent the correct output for an SVC compatible decoder.]
+
+
+
+JSVM_9_18 -> JSVM_9_18_1
+========================
+
+changes:
+- correction of scaling matrix selection
+- support of 2nd chroma QP offset
+- support of monochrome High profile decoding
+- correction of slice group change cycle parsing
+- remove assertion when non-supported SEIs are received
+- correction of MMCO 3 for field pictures
+- correction of POC setting for MMCO 5
+- correction of NumClockTS setting
+- correction of profile_level_idc setting in SEI (reported on 29.10.2009 by Thomas Gambier)
+- correction of POC mode 2 decoding (reported on 11.09.2009 by Emmanuel Weber and later by Danny Hong)
+- correction of residual condition for 8x8 blocks (reported on 07.09.2009 by Shivakumar Udupa)
+- correction of VLC parsing for MGS fragments (reported on 23.09.2009 by Stefan Eckard)
+- correction of residual data handling in inter-intra combination (reported on 28.09.2009 by Stefan Eckard)
+- correction of loop filter conditions (reported on 24.09.2009 by Stefan Eckard)
+- removed unnecessary deblocking (reported on 01.07.2009 by Steve Gordon)
+- correction of rate output for PAFF (reported on 09.07.2009 by Rashad Jillani)
+- correction of reference chroma QP setting in rewrite mode (reported on 09.07.2009 by Shinjan Tiwary)
+- correction of SPS setting for MGS enhancements of spatial layers (reported on 11.09.2009 by Stefan Eckard)
+- correction of decoding of incomplete layer representation in rewrite mode
+
+Known bugs:
+  currently all known/reported bugs have been fixed,
+  but the missing features below need to be implemented
+
+Missing features:
+- support of field pictures in scalable configurations in encoder
+  (currently only correctly supported in single-layer coding)
+- adding of remaining profile/level constraints in encoder
+  (add checks in decoder?)
+- error detection & concealment 
+  (without the restriction to two layers and 
+  fixed prediction structures that was found
+  in the previously implemented version)
+
+Further desirable improvements:
+- support GOP structures with non-dyadic prediction structures
+- combination of MGS and CGS coding
+- higher flexibility of "MGS vector mode"
+- if feasible, support of slice data partitioning
+- support of large file sizes (>4GB)
+- setting of IROI parameters in scalability info SEI and IROI-based extraction
+
 
 
 JSVM_9_18 -> JSVM_9_18_1

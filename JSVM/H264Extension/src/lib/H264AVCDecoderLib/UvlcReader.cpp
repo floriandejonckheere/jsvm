@@ -149,6 +149,22 @@ const UChar g_aucCbpInter[48] =
    22, 25, 38, 41
 };
 
+const UChar g_aucCbpIntraMonochrome[16] =
+{
+  15,  0,  7, 11,
+  13, 14,  3,  5,
+  10, 12,  1,  2,
+   4,  8,  6,  9
+};
+
+const UChar g_aucCbpInterMonochrome[16] =
+{
+   0,  1,  2,  4,
+   8,  3,  5, 10,
+  12, 15,  7, 11,
+  13, 14,  6,  9
+};
+
 const UChar g_aucCwLenVectTO16[4][62] =
 {
   { 1, 2, 3, 5, 6, 6, 6, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9,10,10,10,10,11,11,11,11,13,13,13,13,13,13,13,13,14,14,14,14,14,14,14,14,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16 },
@@ -886,7 +902,7 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   RNOK( xGetUvlcCode( uiTemp ) );
   Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
   UInt uiCbp;
-  if( ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
+  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
   {
     if( uiTemp == 0 )
     {
@@ -908,7 +924,16 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   }
   else
   {
-    uiCbp  = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
+    if( rcMbDataAccess.getSH().getSPS().getChromaFormatIdc() )
+    {
+      ROF( uiTemp < 48 );
+      uiCbp  = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
+    }
+    else
+    {
+      ROF( uiTemp < 16 );
+      uiCbp  = ( bIntra ? g_aucCbpIntraMonochrome[uiTemp]: g_aucCbpInterMonochrome[uiTemp] );
+    }
   }
 
   DTRACE_X ( uiCbp );

@@ -144,7 +144,8 @@ public:
     , m_uiNotCodedStages                  (0)
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
-    , m_uiBaseQualityLevel                (15)
+    , m_iChromaQPIndexOffset              ( 0 )
+    , m_i2ndChromaQPIndexOffset           ( 0 )
     , m_bConstrainedIntraPred             (false)
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
@@ -191,7 +192,6 @@ public:
     , m_uiBaseQualityLevelCGSSNR ( 0 )
 //DS_FIX_FT_09_2007
     , m_bDiscardable          ( true )
-    , m_uiQLDiscardable       ( MAX_QUALITY_LEVELS )
 //~DS_FIX_FT_09_2007
 //JVT-T054}
     , m_uiExplicitQPCascading ( 0 )
@@ -286,7 +286,8 @@ public:
   UInt                            getILPredMode                     () const {return m_uiILPredMode; }
   UInt                            getILPredMotion                   () const {return m_uiILPredMotion; }
   UInt                            getILPredResidual                 () const {return m_uiILPredResidual; }
-  UInt                            getBaseQualityLevel               () const {return m_uiBaseQualityLevel; }
+  Int                             getChromaQPIndexOffset            () const { return m_iChromaQPIndexOffset; }
+  Int                             get2ndChromaQPIndexOffset         () const { return m_i2ndChromaQPIndexOffset; }
 
 //JVT-V079 Low-complexity MB mode decision {
   UInt                            getLowComplexMbEnable             () const   { return m_uiLowComplexMbEnable; }
@@ -374,7 +375,8 @@ public:
 
   Void setBaseLayerSpatRes                (UInt   p) { m_uiBaseLayerSpatRes               = p; }
   Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
-  Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
+  Void setChromaQPIndexOffset             (Int    p) { m_iChromaQPIndexOffset             = p; }
+  Void set2ndChromaQPIndexOffset          (Int    p) { m_i2ndChromaQPIndexOffset          = p; }
   Void setContrainedIntraPred             ()         { m_bConstrainedIntraPred            = true; }
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
@@ -431,8 +433,6 @@ public:
   Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
 //DS_FIX_FT_09_2007
    Void setNonDiscardable                  ()       { m_bDiscardable = false;}
-   Void setQLDiscardable                   (UInt ui)  { m_uiQLDiscardable = ui;}
-   UInt getQLDiscardable                   ()       { return m_uiQLDiscardable;}
 //~DS_FIX_FT_09_2007
   Bool isDiscardable                      ()          { return m_bDiscardable;}
 //JVT-T054}
@@ -512,7 +512,8 @@ public:
   Bool                      m_bConstrainedIntraPred;
   UInt                      m_uiForceReorderingCommands;
   UInt                      m_uiBaseLayerId;
-  UInt                      m_uiBaseQualityLevel;
+  Int                       m_iChromaQPIndexOffset;
+  Int                       m_i2ndChromaQPIndexOffset;
 
   //JVT-V079 Low-complexity MB mode decision {
   Int                     m_uiLowComplexMbEnable;
@@ -599,7 +600,6 @@ public:
   UInt                      m_uiBaseLayerCGSSNR;
   UInt                      m_uiBaseQualityLevelCGSSNR;
   Bool                      m_bDiscardable;
-  UInt                      m_uiQLDiscardable; //DS_FIX_FT_09_2007
 //JVT-T054}
 
   UInt    m_uiExplicitQPCascading;

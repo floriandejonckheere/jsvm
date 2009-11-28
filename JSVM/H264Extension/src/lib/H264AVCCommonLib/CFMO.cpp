@@ -285,7 +285,7 @@ int FMO::getLastMBInSliceGroup (int SliceGroup)
  *    Macroblock number (in scan order)
  ************************************************************************
  */
-int FMO::getSliceGroupId (int mb)
+int FMO::getSliceGroupId (int mb) const
 {
   assert (mb < (int)img_.PicSizeInMbs);
   assert (MbToSliceGroupMap_ != NULL);
@@ -770,12 +770,38 @@ int FMO::SliceGroupCompletelyCoded( int SliceGroupID)
     return 0;//FALSE;
 }
 
+Int
+FMO::getFirstSliceGroupId()
+{
+  Int iID = 0;
+  for( ; iID < Max_Num_Slice_Groups; iID++ )
+  {
+    if( getFirstMBOfSliceGroup( iID ) >= 0 )
+    {
+      break;
+    }
+  }
+  return iID;
+}
+
+Int
+FMO::getNextSliceGroupId( Int iPrevSliceGroupId )
+{
+  Int iID = iPrevSliceGroupId + 1;
+  for( ; iID < Max_Num_Slice_Groups; iID++ )
+  {
+    if( getFirstMBOfSliceGroup( iID ) >= 0 )
+    {
+      break;
+    }
+  }
+  return iID;
+}
+
 Void FMO::InitFirstMBsInSlices()
 {
-
-  int k;
-  for (k=0;k<Max_Num_Slice_Groups;k++)
-    FirstMBInSlice[k] = -1;
+  for( Int k = 0; k <= Max_Num_Slice_Groups; k++ )
+    FirstMBInSlice[ k ] = -1;
 }
 
 // JVT-S054 (2) (ADD) ->

@@ -26,6 +26,8 @@ public:
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const;
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
 
+    Bool    isSame( const BitstreamRestriction& rcBitstreamRestriction )  const;
+    ErrVal  copy  ( const BitstreamRestriction& rcBitstreamRestriction );
 
     Bool getMotionVectorsOverPicBoundariesFlag() const { return m_bMotionVectorsOverPicBoundariesFlag; }
     UInt getMaxBytesPerPicDenom()               const { return m_uiMaxBytesPerPicDenom; }
@@ -61,6 +63,10 @@ public:
     AspectRatioInfo();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const;
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
+
+    Bool    isSame( const AspectRatioInfo& rcAspectRatioInfo )  const;
+    ErrVal  copy  ( const AspectRatioInfo& rcAspectRatioInfo );
+
     Bool getAspectRatioInfoPresentFlag()        const { return m_bAspectRatioInfoPresentFlag; }
     UInt getAspectRatioIdc()                    const { return m_uiAspectRatioIdc; }
     UInt getSarWith()                           const { return m_uiSarWith; }
@@ -83,6 +89,10 @@ public:
     VideoSignalType();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const;
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
+
+    Bool    isSame( const VideoSignalType& rcVideoSignalType )  const;
+    ErrVal  copy  ( const VideoSignalType& rcVideoSignalType );
+
     Bool getVideoSignalTypePresentFlag()        const { return m_bVideoSignalTypePresentFlag; }
     UInt getVideoFormat()                       const { return m_uiVideoFormat; }
     Bool getVideoFullRangeFlag()                const { return m_bVideoFullRangeFlag; }
@@ -114,6 +124,10 @@ public:
     ChromaLocationInfo();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const;
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
+
+    Bool    isSame( const ChromaLocationInfo& rcChromaLocationInfo )  const;
+    ErrVal  copy  ( const ChromaLocationInfo& rcChromaLocationInfo );
+
     Bool getChromaLocationInfoPresentFlag()     const { return m_bChromaLocationInfoPresentFlag; }
     UInt getChromaLocationFrame()               const { return m_uiChromaLocationFrame; }
     UInt getChromaLocationField()               const { return m_uiChromaLocationField; }
@@ -129,10 +143,13 @@ public:
   class H264AVCCOMMONLIB_API TimingInfo
   {
   public:
-
     TimingInfo();
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const;
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
+
+    Bool    isSame( const TimingInfo& rcTimingInfo )  const;
+    ErrVal  copy  ( const TimingInfo& rcTimingInfo );
+
     UInt getNumUnitsInTick()                    const { return m_uiNumUnitsInTick; }
     UInt getTimeScale()                         const { return m_uiTimeScale; }
     Bool getFixedFrameRateFlag()                const { return m_bFixedFrameRateFlag; }
@@ -142,8 +159,7 @@ public:
 
 	  Void setTimingInfoPresentFlag(Bool bTimingInfoPresentFlag)                        { m_bTimingInfoPresentFlag = bTimingInfoPresentFlag; }
 	  Bool getTimingInfoPresentFlag()                                             const { return m_bTimingInfoPresentFlag; }
-  protected:
-
+ protected:
     UInt m_uiNumUnitsInTick;
     UInt m_uiTimeScale;
     Bool m_bFixedFrameRateFlag;
@@ -176,7 +192,6 @@ public:
 
 
 public:
-
   VUI( SequenceParameterSet* pcSPS );
   virtual ~VUI();
 
@@ -184,6 +199,9 @@ public:
 
   ErrVal write( HeaderSymbolWriteIf* pcWriteIf )          const;
   ErrVal read( HeaderSymbolReadIf* pcReadIf );
+
+  Bool    isSameExceptHRDParametersAndSVCExt( const VUI& rcVUI )  const;
+  ErrVal  copyExceptHRDParametersAndSVCExt  ( const VUI& rcVUI );
 
   ErrVal writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf )          const;
   ErrVal readSVCExtension( HeaderSymbolReadIf* pcReadIf );
@@ -236,6 +254,8 @@ public:
 
   Void setDefaultIdx( UInt ui ) { m_uiDefaultIdx = ui; }
   UInt getDefaultIdx() const { return m_uiDefaultIdx; }
+
+  UInt  getNumEntries() const { return m_acLayerInfo.size(); }
 
 protected:
   Bool m_bVuiParametersPresentFlag;

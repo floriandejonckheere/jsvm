@@ -18,7 +18,3 @@ USAGE: dump.pm
 
 NOTE:
 The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
-
-
-CAUTION: 
-So far, only tests "6.6.1", "6.6.2", "6.6.5", "6.6.6", "6.6.7", "6.6.11", "6.6.18", "6.6.19", "6.6.20" and, "Hierarchical" need to be run!

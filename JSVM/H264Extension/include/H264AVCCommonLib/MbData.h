@@ -97,6 +97,40 @@ public :
 };
 
 
+class MbDataAccess;
+
+class H264AVCCOMMONLIB_API MbStatus
+{
+public:
+  MbStatus();
+  virtual ~MbStatus();
+
+  Void    reset           ();
+  Bool    canBeUpdated    ( const SliceHeader&  rcSliceHeader   );
+  ErrVal  update          ( MbDataAccess&       rcMbDataAccess  );
+
+  SliceHeader*        getSliceHeader          ()        { return    m_pcSliceHeader; }
+  const SliceHeader*  getSliceHeader          ()  const { return    m_pcSliceHeader; }
+  const SliceHeader*  getLastCodedSliceHeader ()  const { return    m_pcLastCodedSliceHeader; }
+  UInt                getSliceIdc             ()  const { return    m_uiSliceIdc; }
+  UInt                getFirstMbInSlice       ()  const { return    m_uiSliceIdc >> 7; }
+  UInt                getDQId                 ()  const { return    m_uiSliceIdc        & 0x7F; }
+  UInt                getDependencyId         ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
+  UInt                getQualityId            ()  const { return    m_uiSliceIdc        & 0xF; }
+  UInt                getLastCodedDQId        ()  const { return    m_uiLastCodedDQId; }
+  UInt                getMbCbpDQId0           ()  const { return    m_uiMbCbpDQId0; }
+  Bool                isCoded                 ()  const { return    m_bIsCoded; }
+
+private:
+  UInt          m_uiSliceIdc;
+  UInt          m_uiLastCodedDQId;
+  UInt          m_uiMbCbpDQId0;
+  Bool          m_bIsCoded;
+  SliceHeader*  m_pcSliceHeader;
+  SliceHeader*  m_pcLastCodedSliceHeader;
+};
+
+
 H264AVC_NAMESPACE_END
 
 

@@ -2,7 +2,7 @@
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbData.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
-
+#include "H264AVCCommonLib/MbDataAccess.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -268,6 +268,64 @@ MbData::copyTCoeffs( MbData& rcMbData )
   m_ucQp    = rcMbData.m_ucQp;
   m_ucQp4LF = rcMbData.m_ucQp4LF;
 
+  return Err::m_nOK;
+}
+
+
+
+MbStatus::MbStatus()
+: m_uiSliceIdc            ( MSYS_UINT_MAX )
+, m_uiLastCodedDQId       ( MSYS_UINT_MAX )
+, m_uiMbCbpDQId0          ( 0 )
+, m_bIsCoded              ( false )
+, m_pcSliceHeader         ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
+{
+}
+
+MbStatus::~MbStatus()
+{
+}
+
+Void
+MbStatus::reset()
+{
+  m_uiSliceIdc              = MSYS_UINT_MAX;
+  m_uiLastCodedDQId         = MSYS_UINT_MAX;
+  m_uiMbCbpDQId0            = 0;
+  m_bIsCoded                = false;
+  m_pcSliceHeader           = 0;
+  m_pcLastCodedSliceHeader  = 0;
+}
+
+Bool
+MbStatus::canBeUpdated( const SliceHeader& rcSliceHeader )
+{
+  ROTRS( rcSliceHeader.getQualityId() == 0 && m_uiSliceIdc == MSYS_UINT_MAX,                   true );
+  ROTRS( rcSliceHeader.getQualityId() != 0 && rcSliceHeader.getRefLayerDQId() == getDQId() &&
+        ( m_bIsCoded || !rcSliceHeader.isTrueSlice() ),                                       true );
+  return false;
+}
+
+ErrVal
+MbStatus::update( MbDataAccess& rcMbDataAccess )
+{
+  SliceHeader& rcSliceHeader = rcMbDataAccess.getSH();
+  ROF( canBeUpdated( rcSliceHeader ) );
+  m_uiSliceIdc        =  rcSliceHeader.getFirstMbInSlice() << 7;
+  m_uiSliceIdc       +=  rcSliceHeader.getDependencyId  () << 4;
+  m_uiSliceIdc       +=  rcSliceHeader.getQualityId     ();
+  m_bIsCoded          =  rcSliceHeader.isTrueSlice      ();
+  m_pcSliceHeader     = &rcSliceHeader;
+  if( m_bIsCoded )
+  {
+    m_uiLastCodedDQId         =  getDQId();
+    if( m_uiLastCodedDQId == 0 )
+    {
+      m_uiMbCbpDQId0          =  rcMbDataAccess.getMbData().getMbExtCbp();
+    }
+    m_pcLastCodedSliceHeader  = m_pcSliceHeader;
+  }
   return Err::m_nOK;
 }
 

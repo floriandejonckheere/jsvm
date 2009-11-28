@@ -43,7 +43,7 @@ public:
   Bool                  getWeightedPredFlag                     ()            const { return m_bWeightedPredFlag; }
   UInt                  getWeightedBiPredIdc                    ()            const { return m_uiWeightedBiPredIdc; }
   UInt                  getPicInitQp                            ()            const { return m_uiPicInitQp; }
-  Int                   getChomaQpIndexOffset                   ()            const { return m_iChomaQpIndexOffset; }
+  Int                   getChromaQpIndexOffset                  ()            const { return m_iChromaQpIndexOffset; }
   Bool                  getDeblockingFilterParametersPresentFlag()            const { return m_bDeblockingFilterParametersPresentFlag; }
   Bool                  getConstrainedIntraPredFlag             ()            const { return m_bConstrainedIntraPredFlag; }
   Bool                  getRedundantPicCntPresentFlag           ()            const { return m_bRedundantPicCntPresentFlag; } //JVT-Q054 Red. Picture
@@ -52,6 +52,7 @@ public:
 	Bool                  getTransform8x8ModeFlag                 ()            const { return m_bTransform8x8ModeFlag; }
   Bool                  getPicScalingMatrixPresentFlag          ()            const { return m_bPicScalingMatrixPresentFlag; }
   const ScalingMatrix&  getPicScalingMatrix                     ()            const { return m_cPicScalingMatrix; }
+  ScalingMatrix&        getPicScalingMatrix                     ()                  { return m_cPicScalingMatrix; }
   Int                   get2ndChromaQpIndexOffset               ()            const { return m_iSecondChromaQpIndexOffset; }
 
 
@@ -70,7 +71,18 @@ public:
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return m_pauiSliceGroupId;}
   UInt          getSliceGroupChangeCycle() const {return m_uiSliceGroupChangeCycle;}
-  UInt          getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(m_uiSliceGroupChangeRateMinus1+1.)+ 1. ))/log(2.) ));};
+  UInt          getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const 
+  {
+    UInt uiTmp = ( uiPicSizeInMapUnits + m_uiSliceGroupChangeRateMinus1 ) / ( m_uiSliceGroupChangeRateMinus1 + 1 ) + 1;
+    for( UInt uiMaxLog2 = 0; uiMaxLog2 < 32; uiMaxLog2++ )
+    {
+      if( uiTmp <= UInt( 1 << uiMaxLog2 ) )
+      {
+        return uiMaxLog2;
+      }
+    }
+    return MSYS_UINT_MAX;
+  };
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
 
@@ -85,7 +97,7 @@ public:
   Void  setWeightedPredFlag                     ( Bool        b )           { m_bWeightedPredFlag                       = b; }
   Void  setWeightedBiPredIdc                    ( UInt        ui )          { m_uiWeightedBiPredIdc                     = ui; }
   Void  setPicInitQp                            ( UInt        ui )          { m_uiPicInitQp                             = ui; }
-  Void  setChomaQpIndexOffset                   ( Int         i )           { m_iChomaQpIndexOffset                     = i; }
+  Void  setChromaQpIndexOffset                  ( Int         i )           { m_iChromaQpIndexOffset                    = i; }
   Void  setDeblockingFilterParametersPresentFlag( Bool        b )           { m_bDeblockingFilterParametersPresentFlag  = b; }
   Void  setConstrainedIntraPredFlag             ( Bool        b )           { m_bConstrainedIntraPredFlag               = b; }
   Void  setRedundantPicCntPresentFlag           ( Bool        b )           { m_bRedundantPicCntPresentFlag             = b; }  // JVT-Q054 Red. Picture
@@ -173,7 +185,7 @@ protected:
   Bool          m_bWeightedPredFlag;
   UInt          m_uiWeightedBiPredIdc;
   UInt          m_uiPicInitQp;
-  Int           m_iChomaQpIndexOffset;
+  Int           m_iChromaQpIndexOffset;
   Bool          m_bDeblockingFilterParametersPresentFlag;
   Bool          m_bConstrainedIntraPredFlag;
   Bool          m_bTransform8x8ModeFlag;

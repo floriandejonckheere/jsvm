@@ -139,7 +139,7 @@ class FMO
 	int *numMbInSliceGroup_;
 
 	//enc
-	int FirstMBInSlice[Max_Num_Slice_Groups];
+  int FirstMBInSlice[Max_Num_Slice_Groups+1];
 
 	static Bool m_siSGId[Max_Num_Slice_Groups];
 	static int  m_iPOC, m_iFrame;
@@ -214,7 +214,7 @@ public:
 	int getNumberOfSliceGroup();
 	int getLastMBOfPicture();
 	int getLastMBInSliceGroup(int SliceGroup);
-	int getSliceGroupId (int mb);
+  int getSliceGroupId (int mb) const;
 	int getNextMBNr (int CurrentMbNr);
 	int getNumMbInSliceGroup(int sliceGroupID);
 
@@ -230,6 +230,9 @@ public:
 	int SliceGroupCompletelyCoded( int SliceGroupID);
 
 	void setLastMacroblockInSlice ( int mb);
+
+  Int getFirstSliceGroupId();
+  Int getNextSliceGroupId( Int iPrevSliceGroupId );
 
 
   //--ICU/ETRI FMO Implementation

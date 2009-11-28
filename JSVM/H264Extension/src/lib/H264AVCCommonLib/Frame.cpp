@@ -17,8 +17,8 @@ Frame::Frame( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPel
 	m_iPoc                  ( 0 ),
   m_iTopFieldPoc          ( 0 ),
   m_iBotFieldPoc          ( 0 ),
-  m_pcFrameTopField    ( NULL ),
-  m_pcFrameBotField    ( NULL ),
+  m_pcFrameTopField       ( NULL ),
+  m_pcFrameBotField       ( NULL ),
   m_pcFrame               ( pcFrame ),
   m_pcDPBUnit             ( NULL ),
   m_piChannelDistortion   ( 0 )     // JVT-R057 LA-RDO

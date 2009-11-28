@@ -523,6 +523,7 @@ CurrDPBUnit::resetMMCO5( SliceHeader& rcSliceHeader )
   m_uiFrameNum  = 0;
   m_aiPoc[0]    = ( m_ePicStatus == BOT_FIELD ? m_aiPoc[0] : rcSliceHeader.getTopFieldPoc() );
   m_aiPoc[1]    = ( m_ePicStatus == TOP_FIELD ? m_aiPoc[1] : rcSliceHeader.getBotFieldPoc() );
+  DPBUnit::getFrame()->setPoc( rcSliceHeader );
   return Err::m_nOK;
 }
 
@@ -615,6 +616,8 @@ CurrDPBUnit::xStoreFrame( DPBUnit& rcDPBUnit, Bool bRefBasePic )
     ROF( rpcFrame && pcTmpFrame );
     rcDPBUnit.m_pcFrame = rpcFrame;
     rpcFrame            = pcTmpFrame;
+    rcDPBUnit.m_pcFrame->setDPBUnit( &rcDPBUnit );
+    rpcFrame           ->setDPBUnit( 0 );
   }
   //===== switch base layer macroblock data control =====
   if( rcDPBUnit.m_pcMbDataCtrlBaseLayer )
@@ -878,10 +881,10 @@ DecodedPicBuffer::initCurrDPBUnit( CurrDPBUnit*&  rpcCurrDPBUnit,
 {
   ROF( m_bInitDone );
   ROF( m_bInitBufferDone || rcSliceHeader.getIdrFlag() );
-  ROF( rpcPicBuffer );
   ROF( rcSliceHeader.getDependencyId() == m_uiDependencyId );
   if( bFirstSliceInDependencyRepresentation )
   {
+    ROF ( rpcPicBuffer );
     ROF ( bFirstSliceInLayerRepresentation );
     ROT ( rcSliceHeader.getQualityId() );
     //--- initialize buffer when required ---
@@ -1538,22 +1541,11 @@ DecodedPicBuffer::xAssignLongTermIndex( UInt uiCurrFrameNum, PicType eCurrPicTyp
   PicType ePicTypeX         = ( eCurrPicType == FRAME ? FRAME    : ( iPicNumX  % 2 ? eCurrPicType : PicType( FRAME - eCurrPicType ) ) );
   UInt    iFrameNumWrapX    = ( eCurrPicType == FRAME ? iPicNumX : ( iPicNumX >> 1 ) );
   Int     iLongTermFrameIdx = (Int)uiLongTermFrameIndex;
-  //===== mark long-term pictures with specified index as "unused for reference" =====
-  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-  for( ; iter != end; iter++ )
-  {
-    if( (*iter)->isLongTermUnit   ()                      &&
-        (*iter)->getLongTermIndex () == iLongTermFrameIdx   )
-    {
-      RNOK( (*iter)->markUnusedForRef( FRAME ) );
-    }
-  }
   //===== find short-term pictures =====
-  DPBUnit*  pcDPBUnit     = 0;
-  DPBUnit*  pcDPBUnitBase = 0;
-  iter                    = m_cUsedDPBUnitList.begin();
-  end                     = m_cUsedDPBUnitList.end  ();
+  DPBUnit*              pcDPBUnit     = 0;
+  DPBUnit*              pcDPBUnitBase = 0;
+  DPBUnitList::iterator iter          = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end           = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
     if( (*iter)->isShortTermRef   ( ePicTypeX )                                         &&
@@ -1569,6 +1561,18 @@ DecodedPicBuffer::xAssignLongTermIndex( UInt uiCurrFrameNum, PicType eCurrPicTyp
         ROT( pcDPBUnit );
         pcDPBUnit = *iter;
       }
+    }
+  }
+  //===== mark long-term pictures with specified index as "unused for reference" =====
+  iter  = m_cUsedDPBUnitList.begin();
+  end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isLongTermUnit   ()                      &&
+        (*iter)->getLongTermIndex () == iLongTermFrameIdx &&
+        (*iter)                      != pcDPBUnit           )
+    {
+      RNOK( (*iter)->markUnusedForRef( FRAME ) );
     }
   }
   //===== mark pictures =====
@@ -1606,7 +1610,7 @@ DecodedPicBuffer::xReset( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHe
   DPBUnitList::iterator end     = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    if( (*iter)->isRequired() )
+    if( (*iter)->isRequired() && (*iter)->isExisting() )
     {
       Int iPoc  = (*iter)->getMaxPoc( rcSliceHeader.getSPS().getPicOrderCntType() == 0 );
       iMaxPoc   = gMax( iMaxPoc, iPoc );
@@ -1618,7 +1622,7 @@ DecodedPicBuffer::xReset( PocCalculator& rcPocCalculator, SliceHeader& rcSliceHe
   end   = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
   {
-    (*iter)->decreasePoc( m_pcCurrDPBUnit->getPoc() );
+    RNOK( (*iter)->decreasePoc( m_pcCurrDPBUnit->getPoc() ) );
   }
   //===== mark all pictures as "unused for reference" =====
   RNOK( xMarkAllUnusedForRef() );
@@ -2028,47 +2032,6 @@ DecodedPicBuffer::xDumpRefPicList( RefFrameList& rcRefFrameList, ListIdx eListId
 
 
 
-MbStatus::MbStatus()
-: m_uiSliceIdc    ( MSYS_UINT_MAX )
-, m_bIsCoded      ( false )
-, m_pcSliceHeader ( 0 )
-{
-}
-
-MbStatus::~MbStatus()
-{
-}
-
-Void
-MbStatus::reset()
-{
-  m_uiSliceIdc    = MSYS_UINT_MAX;
-  m_bIsCoded      = false;
-  m_pcSliceHeader = 0;
-}
-
-Bool
-MbStatus::canBeUpdated( const SliceHeader* pcSliceHeader )
-{
-  ROTRS( pcSliceHeader->getQualityId() == 0 && m_uiSliceIdc == MSYS_UINT_MAX,                   true );
-  ROTRS( pcSliceHeader->getQualityId() != 0 && pcSliceHeader->getRefLayerDQId() == getDQId() &&
-         ( m_bIsCoded || !pcSliceHeader->isTrueSlice() ),                                       true );
-  return false;
-}
-
-ErrVal
-MbStatus::update( SliceHeader* pcSliceHeader )
-{
-  ROF( canBeUpdated( pcSliceHeader ) );
-  m_uiSliceIdc    = pcSliceHeader->getFirstMbInSlice() << 7;
-  m_uiSliceIdc   += pcSliceHeader->getDependencyId  () << 4;
-  m_uiSliceIdc   += pcSliceHeader->getQualityId     ();
-  m_bIsCoded      = pcSliceHeader->isTrueSlice      ();
-  m_pcSliceHeader = pcSliceHeader;
-  return Err::m_nOK;
-}
-
-
 
 LayerDecoder::LayerDecoder()
 : m_pcH264AVCDecoder                    ( 0 )
@@ -2100,7 +2063,8 @@ LayerDecoder::LayerDecoder()
 , m_pcCurrDPBUnit                       ( 0 )
 , m_pcBaseLayerCtrl                     ( 0 )
 , m_pcBaseLayerCtrlField                ( 0 )
-, m_pcResidual                          ( 0 )
+, m_pcResidualLF                        ( 0 )
+, m_pcResidualILPred                    ( 0 )
 , m_pcILPrediction                      ( 0 )
 , m_pcBaseLayerFrame                    ( 0 )
 , m_pcBaseLayerResidual                 ( 0 )
@@ -2196,6 +2160,8 @@ LayerDecoder::init( UInt                   uiDependencyId,
   m_bSPSInitialized                       = false;
   m_bDependencyRepresentationInitialized  = false;
   m_bLayerRepresentationInitialized       = false;
+  m_bInterLayerPredLayerRep               = false;
+  m_bRewritingLayerRep                    = false;
   m_uiFrameWidthInMb                      = 0;
   m_uiFrameHeightInMb                     = 0;
   m_uiMbNumber                            = 0;
@@ -2207,7 +2173,8 @@ LayerDecoder::init( UInt                   uiDependencyId,
   m_pcCurrDPBUnit                         = 0;
   m_pcBaseLayerCtrl                       = 0;
   m_pcBaseLayerCtrlField                  = 0;
-  m_pcResidual                            = 0;
+  m_pcResidualLF                          = 0;
+  m_pcResidualILPred                      = 0;
   m_pcILPrediction                        = 0;
   m_pcBaseLayerFrame                      = 0;
   m_pcBaseLayerResidual                   = 0;
@@ -2291,7 +2258,7 @@ LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
 
   //===== create, read, init, and store slice header (and init SPS when required) =====
   RNOK( xReadSliceHeader          (  rpcSliceHeader, rcSliceDataNalUnit ) );
-  RNOK( xInitSliceHeader          ( *rpcSliceHeader, rcSliceDataNalUnit ) );
+  RNOK( xInitSliceHeader          ( *rpcSliceHeader ) );
   RNOK( xInitSPS                  ( *rpcSliceHeader ) );
   m_cSliceHeaderList.push_back    (  rpcSliceHeader );
 
@@ -2304,6 +2271,15 @@ LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
   //===== update parameters =====
   m_bLayerRepresentationInitialized       = true;
   m_bDependencyRepresentationInitialized  = true;
+  Bool  bInterLayerPredSlice              = !rpcSliceHeader->getNoInterLayerPredFlag      ();
+  Bool  bRewritingSlice                   =  rpcSliceHeader->getTCoeffLevelPredictionFlag ();
+  if( m_bInterLayerPredLayerRep && bInterLayerPredSlice && ( m_bRewritingLayerRep != bRewritingSlice ) )
+  {
+    fprintf( stderr, "Layer representation has different values of tcoeff_level_prediction_flag -> not supported\n" );
+    ROT( 1 );
+  }
+  m_bInterLayerPredLayerRep               = ( m_bInterLayerPredLayerRep || bInterLayerPredSlice );
+  m_bRewritingLayerRep                    = ( m_bRewritingLayerRep      || bRewritingSlice      );
 
   return Err::m_nOK;
 }
@@ -2363,7 +2339,8 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
                                          rcControlData.getBaseLayerCtrl(),
                                          rcControlData.getBaseLayerCtrlField(),
                                          pcRecFrame,
-                                         m_pcResidual,
+                                         m_pcResidualLF,
+                                         m_pcResidualILPred,
                                          rcControlData.getBaseLayerRec(),
                                          rcControlData.getBaseLayerSbb(),
                                          &rcRefFrameList0,
@@ -2377,7 +2354,8 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
                                          pcMbDataCtrl,
                                          rcControlData.getBaseLayerCtrl(),
                                          pcRecFrame,
-                                         m_pcResidual,
+                                         m_pcResidualLF,
+                                         m_pcResidualILPred,
                                          rcControlData.getBaseLayerRec(),
                                          rcControlData.getBaseLayerSbb(),
                                          &rcRefFrameList0,
@@ -2420,10 +2398,11 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
   PicType       ePicType            = rcSliceHeader.getPicType();
   Bool          bReconstructBaseRep = rcSliceHeader.getStoreRefBasePicFlag() && ! rcSliceHeader.getQualityId();
   Bool          bReconstructAll     = rcSliceDataNalUnit.isDQIdMax();
+  Bool          bDeblockBaseRep     = bReconstructBaseRep && rcSliceDataNalUnit.isDependencyIdMax();
 #endif
 
   //===== check for missing slices =====
-  RNOK( xCheckForMissingSlices( rcSliceDataNalUnit ) );
+  RNOK( xCheckForMissingSlices( rcSliceDataNalUnit, rcPicBufferOutputList, rcPicBufferUnusedList ) );
 
   //===== determine loop filter QPs =====
   RNOK( xSetLoopFilterQPs( rcSliceHeader, *pcMbDataCtrl ) );
@@ -2442,20 +2421,23 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
     RNOK( pcFrame->copy( pcBaseRepFrame, ePicType ) );
 
     //----- loop-filtering and store in DPB as base representation -----
-    RNOK( m_pcLoopFilter->process( rcSliceHeader,
-                                   pcBaseRepFrame,
-                                   m_pcResidual,
-                                   pcMbDataCtrl,
-                                   0, rcControlData.getSpatialScalability() ) );
+    if( bDeblockBaseRep )
+    {
+      RNOK( m_pcLoopFilter->process( rcSliceHeader,
+                                     pcBaseRepFrame,
+                                     m_pcResidualLF,
+                                     pcMbDataCtrl,
+                                     0, rcControlData.getSpatialScalability(), m_pacMbStatus ) );
+    }
   }
   RNOK( m_pcILPrediction->copy( pcFrame, ePicType ) );
   if( bReconstructAll )
   {
     RNOK( m_pcLoopFilter->process( rcSliceHeader,
                                    pcFrame,
-                                   m_pcResidual,
+                                   m_pcResidualLF,
                                    pcMbDataCtrl,
-                                   0, rcControlData.getSpatialScalability() ) );
+                                   0, rcControlData.getSpatialScalability(), m_pacMbStatus ) );
   }
 #endif
 
@@ -2484,6 +2466,8 @@ LayerDecoder::xFinishSlice( SliceHeader&            rcSliceHeader,
   //===== finish layer representation and update parameters =====
   RNOK  ( xFinishLayerRepresentation( rcSliceHeader, rcPicBufferOutputList, rcPicBufferUnusedList, rcSliceDataNalUnit, rcBinDataList ) );
   m_bLayerRepresentationInitialized = false;
+  m_bInterLayerPredLayerRep         = false;
+  m_bRewritingLayerRep              = false;
   m_uiQualityId++;
   ROFRS ( rcSliceDataNalUnit.isLastSliceInDependencyRepresentation(), Err::m_nOK );
 
@@ -2499,7 +2483,9 @@ LayerDecoder::xFinishSlice( SliceHeader&            rcSliceHeader,
 }
 
 ErrVal
-LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit )
+LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit,
+                                      PicBufferList&          rcPicBufferOutputList,
+                                      PicBufferList&          rcPicBufferUnusedList )
 {
   UInt                  uiDQId            = ( m_uiDependencyId << 4 ) + m_uiQualityId;
   SliceHeader*          pcLastSliceHeader = m_cSliceHeaderList.back();
@@ -2508,7 +2494,7 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
 
   //===== check whether slices are missing =====
   {
-    for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
+    for( Int iSliceGroupId = rcFMO.getFirstSliceGroupId(); ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId = rcFMO.getNextSliceGroupId( iSliceGroupId ) )
     {
       UInt  uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
       UInt  uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
@@ -2527,6 +2513,14 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
         }
         if( uiNumMbsInSlice && ( m_pacMbStatus[ uiMbAddress ].getDQId() == uiDQId || uiMbAddress == uiLastMbInSliceGroup ) )
         {
+          if( m_bRewritingLayerRep )
+          {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+            fprintf( stderr, "WARNING: Rewriting of incomplete layer representations may result in non-conforming bitstreams\n" );
+#else
+            fprintf( stderr, "INFORMATION: Decoding of incomplete layer representations with MaxTCoeffLevelPredFlag may result in unsuitable visual quality\n" );
+#endif
+          }
           //===== create copy virtual skip slice and add to list =====
           SliceHeader* pcSliceHeader = new SliceHeader( *pcLastSliceHeader );
           ROF( pcSliceHeader );
@@ -2534,7 +2528,8 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
           pcSliceHeader->setSliceSkipFlag             ( true );
           pcSliceHeader->setFirstMbInSlice            ( uiFirstMbAddress );
           pcSliceHeader->setNumMbsInSliceMinus1       ( uiNumMbsInSlice - 1 );
-          pcSliceHeader->setTCoeffLevelPredictionFlag ( false );
+          pcSliceHeader->setTCoeffLevelPredictionFlag ( m_bRewritingLayerRep );
+          pcSliceHeader->setLastCodedSliceHeader      ( m_pacMbStatus[ uiFirstMbAddress ].getLastCodedSliceHeader() );
           cVirtualSkipSliceList.push_back( pcSliceHeader );
         }
       }
@@ -2549,8 +2544,14 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
   //==== concealment ====
   while( !cVirtualSkipSliceList.empty() )
   {
+    PicBuffer*   pcPicBuffer   = 0;
     SliceHeader* pcSliceHeader = cVirtualSkipSliceList.popFront();
     m_cSliceHeaderList.push_back( pcSliceHeader );
+
+    //===== init virtual slice =====
+    RNOK( xInitSliceHeader          ( *pcSliceHeader ) );
+    RNOK( xInitDPBUnit              ( *pcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList ) );
+    RNOK( xInitESSandCroppingWindow ( *pcSliceHeader, *m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl(), m_pcCurrDPBUnit->getCtrlData() ) );
 
     //===== parse and decode virtual slice =====
     RNOK( xParseSlice ( *pcSliceHeader ) );
@@ -2566,7 +2567,7 @@ LayerDecoder::xSetLoopFilterQPs( SliceHeader& rcSliceHeader, MbDataCtrl& rcMbDat
   RNOK( rcMbDataCtrl.initSlice( rcSliceHeader, DECODE_PROCESS, false, 0 ) );
 
   FMO& rcFMO = *rcSliceHeader.getFMO();
-  for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
+  for( Int iSliceGroupId = rcFMO.getFirstSliceGroupId(); ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId = rcFMO.getNextSliceGroupId( iSliceGroupId ) )
   {
     UInt  uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
     UInt  uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
@@ -2606,7 +2607,7 @@ LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataC
   Bool                        bMbAff  =  m_cSliceHeaderList.back()->isMbaffFrame();
   RNOK( m_pcRewriteEncoder->startPicture( rcSPS ) );
 
-  for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
+  for( Int iSliceGroupId = rcFMO.getFirstSliceGroupId(); ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId = rcFMO.getNextSliceGroupId( iSliceGroupId ) )
   {
     UInt          uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
     UInt          uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
@@ -2674,12 +2675,24 @@ LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
     ROF( rpcSliceHeader );
   }
   RNOK( rpcSliceHeader->read( *m_pcParameterSetMng, *m_pcHeaderSymbolReadIf ) );
+  {
+    //---- check for unsupported SI/SP slices ----
+    SliceType eSliceType = rpcSliceHeader->getSliceType();
+    if( eSliceType == SP_SLICE || eSliceType == SI_SLICE || Int( eSliceType ) > 7 )
+    {
+      fprintf( stderr, "\n" );
+      fprintf( stderr, "Unsupported conformance point:\n" );
+      fprintf( stderr, "   slice_type = %d\n", (Int)eSliceType );
+      fprintf( stderr, "\n" );
+      RERR();
+    }
+  }
 
   return Err::m_nOK;
 }
 
 ErrVal
-LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUnit& rcSliceDataNalUnit )
+LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader )
 {
   //===== check =====
   ROF( rcSliceHeader.getDependencyId() == m_uiDependencyId );
@@ -2823,11 +2836,26 @@ LayerDecoder::getBaseLayerData( SliceHeader&      rcELSH,
   pcMbDataCtrl                  = pcBaseDPBUnit->getMbDataCtrl ();
   SliceHeader*  pcSliceHeader   = pcBaseDPBUnit->getSliceHeader();
   pcFrame                       = m_pcILPrediction;
-  pcResidual                    = m_pcResidual;
+  pcResidual                    = m_pcResidualILPred;
   ROF( pcMbDataCtrl );
   ROF( pcSliceHeader );
   ROF( pcFrame );
   ROF( pcResidual );
+
+  //===== set correct reference layer slice header =====
+  pcMbDataCtrl->setSliceHeader( pcSliceHeader );
+
+  //===== check chroma format idc =====
+  ROF( pcSliceHeader->getSPS().getChromaFormatIdc() == rcELSH.getSPS().getChromaFormatIdc() );
+
+  if( rcELSH.getQualityId() )
+  {
+    Bool  bSPSOk  = rcELSH.getSPS().doesFulfillMGSConstraint( pcSliceHeader->getSPS() );
+    if(  !bSPSOk )
+    {
+      fprintf( stdout, "WARNING: SPS of (D=%d,Q=%d) does not fulfill all MGS requirement -> ignore issue\n", rcELSH.getDependencyId(), rcELSH.getQualityId() );
+    }
+  }
 
   //===== update resize parameters =====
   rcResizeParameters.updateRefLayerParameters( *pcSliceHeader );
@@ -2856,11 +2884,13 @@ LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK( m_apcFrameTemp[ uiIndex ]->init() );
   }
 
-  RNOK( Frame::create( m_pcResidual,          *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
+  RNOK( Frame::create( m_pcResidualLF,        *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
+  RNOK( Frame::create( m_pcResidualILPred,    *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
   RNOK( Frame::create( m_pcILPrediction,      *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
   RNOK( Frame::create( m_pcBaseLayerFrame,    *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
   RNOK( Frame::create( m_pcBaseLayerResidual, *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl, FRAME, 0 ) );
-  RNOK( m_pcResidual          ->init() );
+  RNOK( m_pcResidualLF        ->init() );
+  RNOK( m_pcResidualILPred    ->init() );
   RNOK( m_pcILPrediction      ->init() );
   RNOK( m_pcBaseLayerFrame    ->init() );
   RNOK( m_pcBaseLayerResidual ->init() );
@@ -2898,11 +2928,17 @@ LayerDecoder::xDeleteData()
     }
   }
 
-  if( m_pcResidual )
+  if( m_pcResidualLF )
   {
-    RNOK(   m_pcResidual->uninit() );
-    RNOK( m_pcResidual->destroy() );
-    m_pcResidual = NULL;
+    RNOK( m_pcResidualLF->uninit() );
+    RNOK( m_pcResidualLF->destroy() );
+    m_pcResidualLF = NULL;
+  }
+  if( m_pcResidualILPred )
+  {
+    RNOK( m_pcResidualILPred->uninit() );
+    RNOK( m_pcResidualILPred->destroy() );
+    m_pcResidualILPred = NULL;
   }
 
   if( m_pcILPrediction )
@@ -3070,6 +3106,8 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
       RNOK( m_pcBaseLayerCtrlField->upsampleMotion( pcSliceHeader, &m_cResizeParameters, pcBaseDataCtrl, pcList0, pcList1, true ) );
       rcControlData.setBaseLayerCtrlField( m_pcBaseLayerCtrlField );
     }
+
+    pcSliceHeader->setBaseSliceHeader( pcBaseDataCtrl->getSliceHeader() );
   }
 
   //===== residual data =====

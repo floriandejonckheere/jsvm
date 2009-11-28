@@ -70,7 +70,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-                        bitrate     => 838,
+                        bitrate     => 837,
                         psnr        => 31.62,
                         encdecmatch => 1,
                        },                      

@@ -162,7 +162,7 @@ SEI::xRead( HeaderSymbolReadIf* pcReadIf,
   // special handling for bit stream extractor
   if( pcParameterSetMng == 0 && ( eMessageType == PIC_TIMING || eMessageType == BUFFERING_PERIOD ) )
   {
-    RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize, false ) );
+    RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) );
     UInt uiDummy;
     while (uiSize--)
     {
@@ -171,8 +171,7 @@ SEI::xRead( HeaderSymbolReadIf* pcReadIf,
     RNOK( pcReadIf->readByteAlign() );
     return Err::m_nOK;
   }
-
-  RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize, false ) )
+  RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) );
   RNOK( rpcSEIMessage->read( pcReadIf, pcParameterSetMng ) );
   RNOK( pcReadIf->readByteAlign() );
   return Err::m_nOK;
@@ -245,8 +244,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
               // JVT-V068 {
               ParameterSetMng*& rpcParameterSetMng,
               // JVT-V068 }
-              UInt          uiSize,
-              Bool          bDQIdGt0 )
+              UInt          uiSize )
 {
   switch( eMessageType )
   {
@@ -275,7 +273,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case PIC_TIMING:
       return PicTiming::create( (PicTiming*&)rpcSEIMessage, rpcParameterSetMng );
     case BUFFERING_PERIOD:
-      return BufferingPeriod::create( (BufferingPeriod*&) rpcSEIMessage, rpcParameterSetMng, bDQIdGt0 );
+      return BufferingPeriod::create( (BufferingPeriod*&) rpcSEIMessage, rpcParameterSetMng );
 // JVT-V068 }
 		// JVT-W049 {
 	  case REDUNDANT_PIC_SEI:
@@ -289,7 +287,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
 			return TLSwitchingPointSei::create((TLSwitchingPointSei*&) rpcSEIMessage );
     //JVT-X032 }
     default :
-      ROT(1);
+      return UnsupportedSei::create( (UnsupportedSei*&)rpcSEIMessage, eMessageType, uiSize );
   }
   //return Err::m_nOK;
 }
@@ -1496,7 +1494,7 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf, ParameterSetMng* pc
     case SEI::BUFFERING_PERIOD:
       {
         SEI::BufferingPeriod* pcBufferingPeriodSei;
-        RNOK( SEI::BufferingPeriod::create(pcBufferingPeriodSei,pcParameterSetMng, uiMaxDQId > 0) );
+        RNOK( SEI::BufferingPeriod::create(pcBufferingPeriodSei,pcParameterSetMng, true, uiMaxDQId, m_uiTemporalId ) );
         RNOK( pcBufferingPeriodSei->read(pcReadIf, pcParameterSetMng ) );
         delete pcBufferingPeriodSei;
         m_bHasBufferingPeriod = true;
@@ -1627,7 +1625,7 @@ SEI::IntegrityCheckSEI::read( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcP
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, BufferingPeriod* pcBufferingPeriod )
 {
-  rpcBufferingPeriod = new BufferingPeriod( pcBufferingPeriod->m_pcParameterSetMng, pcBufferingPeriod->m_bSubsetSPS );
+  rpcBufferingPeriod = new BufferingPeriod( pcBufferingPeriod->m_pcParameterSetMng, pcBufferingPeriod->m_bNested, pcBufferingPeriod->m_uiDQId, pcBufferingPeriod->m_uiTId );
   ROT( NULL == rpcBufferingPeriod );
   rpcBufferingPeriod->m_uiSeqParameterSetId       = pcBufferingPeriod->m_uiSeqParameterSetId;
   rpcBufferingPeriod->m_aacSchedSel[HRD::NAL_HRD] = pcBufferingPeriod->m_aacSchedSel[HRD::NAL_HRD];
@@ -1647,9 +1645,9 @@ SEI::BufferingPeriod::~BufferingPeriod()
   }
 }
 
-ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng, Bool bSubsetSPS )
+ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng, Bool bNested, UInt uiDQId, UInt uiTId )
 {
-  rpcBufferingPeriod = new BufferingPeriod( rpcParameterSetMng, bSubsetSPS );
+  rpcBufferingPeriod = new BufferingPeriod( rpcParameterSetMng, bNested, uiDQId, uiTId );
   ROT( NULL == rpcBufferingPeriod );
   return Err::m_nOK;
 }
@@ -1705,35 +1703,54 @@ ErrVal SEI::BufferingPeriod::write( HeaderSymbolWriteIf* pcWriteIf )
 
 
 
-ErrVal SEI::BufferingPeriod::read ( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcParameterSetMng )
+ErrVal SEI::BufferingPeriod::read( HeaderSymbolReadIf* pcReadIf, ParameterSetMng* pcParameterSetMng )
 {
   RNOKS( pcReadIf->getUvlc( m_uiSeqParameterSetId, "SEI: seq_parameter_set_id" ) );
 
-  ROF( m_pcParameterSetMng->isValidSPS(m_uiSeqParameterSetId, m_bSubsetSPS ) );
+  Bool  bSubsetSPS  = m_bNested;
+  ROF( m_pcParameterSetMng->isValidSPS(m_uiSeqParameterSetId, bSubsetSPS ) );
 
   SequenceParameterSet *pcSPS = NULL;
-  m_pcParameterSetMng->get( pcSPS,m_uiSeqParameterSetId, m_bSubsetSPS);
+  m_pcParameterSetMng->get( pcSPS,m_uiSeqParameterSetId, bSubsetSPS);
 
   VUI* pcVUI = pcSPS->getVUI ();// get a pointer to VUI of the SPS with m_uiSeqParameterSetId
 
-  Bool bNalHrdBpPresentFlag = pcVUI ? pcVUI->getNalHrd(pcVUI->getDefaultIdx()).getHrdParametersPresentFlag() : false;
-  Bool bVclHrdBpPresentFlag = pcVUI ? pcVUI->getVclHrd(pcVUI->getDefaultIdx()).getHrdParametersPresentFlag() : false;
+  UInt  uiHRDIdx  = pcVUI->getDefaultIdx();
+  if( m_bNested )
+  {
+    uiHRDIdx = MSYS_UINT_MAX;
+    for( UInt uiIdx = 0; uiIdx < pcVUI->getNumEntries(); uiIdx++ )
+    {
+      const VUI::LayerInfo& rcLayerInfo = pcVUI->getLayerInfo( uiIdx );
+      UInt                  uiDQId      = ( rcLayerInfo.getDependencyID() << 4 ) + rcLayerInfo.getQualityId();
+      UInt                  uiTId       = rcLayerInfo.getTemporalId();
+      if( uiDQId == m_uiDQId && uiTId == m_uiTId )
+      {
+        uiHRDIdx = uiIdx;
+        break;
+      }
+    }
+    ROT( uiHRDIdx == MSYS_UINT_MAX );
+  }
+
+  Bool bNalHrdBpPresentFlag = pcVUI ? pcVUI->getNalHrd( uiHRDIdx ).getHrdParametersPresentFlag() : false;
+  Bool bVclHrdBpPresentFlag = pcVUI ? pcVUI->getVclHrd( uiHRDIdx ).getHrdParametersPresentFlag() : false;
 
   m_abHrdParametersPresentFlag[HRD::NAL_HRD]  = bNalHrdBpPresentFlag;
   m_abHrdParametersPresentFlag[HRD::VCL_HRD]  = bVclHrdBpPresentFlag;
 
   if (bNalHrdBpPresentFlag)
   {
-    m_aacSchedSel[HRD::NAL_HRD].init( pcVUI->getNalHrd(pcVUI->getDefaultIdx()).getCpbCnt() + 1 );
+    m_aacSchedSel[HRD::NAL_HRD].init( pcVUI->getNalHrd( uiHRDIdx ).getCpbCnt() + 1 );
   }
   if (bVclHrdBpPresentFlag)
   {
-    m_aacSchedSel[HRD::VCL_HRD].init( pcVUI->getVclHrd(pcVUI->getDefaultIdx()).getCpbCnt() + 1 );
+    m_aacSchedSel[HRD::VCL_HRD].init( pcVUI->getVclHrd( uiHRDIdx ).getCpbCnt() + 1 );
   }
 
   if (bNalHrdBpPresentFlag)
   {
-    const HRD& rcNalHRD = pcVUI->getNalHrd(pcVUI->getDefaultIdx());
+    const HRD& rcNalHRD = pcVUI->getNalHrd( uiHRDIdx );
     for( UInt n = 0; n < rcNalHRD.getCpbCnt(); n++ )
     {
       RNOKS( getSchedSel( HRD::NAL_HRD, n ).read( pcReadIf, rcNalHRD ) );
@@ -1742,7 +1759,7 @@ ErrVal SEI::BufferingPeriod::read ( HeaderSymbolReadIf* pcReadIf, ParameterSetMn
 
   if (bVclHrdBpPresentFlag)
   {
-    const HRD& rcVlcHRD = pcVUI->getVclHrd(pcVUI->getDefaultIdx());
+    const HRD& rcVlcHRD = pcVUI->getVclHrd( uiHRDIdx );
     for( UInt n = 0; n < rcVlcHRD.getCpbCnt(); n++ )
     {
       RNOKS( getSchedSel( HRD::VCL_HRD, n ).read( pcReadIf, rcVlcHRD ) );
@@ -1784,8 +1801,14 @@ UInt SEI::PicTiming::getNumClockTs()
     return 1;
   case PS_TOP_BOT:
   case PS_BOT_TOP:
+  case PS_FRM_DOUBLING:
     return 2;
-  default:  return 0; // reserved
+  case PS_TOP_BOT_TOP:
+  case PS_BOT_TOP_BOT:
+  case PS_FRM_TRIPLING:
+    return 3;
+  default:
+    return 0; // reserved
   }
 }
 
@@ -2305,5 +2328,50 @@ SEI::Tl0DepRepIdxSei::write( HeaderSymbolWriteIf *pcWriteIf )
   return Err::m_nOK;
 }
 //JVT-W062 }
+
+
+SEI::UnsupportedSei::UnsupportedSei( MessageType eMessageType, UInt uiSize )
+: SEIMessage( eMessageType )
+, m_uiSize  ( uiSize )
+{
+}
+
+SEI::UnsupportedSei::~UnsupportedSei()
+{
+}
+ 
+ErrVal
+SEI::UnsupportedSei::create( UnsupportedSei*& rpcSeiMessage, MessageType eMessageType, UInt uiSize )
+{
+  rpcSeiMessage = new UnsupportedSei( eMessageType, uiSize );
+  ROT( NULL == rpcSeiMessage );
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::UnsupportedSei::destroy()
+{
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::UnsupportedSei::read( HeaderSymbolReadIf *pcReadIf, ParameterSetMng* pcParameterSetMng )
+{
+  for( UInt ui = 0; ui < m_uiSize; ui++ )
+  {
+    UInt uiSEIByte = 0;
+    RNOK( pcReadIf->getCode( uiSEIByte, 8, "SEI: byte of unsupported SEI message" ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::UnsupportedSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+  ROT(1);
+  return Err::m_nOK;
+}
+
 
 H264AVC_NAMESPACE_END

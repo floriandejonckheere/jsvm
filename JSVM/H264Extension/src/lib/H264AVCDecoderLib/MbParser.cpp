@@ -295,7 +295,14 @@ MbParser::xReadIntraPredModes( MbDataAccess& rcMbDataAccess )
 
   if( rcMbDataAccess.getMbData().isIntra4x4() || rcMbDataAccess.getMbData().isIntra16x16() )
   {
-    DECRNOK( m_pcMbSymbolReadIf->intraPredModeChroma( rcMbDataAccess ) );
+    if( rcMbDataAccess.getSH().getSPS().getChromaFormatIdc() )
+    {
+      DECRNOK( m_pcMbSymbolReadIf->intraPredModeChroma( rcMbDataAccess ) );
+    }
+    else
+    {
+      rcMbDataAccess.getMbData().setChromaPredMode( 0 ); // DC prediction
+    }
   }
 
   return Err::m_nOK;

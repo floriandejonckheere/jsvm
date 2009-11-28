@@ -196,10 +196,7 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
           iCurrPoc           = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() ) - 1;
         }
       }
-      if( rcSliceHeader.getNalRefIdc() )
-      {
-        m_iPrevFrameNum = rcSliceHeader.getFrameNum();
-      }
+      m_iPrevFrameNum = rcSliceHeader.getFrameNum();
 
 			if( rcSliceHeader.getPicType() == FRAME )
 			{

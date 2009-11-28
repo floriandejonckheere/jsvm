@@ -93,7 +93,8 @@ LayerEncoder::LayerEncoder()
 //----- frame memories -----
 , m_papcFrame                       ( 0 )
 , m_papcELFrame                     ( 0 )
-, m_pcResidual                      ( 0 )
+, m_pcResidualLF                    ( 0 )
+, m_pcResidualILPred                ( 0 )
 , m_pcSubband                       ( 0 )
 //TMM_WP
 , m_bBaseLayerWp                    (false)
@@ -286,7 +287,6 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   // JVT-W049 }
   m_uiDependencyId               = pcLayerParameters->getDependencyId                 ();
   m_uiBaseLayerId           = pcLayerParameters->getBaseLayerId             ();
-  m_uiBaseQualityLevel      = pcLayerParameters->getBaseQualityLevel        ();
 
 // JVT-Q065 EIDR{
   m_iIDRPeriod				= pcLayerParameters->getIDRPeriod				();
@@ -298,7 +298,6 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   m_bTl0DepRepIdxEnable = pcCodingParameter->getTl0DepRepIdxSeiEnable();
 
   m_bDiscardable = pcLayerParameters->isDiscardable(); //DS_FIX_FT_09_2007
-  m_uiQLDiscardable = pcLayerParameters->getQLDiscardable(); //DS_FIX_FT_09_2007
 
 	m_uiEssRPChkEnable = pcCodingParameter->getEssRPChkEnable();
 	m_uiMVThres = pcCodingParameter->getMVThres();
@@ -711,8 +710,10 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (   m_apcFrameTemp      [ uiIndex ] ->init        () );
   }
 
-  RNOK( Frame::create( m_pcResidual, *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) );
-  RNOK  (   m_pcResidual->init        () );
+  RNOK( Frame::create( m_pcResidualLF, *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) );
+  RNOK( m_pcResidualLF->init        () );
+  RNOK( Frame::create( m_pcResidualILPred, *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) );
+  RNOK( m_pcResidualILPred->init        () );
   RNOK( Frame::create( m_pcSubband, *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) );
   RNOK  (   m_pcSubband->init        () );
   RNOK( Frame::create( m_apcBaseFrame[0], *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) );
@@ -840,11 +841,17 @@ LayerEncoder::xDeleteData()
     m_papcELFrame = 0;
   }
 
-  if( m_pcResidual )
+  if( m_pcResidualLF )
   {
-    RNOK( m_pcResidual->uninit() );
-    RNOK( m_pcResidual->destroy() );
-    m_pcResidual = 0;
+    RNOK( m_pcResidualLF->uninit() );
+    RNOK( m_pcResidualLF->destroy() );
+    m_pcResidualLF = 0;
+  }
+  if( m_pcResidualILPred )
+  {
+    RNOK( m_pcResidualILPred->uninit() );
+    RNOK( m_pcResidualILPred->destroy() );
+    m_pcResidualILPred = 0;
   }
   if( m_pcSubband )
   {
@@ -1084,7 +1091,8 @@ LayerEncoder::xEncodeLayerRepresentation( ExtBinDataAccessorList& rcOutExtBinDat
                                           ControlData&            rcControlData,
                                           Frame*                  pcOrgFrame,
                                           Frame*                  pcFrame,
-                                          Frame*                  pcResidual,
+                                          Frame*                  pcResidualLF,
+                                          Frame*                  pcResidualILPred,
                                           Frame*                  pcPredSignal,
                                           UInt&                   ruiBits,
                                           PicOutputDataList&      rcPicOutputDataList,
@@ -1109,7 +1117,7 @@ LayerEncoder::xEncodeLayerRepresentation( ExtBinDataAccessorList& rcOutExtBinDat
   }
 
   //=====   L O O P   O V E R   S L I C E   G R O U P S   =====
-  for( UInt iSliceGroupID = 0; !pcFMO->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID++ )
+  for( Int iSliceGroupID = pcFMO->getFirstSliceGroupId(); ! pcFMO->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID = pcFMO->getNextSliceGroupId( iSliceGroupID ) )
   {
 		rcControlData.m_bSliceGroupAllCoded = false;
 		rcControlData.m_uiCurrentFirstMB    = pcFMO->getFirstMacroblockInSlice( iSliceGroupID );
@@ -1157,13 +1165,13 @@ LayerEncoder::xEncodeLayerRepresentation( ExtBinDataAccessorList& rcOutExtBinDat
       //----- encode slice data -----
       if( pcSliceHeader->isMbaffFrame() )
       {
-        RNOK( m_pcSliceEncoder->encodeMbAffSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidual, pcPredSignal,
+        RNOK( m_pcSliceEncoder->encodeMbAffSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidualLF, pcResidualILPred, pcPredSignal,
                                                      m_uiNumMaxIter, m_uiIterSearchRange, m_bBiPred8x8Disable, m_bMCBlks8x8Disable, m_uiMaxDeltaQp,
                                                      uiBits ) );
       }
       else
       {
-        RNOK( m_pcSliceEncoder->encodeSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidual, pcPredSignal, ePicType,
+        RNOK( m_pcSliceEncoder->encodeSliceSVC( rcControlData, *pcOrgFrame, *pcFrame, pcResidualLF, pcResidualILPred, pcPredSignal, ePicType,
                                                 m_uiNumMaxIter, m_uiIterSearchRange, m_bBiPred8x8Disable, m_bMCBlks8x8Disable, m_uiMaxDeltaQp,
                                                 uiBits ) );
       }
@@ -1668,7 +1676,6 @@ LayerEncoder::xSetSliceHeaderBase( SliceHeader& rcSliceHeader, UInt uiFrameIdInG
   rcSliceHeader.setSliceHeaderQp                  ( 0 );
   rcSliceHeader.setRedundantPicCnt                ( 0 );
   rcSliceHeader.setStoreRefBasePicFlag            ( bUseRefBasePic );
-  rcSliceHeader.setQLDiscardable                  ( m_uiQLDiscardable );
   rcSliceHeader.setLayerCGSSNR                    ( m_uiLayerCGSSNR );
   rcSliceHeader.setQualityLevelCGSSNR             ( m_uiQualityLevelCGSSNR );
   rcSliceHeader.setBaseLayerCGSSNR                ( m_uiBaseLayerCGSSNR );
@@ -2126,7 +2133,7 @@ LayerEncoder::getBaseLayerDataAvlb( Frame*&       pcFrame,
     ROF( pcSliceHeader );
 
     pcFrame       = m_pcSubband;
-    pcResidual    = m_pcResidual;
+    pcResidual    = m_pcResidualILPred;
     pcMbDataCtrl  = m_pacControlData[m_uiLastCodedFrameIdInGOP].getMbDataCtrl();
 
     if( pcMbDataCtrl )
@@ -2159,7 +2166,7 @@ LayerEncoder::getBaseLayerData( SliceHeader&  rcELSH,
     ROF( pcSliceHeader );
 
     pcFrame       = m_pcSubband;
-    pcResidual    = m_pcResidual;
+    pcResidual    = m_pcResidualILPred;
     pcMbDataCtrl  = m_pacControlData[m_uiLastCodedFrameIdInGOP].getMbDataCtrl();
     uiPos         = m_uiLastCodedFrameIdInGOP;
 
@@ -2517,8 +2524,10 @@ LayerEncoder::xClearBufferExtensions()
   }
   RNOK    ( m_pcSubband           ->uninitHalfPel() );
   RNOK    ( m_pcSubband           ->removeFrameFieldBuffer() );
-  RNOK    ( m_pcResidual          ->uninitHalfPel() );
-  RNOK    ( m_pcResidual          ->removeFrameFieldBuffer() );
+  RNOK    ( m_pcResidualLF        ->uninitHalfPel() );
+  RNOK    ( m_pcResidualLF        ->removeFrameFieldBuffer() );
+  RNOK    ( m_pcResidualILPred    ->uninitHalfPel() );
+  RNOK    ( m_pcResidualILPred    ->removeFrameFieldBuffer() );
   RNOK    ( m_apcBaseFrame[0]     ->uninitHalfPel() );
   RNOK    ( m_apcBaseFrame[0]     ->removeFrameFieldBuffer() );
   RNOK    ( m_apcBaseFrame[1]     ->uninitHalfPel() );
@@ -2741,7 +2750,6 @@ LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
     }
   }
 
-
   //===== motion data =====
   if( pcBaseDataCtrl )
   {
@@ -2771,6 +2779,8 @@ LayerEncoder::xInitBaseLayerData( ControlData&  rcControlData,
     pcSliceHeaderCurr->getPredWeightTable( LIST_0 ).copy( pcSliceHeaderBase->getPredWeightTable( LIST_0 ) );
     pcSliceHeaderCurr->getPredWeightTable( LIST_1 ).copy( pcSliceHeaderBase->getPredWeightTable( LIST_1 ) );
 //TMM_WP
+
+    pcSliceHeader->setBaseSliceHeader( pcBaseDataCtrl->getSliceHeader() );
   }
 
 
@@ -2841,6 +2851,9 @@ LayerEncoder::xInitControlData( UInt    uiFrameIdInGOP,
   Int     iQPRes      = gMax( MIN_QP, gMin( MAX_QP, (Int)floor( dQPRes + 0.5 ) ) );
   pcSliceHeader->setSliceHeaderQp ( iQPRes  );
   rcControlData. setLambda        ( dLambda );
+
+  //===== set tcoeff_level_prediction_flag =====
+  pcSliceHeader->setTCoeffLevelPredictionFlag( m_pcLayerParameters->getTCoeffLevelPredictionFlag() );
 
   //===== create reference lists =====
   RNOK( xGetAndSetPredictionLists( rcControlData, uiFrameIdInGOP, ePicType, true ) );
@@ -2982,18 +2995,19 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
   }
   //JVT-W051 }
 
-  UInt          uiBits          = 0;
-  ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
-  MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
-  MbDataCtrl*   pcRCMbDataCtrl  = m_pcRedundantCtrl;      // for redundant coded pictures
-  Frame*        pcFrame         = m_papcFrame     [ uiFrameIdInGOP ];
-  Frame*        pcResidual      = m_pcResidual;
-  Frame*        pcOrgFrame      = m_apcFrameTemp  [ 2 ];
-  Frame*        pcPredSignal    = m_apcFrameTemp  [ 3 ];
-  Frame*        pcRCFrame       = m_apcFrameTemp  [ 4 ];  // for redundant coded pictures
-  Frame*        pcRCResidual    = m_apcFrameTemp  [ 5 ];  // for redundant coded pictures
-  Frame*        pcRCBLResidual  = m_apcFrameTemp  [ 6 ];  // for redundant coded pictures
-  Frame*        pcRCBLIntraRec  = m_apcFrameTemp  [ 7 ];  // for redundant coded pictures
+  ControlData&  rcControlData       = m_pacControlData[ uiFrameIdInGOP ];
+  MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl();
+  MbDataCtrl*   pcRCMbDataCtrl      = m_pcRedundantCtrl;      // for redundant coded pictures
+  Frame*        pcFrame             = m_papcFrame     [ uiFrameIdInGOP ];
+  Frame*        pcResidualLF        = m_pcResidualLF;
+  Frame*        pcResidualILPred    = m_pcResidualILPred;
+  Frame*        pcOrgFrame          = m_apcFrameTemp  [ 2 ];
+  Frame*        pcPredSignal        = m_apcFrameTemp  [ 3 ];
+  Frame*        pcRCFrame           = m_apcFrameTemp  [ 4 ];  // for redundant coded pictures
+  Frame*        pcRCResidualLF      = m_apcFrameTemp  [ 5 ];  // for redundant coded pictures
+  Frame*        pcRCResidualILPred  = m_apcFrameTemp  [ 6 ];  // for redundant coded pictures
+  Frame*        pcRCBLResidual      = m_apcFrameTemp  [ 7 ];  // for redundant coded pictures
+  Frame*        pcRCBLIntraRec      = m_apcFrameTemp  [ 8 ];  // for redundant coded pictures
 
   //----- set original frame ----
   RNOK( pcOrgFrame->copyAll( pcFrame ) );
@@ -3001,6 +3015,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
   //===== loop over pictures =====
   for( UInt uiPicType = 0; uiPicType < uiNumPics; uiPicType++ )
   {
+    UInt                    uiBits            = 0;
     ExtBinDataAccessorList& rcBPSEIOutputList = rcAccessUnitData.getBPSEINalUnitList();
     ExtBinDataAccessorList& rcSEIOutputList   = rcAccessUnitData.getSEINalUnitList();
     ExtBinDataAccessorList& rcOutputList      = rcAccessUnitData.getNalUnitList();
@@ -3086,7 +3101,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
         UInt uiTemporalLevel  = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getTemporalId();
         UInt uiQualityLevel   = m_pcSPS->getVUI()->getLayerInfo(uiLayer).getQualityId();
         UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
-        if( uiTemporalLevel != m_pcSPS->getVUI()->getNumTemporalLevels() - 1 || uiDependencyId != 0 || uiQualityLevel != 0 )
+        if( uiDependencyId != 0 || uiQualityLevel != 0 )
         {
           RNOK( m_apcScheduler->get(uiIndex)->createBufferingSei( pcBufferingPeriodSei, m_pcParameterSetMng, (uiDependencyId<<4)+uiQualityLevel ) );
           RNOK( xWriteNestingSEIforHrd( rcBPSEIOutputList, pcBufferingPeriodSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
@@ -3125,7 +3140,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
         UInt uiIndex          = (uiDependencyId<<7)+(uiTemporalLevel<<4)+uiQualityLevel;
         if( uiTemporalLevel >= uiTemporalId )
         {
-          if( uiTemporalLevel != m_pcSPS->getVUI()->getNumTemporalLevels() - 1 || uiDependencyId != 0 || uiQualityLevel != 0 )
+          if( uiDependencyId != 0 || uiQualityLevel != 0 )
           {
             UInt uiDpbDelay = 0;
             RNOK( xGetRelativeOutputDelay( uiDpbDelay, uiFrameIdInGOP, uiTemporalLevel ) );
@@ -3259,7 +3274,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
 
       //----- encode primary layer representation -----
       RNOK( xEncodeLayerRepresentation( rcOutputList, rcControlData,
-                                        pcOrgFrame, pcFrame, pcResidual, pcPredSignal,
+                                        pcOrgFrame, pcFrame, pcResidualLF, pcResidualILPred, pcPredSignal,
                                         uiBits, cPicOutputDataList, uiFrameIdInGOP, ePicType ) );
 
       //----- store unfiltered reconstruction for inter-layer prediction -----
@@ -3317,7 +3332,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
         pcRCMbDataCtrl->reset();
         pcRCMbDataCtrl->clear();
         RNOK( xEncodeLayerRepresentation  ( rcRedOutputList, rcControlData,
-                                            pcOrgFrame, pcRCFrame, pcRCResidual, pcPredSignal,
+                                            pcOrgFrame, pcRCFrame, pcRCResidualLF, pcRCResidualILPred, pcPredSignal,
                                             uiBits, cPicOutputDataList, uiFrameIdInGOP, ePicType ) );
       }
 
@@ -3343,7 +3358,7 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
     }
 
     //===== deblock and store picture for prediction of following low-pass frames =====
-    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, pcResidual, pcMbDataCtrl, 0, rcControlData.getSpatialScalability() ) );
+    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, pcResidualLF, pcMbDataCtrl, 0, rcControlData.getSpatialScalability() ) );
     if( uiTemporalId == 0 )
     {
       RNOK( m_apcBaseFrame[uiFrameIdInGOP>>m_uiDecompositionStages]->copy( pcFrame, ePicType ) );

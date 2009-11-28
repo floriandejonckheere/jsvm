@@ -31,6 +31,7 @@ public:
     ErrVal        write     ( HeaderSymbolWriteIf*  pcWriteIf,
                               const UChar*          pucScan,
                               const Bool            bUseDefaultScalingMatrixFlag  ) const;
+    Bool          isSame    ( const ScalingList<uiBufSize>& rcSL )  const;
   };
 
   template< UInt uiBufSize >
@@ -45,6 +46,7 @@ public:
     ErrVal        write     ( HeaderSymbolWriteIf*  pcWriteIf,
                               const UChar*          pucScan )   const;
     const UChar*  getMatrix ()                                  const;
+    Bool          isSame    ( const SeqScaling<uiBufSize>& rcSS )  const;
 
   private:
     Bool                    m_bScalingListPresentFlag;
@@ -61,6 +63,7 @@ public:
   ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf,
                         Bool                  bWrite8x8 ) const;
   const UChar*  get   ( UInt                  uiMatrix )  const;
+  Bool          isSame( const ScalingMatrix&  rcSM )  const;
 
 private:
   StatBuf<SeqScaling<16>,6> m_acScalingMatrix4x4;
@@ -161,6 +164,21 @@ ScalingMatrix::ScalingList<uiBufSize>::write( HeaderSymbolWriteIf*  pcWriteIf,
 }
 
 
+template< UInt uiBufSize >
+Bool
+ScalingMatrix::ScalingList<uiBufSize>::isSame( const ScalingMatrix::ScalingList<uiBufSize>& rcSL )  const
+{
+  for( UInt ui = 0; ui < uiBufSize; ui++ )
+  {
+    if( StatBuf<UChar,uiBufSize>::m_aT[ ui ] != rcSL.StatBuf<UChar,uiBufSize>::m_aT[ ui ] )
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 template<UInt uiBufSize>
 ScalingMatrix::SeqScaling<uiBufSize>::SeqScaling()
 : m_bScalingListPresentFlag       ( false )
@@ -233,6 +251,18 @@ ScalingMatrix::SeqScaling<uiBufSize>::write( HeaderSymbolWriteIf* pcWriteIf,
   return Err::m_nOK;
 }
 
+
+template< UInt uiBufSize >
+Bool
+ScalingMatrix::SeqScaling<uiBufSize>::isSame( const ScalingMatrix::SeqScaling<uiBufSize>& rcSS )  const
+{
+  ROFRS( m_bScalingListPresentFlag      == rcSS.m_bScalingListPresentFlag,      false );
+  ROFRS( m_bScalingListPresentFlag,                                             true  );
+  ROFRS( m_bUseDefaultScalingMatrixFlag == rcSS.m_bUseDefaultScalingMatrixFlag, false );
+  ROFRS( m_bUseDefaultScalingMatrixFlag,                                        true  );
+  ROFRS( m_aiScalingList          .isSame( rcSS.m_aiScalingList              ), false );
+  return true;
+}
 
 
 H264AVC_NAMESPACE_END

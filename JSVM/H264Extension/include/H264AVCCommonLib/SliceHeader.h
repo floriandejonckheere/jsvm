@@ -43,13 +43,11 @@ public:
   Void          setQualityLevelCGSSNR     ( UInt ui ) { m_uiQualityLevelCGSSNR = ui;}
   Void          setBaseLayerCGSSNR        ( UInt ui ) { m_uiBaseLayerCGSSNR = ui;}
   Void          setBaseQualityLevelCGSSNR ( UInt ui ) { m_uiBaseQualityLevelCGSSNR = ui;}
-  Void          setQLDiscardable          ( UInt ui ) { m_uiQLDiscardable = ui; }
   Void          setBaseLayerId            ( UInt ui ) { m_uiBaseLayerId = ui; }
   UInt          getLayerCGSSNR            ()  const   { return m_uiLayerCGSSNR;}
   UInt          getQualityLevelCGSSNR     ()  const   { return m_uiQualityLevelCGSSNR;}
   UInt          getBaseLayerCGSSNR        ()  const   { return m_uiBaseLayerCGSSNR;}
   UInt          getBaseQualityLevelCGSSNR ()  const   { return m_uiBaseQualityLevelCGSSNR;}
-  UInt          getQLDiscardable          ()  const   { return m_uiQLDiscardable; }
   UInt          getBaseLayerId            ()  const   { return m_uiBaseLayerId; }
 
   ErrVal  compare           ( const SliceHeader*          pcSH,
@@ -67,12 +65,16 @@ public:
   Void              getMbPosAndIndexFromAddress ( UInt& ruiMbY, UInt& ruiMbX, UInt& ruiMbIndex, UInt uiMbAddress ) const;
   UInt              getMbIndexFromAddress       (                                               UInt uiMbAddress ) const;
   UInt              getMbAddressFromPosition    ( UInt uiMbY, UInt uiMbX ) const;
+  UInt              getMapUnitFromPosition      ( UInt uiMbY, UInt uiMbX ) const;
   Bool              isFieldPair                 ( UInt uiFrameNum, PicType ePicType, Bool bIsRefPic ) const;
   Int               getDistScaleFactorWP        ( const Frame* pcFrameL0, const Frame*  pcFrameL1 ) const;
   const PredWeight& getPredWeight               ( ListIdx eListIdx, UInt uiRefIdx, Bool bFieldFlag ) const;
   PredWeight&       getPredWeight               ( ListIdx eListIdx, UInt uiRefIdx, Bool bFieldFlag );
 
-  UChar           getChromaQp             ( UChar   ucLumaQp )  const { return g_aucChromaScale[ gClipMinMax( ucLumaQp + getPPS().getChomaQpIndexOffset(), 0, 51 ) ]; }
+  UChar           getCbQp                 ( UChar   ucLumaQp )  const { return g_aucChromaScale[ gClipMinMax( ucLumaQp + getPPS().getChromaQpIndexOffset    (), 0, 51 ) ]; }
+  UChar           getCrQp                 ( UChar   ucLumaQp )  const { return g_aucChromaScale[ gClipMinMax( ucLumaQp + getPPS().get2ndChromaQpIndexOffset (), 0, 51 ) ]; }
+  UChar           getChromaQp             ( UChar   ucLumaQp,
+                                            UInt    uiComp   )  const { AOT( uiComp > 1 ); return ( uiComp ? getCrQp( ucLumaQp ) : getCbQp( ucLumaQp ) ); }
   const Bool      isScalingMatrixPresent  ( UInt    uiMatrix )  const { return SliceHeaderSyntax::getScalingMatrix().get( uiMatrix ) != 0; }
   const UChar*    getScalingMatrix        ( UInt    uiMatrix )  const { return SliceHeaderSyntax::getScalingMatrix().get( uiMatrix ); }
 
@@ -119,28 +121,34 @@ public:
   Void          setAdaptiveILPred( Bool b )   { m_bAdaptiveILPred = b; }
   Bool          getAdaptiveILPred() const     { return m_bAdaptiveILPred; }
 
+  const SliceHeader*  getBaseSliceHeader()                          const { return m_pcBaseSliceHeader; }
+  Void                setBaseSliceHeader( const SliceHeader* pcSH )       { m_pcBaseSliceHeader = pcSH; } 
+  const SliceHeader*  getLastCodedSliceHeader()                     const { return m_pcLastCodedSliceHeader; }
+  Void                setLastCodedSliceHeader( const SliceHeader* pcSH )  { m_pcLastCodedSliceHeader = pcSH; } 
+
 private:
-  ERROR_CONCEAL	m_eErrorConcealMode;
-  Bool	        m_bTrueSlice;
-  UInt          m_uiNumMbsInSlice;
-  UInt          m_uiLastMbInSlice;
-  Int           m_iTopFieldPoc;
-  Int           m_iBotFieldPoc;
-  Bool          m_bSCoeffResidualPred;      // remove
-  FMO           m_cFMO;
-  RefFrameList* m_aapcRefFrameList[3][2];
-  UInt          m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF preprocessor
-  Bool          m_bReconstructionLayer;
-  Int           m_iLongTermFrameIdx;
+  ERROR_CONCEAL	      m_eErrorConcealMode;
+  Bool	              m_bTrueSlice;
+  UInt                m_uiNumMbsInSlice;
+  UInt                m_uiLastMbInSlice;
+  Int                 m_iTopFieldPoc;
+  Int                 m_iBotFieldPoc;
+  Bool                m_bSCoeffResidualPred;      // remove
+  FMO                 m_cFMO;
+  RefFrameList*       m_aapcRefFrameList[3][2];
+  UInt                m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF preprocessor
+  Bool                m_bReconstructionLayer;
+  Int                 m_iLongTermFrameIdx;
   //>>> remove
-  UInt          m_uiLayerCGSSNR;
-  UInt          m_uiQualityLevelCGSSNR;
-  UInt          m_uiBaseLayerCGSSNR;
-  UInt          m_uiBaseQualityLevelCGSSNR;
-  UInt          m_uiQLDiscardable;
-  UInt          m_uiBaseLayerId;
+  UInt                m_uiLayerCGSSNR;
+  UInt                m_uiQualityLevelCGSSNR;
+  UInt                m_uiBaseLayerCGSSNR;
+  UInt                m_uiBaseQualityLevelCGSSNR;
+  UInt                m_uiBaseLayerId;
   //<<< remove
-  Bool          m_bAdaptiveILPred;
+  Bool                m_bAdaptiveILPred;
+  const SliceHeader*  m_pcBaseSliceHeader;
+  const SliceHeader*  m_pcLastCodedSliceHeader;
 };
 
 

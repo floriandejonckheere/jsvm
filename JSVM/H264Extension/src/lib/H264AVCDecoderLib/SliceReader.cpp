@@ -102,7 +102,7 @@ SliceReader::read( SliceHeader& rcSH,
     RNOK( m_pcMbParser->read( *pcMbDataAccess, ruiMbRead, bEndOfSlice, uiNextSkippedVLC ) );
     UInt      uiMbIndex   = rcSH.getMbIndexFromAddress( uiMbAddress );
     MbStatus& rcMbStatus  = pacMbStatus[ uiMbIndex ];
-    RNOK( rcMbStatus.update( &pcMbDataAccess->getSH() ) );
+    RNOK( rcMbStatus.update( *pcMbDataAccess ) );
 
     if( bEndOfSlice )
     {

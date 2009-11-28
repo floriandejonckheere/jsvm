@@ -23,12 +23,13 @@ SliceHeader::SliceHeader()
 , m_uiQualityLevelCGSSNR              ( 0 )
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
-, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 , m_bAdaptiveILPred( false )
+, m_pcBaseSliceHeader ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -51,12 +52,13 @@ SliceHeader::SliceHeader( const NalUnitHeader& rcNalUnitHeader )
 , m_uiQualityLevelCGSSNR              ( 0 )
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
-, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 , m_bAdaptiveILPred( false )
+, m_pcBaseSliceHeader ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -79,12 +81,13 @@ SliceHeader::SliceHeader( const PrefixHeader& rcPrefixHeader )
 , m_uiQualityLevelCGSSNR              ( 0 )
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
-, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 , m_bAdaptiveILPred( false )
+, m_pcBaseSliceHeader ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -107,12 +110,13 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
 , m_uiQualityLevelCGSSNR              ( 0 )
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
-, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 , m_bAdaptiveILPred( false )
+, m_pcBaseSliceHeader ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
 {
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -135,12 +139,13 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 , m_uiQualityLevelCGSSNR              ( 0 )
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
-, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 //<<< remove
 , m_iLongTermFrameIdx   ( -1 )
 , m_bReconstructionLayer( false )
 , m_bAdaptiveILPred( false )
+, m_pcBaseSliceHeader ( 0 )
+, m_pcLastCodedSliceHeader( 0 )
 {
   memcpy( m_aapcRefFrameList, rcSliceHeader.m_aapcRefFrameList, sizeof( m_aapcRefFrameList ) );
   memcpy( m_aauiNumRefIdxActiveUpdate, rcSliceHeader.m_aauiNumRefIdxActiveUpdate, sizeof( m_aauiNumRefIdxActiveUpdate ) );
@@ -214,6 +219,14 @@ SliceHeader::copyPrefix( const PrefixHeader& rcPrefixHeader )
   setStoreRefBasePicFlag    ( rcPrefixHeader.getStoreRefBasePicFlag () );
   getDecRefBasePicMarking() = rcPrefixHeader.getDecRefBasePicMarking();
   return Err::m_nOK;
+}
+
+UInt
+SliceHeader::getMapUnitFromPosition( UInt uiMbY, UInt uiMbX ) const
+{
+  AOF( parameterSetsInitialized() );
+  UInt   uiMapUnit = uiMbY * getSPS().getFrameWidthInMbs() + uiMbX;
+  return uiMapUnit;
 }
 
 UInt

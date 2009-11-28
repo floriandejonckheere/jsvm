@@ -200,7 +200,7 @@ class CPlaneIdx
 {
 public:
   CPlaneIdx( UInt uiIdx = 0 ) : m_iIdx( uiIdx ) {}
-  CPlaneIdx& operator++()        { m_iIdx++; return *this; }
+  CPlaneIdx& operator ++(Int)    { m_iIdx++; return *this; }
   Bool       isLegal()     const { return m_iIdx < 2; }
   operator   Int()         const { return m_iIdx;     }
 private:

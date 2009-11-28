@@ -17,12 +17,14 @@ public:
 
   Void copy( const MbDataStruct& rcMbDataStruct );
   Void reset();
-  Void initMbData( UChar ucQp, UChar ucQp4LF, UInt uiSliceId, SliceType eSliceType )
+  Void initMbData( UChar ucQp, UChar ucQp4LF, UInt uiSliceId, UInt uiMbAddr, UInt uiMapUnit, SliceType eSliceType )
   {
-    m_eSliceType  = eSliceType;
-    m_uiSliceId   = uiSliceId;
-    m_ucQp        = ucQp;
-    m_ucQp4LF     = ucQp4LF;
+    m_eSliceType    = eSliceType;
+    m_uiSliceId     = uiSliceId;
+    m_uiMbAddr      = uiMbAddr;
+    m_uiMapUnit     = uiMapUnit;
+    m_ucQp          = ucQp;
+    m_ucQp4LF       = ucQp4LF;
   }
   Void copyFrom( const MbDataStruct& rcMbDataStruct );
   Void clear();
@@ -42,6 +44,7 @@ public:
   Void setBlkMode( Par8x8 ePar8x8, BlkMode eBlkMode )           { m_aBlkMode[ePar8x8] = eBlkMode; }
   Bool is4x4BlkCoded  ( LumaIdx cLumaIdx )                const { return (0 != ((m_uiMbCbp >> cLumaIdx) & 1)); }
   Bool is4x4BlkResidual( LumaIdx cLumaIdx )               const { return (0 != ((m_uiMbCbpResidual >> cLumaIdx) & 1)); }
+  Bool isDQId0AndBlkCoded( LumaIdx cLumaIdx )             const { return (0 != ((m_uiMbCbpDQId0 >> cLumaIdx) & 1)); }
   UInt getCbpChroma4x4()                                  const { return m_uiMbCbp >> 28; }
   UInt getMbCbp       ()                                  const { return m_uiMbCbp >> 24; }
   UInt getMbExtCbp    ()                                  const { return m_uiMbCbp; }
@@ -68,18 +71,20 @@ public:
   SChar&  intraPredMode(LumaIdx cIdx)                           { return m_ascIPredMode[cIdx]; }
   SChar   intraPredMode(LumaIdx cIdx)                     const { return m_ascIPredMode[cIdx]; }
   UInt    getCbpChroma16x16 ()                            const { AOF_DBG(isIntra16x16()); return m_aucACTab[(m_eMbMode-(INTRA_4X4+1))>>2 ]; }
-  Void setMbMode( MbMode eMbMode )                              { m_eMbMode = eMbMode; }
-  Void setSliceId( UInt ui )                                    { m_uiSliceId = ui; }
-  UInt getSliceId()                                       const { return m_uiSliceId;}
+  Void    setMbMode( MbMode eMbMode )                           { m_eMbMode = eMbMode; }
+  Void    setSliceId( UInt ui )                                 { m_uiSliceId = ui; }
+  UInt    getSliceId()                                    const { return m_uiSliceId;}
+  UInt    getMbAddr()                                     const { return m_uiMbAddr; }
+  UInt    getMapUnit()                                    const { return m_uiMapUnit; }
   SliceType getSliceType()                                const { return m_eSliceType; }
-  Void setChromaPredMode( UChar ucChromaPredMode )              { m_ucChromaPredMode = ucChromaPredMode; }
-  UChar getChromaPredMode()                               const { return m_ucChromaPredMode; }
-  Void setFwdBwd( UShort usFwdBwd )                             { m_usFwdBwd = usFwdBwd; }
-  UShort getFwdBwd()                                      const { return m_usFwdBwd; }
-  Void addFwdBwd( Par8x8 ePar8x8, UInt uiFwdBwdBlk )            { m_usFwdBwd |= uiFwdBwdBlk<<(ePar8x8*4); }
-  Void setBCBPAll( UInt uiBit )                                 { m_uiBCBP = (uiBit) ? 0xffff : 0; }
-  UInt getBCBP( UInt uiPos )                              const { return ((m_uiBCBP >> uiPos) & 1); }
-  Void setBCBP( UInt uiPos, UInt uiBit, Bool bReset = false )
+  Void      setChromaPredMode( UChar ucChromaPredMode )         { m_ucChromaPredMode = ucChromaPredMode; }
+  UChar     getChromaPredMode()                           const { return m_ucChromaPredMode; }
+  Void      setFwdBwd( UShort usFwdBwd )                        { m_usFwdBwd = usFwdBwd; }
+  UShort    getFwdBwd()                                   const { return m_usFwdBwd; }
+  Void      addFwdBwd( Par8x8 ePar8x8, UInt uiFwdBwdBlk )       { m_usFwdBwd |= uiFwdBwdBlk<<(ePar8x8*4); }
+  Void      setBCBPAll( UInt uiBit )                            { m_uiBCBP = (uiBit) ? 0xffff : 0; }
+  UInt      getBCBP( UInt uiPos )                         const { return ((m_uiBCBP >> uiPos) & 1); }
+  Void      setBCBP( UInt uiPos, UInt uiBit, Bool bReset = false )
   {
     if( bReset )
     {
@@ -87,36 +92,39 @@ public:
     }
     m_uiBCBP   |= (uiBit << uiPos);
   }
-  Void setBCBP( UInt uiBCBP )                                   { m_uiBCBP = uiBCBP; }
-  UInt getBCBP()                                          const { return m_uiBCBP; }
-  Bool getSkipFlag()                                      const { return m_bSkipFlag; }
-  Void setSkipFlag( Bool b)                                     { m_bSkipFlag = b; }
-  Void setMbCbpResidual( UInt uiMbCbpResidual )                 { m_uiMbCbpResidual = uiMbCbpResidual; }
+  Void      setBCBP( UInt uiBCBP )                              { m_uiBCBP = uiBCBP; }
+  UInt      getBCBP()                                     const { return m_uiBCBP; }
+  Bool      getSkipFlag()                                 const { return m_bSkipFlag; }
+  Void      setSkipFlag( Bool b)                                { m_bSkipFlag = b; }
+  Void      setMbCbpResidual( UInt uiMbCbpResidual )            { m_uiMbCbpResidual = uiMbCbpResidual; }
+  Void      setMbCbpDQId0   ( UInt uiMbCbpDQId0 )               { m_uiMbCbpDQId0 = uiMbCbpDQId0; }
 
-  Bool    getResidualPredFlag   ()                        const { return m_bResidualPredFlag; }
-  Bool    getInCropWindowFlag   ()                        const { return m_bInCropWindowFlag; }
+  Bool      getResidualPredFlag   ()                      const { return m_bResidualPredFlag; }
+  Bool      getInCropWindowFlag   ()                      const { return m_bInCropWindowFlag; }
 
-  Void    setResidualPredFlag   ( Bool        bFlag  )       { m_bResidualPredFlag = bFlag; }
-  Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; }
+  Void      setResidualPredFlag   ( Bool        bFlag  )        { m_bResidualPredFlag = bFlag; }
+  Void      setInCropWindowFlag   ( Bool        bFlag  )        { m_bInCropWindowFlag = bFlag; }
 
-  ErrVal  save( FILE* pFile );
-  ErrVal  load( FILE* pFile );
+  ErrVal    save( FILE* pFile );
+  ErrVal    load( FILE* pFile );
 
-  Void    setBLSkipFlag         ( Bool b )  { m_bBLSkipFlag = b; }
-  Bool    getBLSkipFlag         () const    { return m_bBLSkipFlag; }
+  Void      setBLSkipFlag         ( Bool b )  { m_bBLSkipFlag = b; }
+  Bool      getBLSkipFlag         () const    { return m_bBLSkipFlag; }
 
-  Bool is8x8TrafoFlagPresent( Bool bDirect8x8Inference ) const;
-  Bool isTransformSize8x8   ()                          const     { return m_bTransformSize8x8; }
-  Void setTransformSize8x8  ( Bool bTransformSize8x8)             { m_bTransformSize8x8 = bTransformSize8x8; }
+  Bool      is8x8TrafoFlagPresent( Bool bDirect8x8Inference ) const;
+  Bool      isTransformSize8x8   ()                           const     { return m_bTransformSize8x8; }
+  Void      setTransformSize8x8  ( Bool bTransformSize8x8)              { m_bTransformSize8x8 = bTransformSize8x8; }
 
-	Void    setFieldFlag          ( Bool b )  { m_bFieldFlag = b; }
-  Bool    getFieldFlag          () const    { return m_bFieldFlag; }
+	Void      setFieldFlag          ( Bool b )  { m_bFieldFlag = b; }
+  Bool      getFieldFlag          () const    { return m_bFieldFlag; }
 
-  Void    setSafeResPred        ( Bool b )  { m_bRPSafe = b; }
-  Bool    getSafeResPred        () const    { return m_bRPSafe; }
+  Void      setSafeResPred        ( Bool b )  { m_bRPSafe = b; }
+  Bool      getSafeResPred        () const    { return m_bRPSafe; }
 
 protected:
   UInt      m_uiSliceId;
+  UInt      m_uiMbAddr;  
+  UInt      m_uiMapUnit;
   SliceType m_eSliceType;
   Bool      m_bBLSkipFlag;
   MbMode    m_eMbMode;
@@ -134,6 +142,7 @@ protected:
   Bool      m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
   Bool      m_bFieldFlag;
 	UInt      m_uiMbCbpResidual;
+  UInt      m_uiMbCbpDQId0;
   Bool      m_bRPSafe;
 
 public:

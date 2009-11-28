@@ -273,15 +273,7 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerOutputFlag( uiLayer ) );//JVT-W047 wxwan
     if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
     {
-			//JVT-W051 {
-			pcScalableModifyCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 24 );
-			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet0Flag( uiLayer ) );
-			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet1Flag( uiLayer ) );
-			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet2Flag( uiLayer ) );
-			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet3Flag( uiLayer ) );
-			//pcScalableModifyCode->WriteCode( 0, 4 );
-			//pcScalableModifyCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
-			//JVT-W051 }
+      pcScalableModifyCode->WriteCode( pcScalableSei->getLayerProfileLevelIdc( uiLayer ), 24 );
     }
     //SEI changes update {
 		//else

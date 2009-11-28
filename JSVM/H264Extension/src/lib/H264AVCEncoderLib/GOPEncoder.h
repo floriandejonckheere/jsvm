@@ -159,7 +159,7 @@ class H264AVCENCODERLIB_API LayerEncoder
 {
   enum
   {
-    NUM_TMP_FRAMES  = 8
+    NUM_TMP_FRAMES  = 9
   };
   enum RefListUsage
   {
@@ -285,7 +285,8 @@ protected:
                                           ControlData&                rcControlData,
                                           Frame*                      pcOrgFrame,
                                           Frame*                      pcFrame,
-                                          Frame*                      pcResidual,
+                                          Frame*                      pcResidualLF,
+                                          Frame*                      pcResidualILPred,
                                           Frame*                      pcPredSignal,
                                           UInt&                       ruiBits,
                                           PicOutputDataList&          rcPicOutputDataList,
@@ -490,7 +491,8 @@ protected:
   Frame*                        m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   Frame**                       m_papcFrame;                          // frame stores
   Frame**                       m_papcELFrame;                        // higher layer reference frames
-  Frame*                        m_pcResidual;                         // frame stores for residual data
+  Frame*                        m_pcResidualLF;                       // frame stores for residual data
+  Frame*                        m_pcResidualILPred;                   // frame stores for residual data
   Frame*                        m_pcSubband;                          // reconstructed subband pictures
   Frame*                        m_apcBaseFrame[2];                    // base reconstruction of last low-pass picture
 //TMM_WP
@@ -557,7 +559,6 @@ protected:
 //JVT-T054}
 //DS_FIX_FT_09_2007
   Bool                          m_bDiscardable;
-  UInt                          m_uiQLDiscardable;
 //~DS_FIX_FT_09_2007
 // JVT-U085 LMI
   Bool                          m_bTlevelNestingFlag;

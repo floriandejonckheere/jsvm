@@ -309,7 +309,7 @@ public:
     m_bPocIsSet     = false;
   }
 
-	Void  setPoc        ( Int iPoc )       { m_iPoc = iPoc; m_bPocIsSet = true; }
+	Void  setPoc        ( Int iPoc )                    { m_iPoc = iPoc; m_bPocIsSet = true; }
 	Void  setPoc        ( const SliceHeader& rcSH )
 	{
 		ASSERT( m_ePicType==FRAME );

@@ -66,6 +66,7 @@ UInt LayerParameters::getNumberOfQualityLevelsCGSSNR() const
   for( uiQLs = 0; uiVectPos != 16; uiQLs++ )
   {
     uiVectPos += getMGSVect( uiQLs );
+    ROTREPORT( uiQLs == 15 && uiVectPos != 16, "MGS vectors don't add up to 16" );
   }
   return uiQLs;
 }
@@ -84,6 +85,10 @@ ErrVal LayerParameters::check()
   ROTREPORT( getMCBlks8x8Disable        () > 1,         "The value for MCBlocksLT8x8Disable is not supported" );
   ROTREPORT( getPicCodingType           () > 1,         "The value for DisableBSlices is not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
+  ROTREPORT( getChromaQPIndexOffset     () < -12 ||
+             getChromaQPIndexOffset     () >  12,       "Unsuppoted value for CbQPIndexOffset" );
+  ROTREPORT( get2ndChromaQPIndexOffset  () < -12 ||
+             get2ndChromaQPIndexOffset  () >  12,       "Unsuppoted value for CrQPIndexOffset" );
   
   //----- check inter-layer prediction modes -----
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported value for InterLayerPred" );
@@ -522,13 +527,6 @@ ErrVal CodingParameter::check()
       pcLayer->setContrainedIntraPred();
       pcLayer->setILPredMode( pcLayer->getILPredMode() > 0 ? 2 : 0 );
     }
-
-    ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level shall not exceed 15." );
-
-    if( uiLayer == 0 && pcLayer->getBaseQualityLevel() != 0 )
-    {
-      pcLayer->setBaseQualityLevel(0);
-    }
   }
 
   RNOK( xCheckAndSetProfiles() );
@@ -585,11 +583,11 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
     if(   bForceExtended )  RNOK( xForceExtendedProfile ( pcCodingParameter ) );
     if(   bForceHigh     )  RNOK( xForceHighProfile     ( pcCodingParameter ) );
     //----- check compatibility -----
-    Bool  bBaseline         = xIsBaselineProfile          ( pcCodingParameter );
-    Bool  bMain             = xIsMainProfile              ( pcCodingParameter );
-    Bool  bExtended         = xIsExtendedProfile          ( pcCodingParameter );
-    Bool  bHigh             = xIsHighProfile              ( pcCodingParameter );
-    Bool  bIntraOnly        = xIsIntraOnly                ( pcCodingParameter );
+    Bool  bBaseline         = xIsBaselineProfile        ( pcCodingParameter );
+    Bool  bMain             = xIsMainProfile            ( pcCodingParameter );
+    Bool  bExtended         = xIsExtendedProfile        ( pcCodingParameter );
+    Bool  bHigh             = xIsHighProfile            ( pcCodingParameter );
+    Bool  bIntraOnly        = xIsIntraOnly              ( pcCodingParameter );
     ROT(  bForceBaseline  && !bBaseline );
     ROT(  bForceMain      && !bMain     );
     ROT(  bForceExtended  && !bExtended );
@@ -652,9 +650,16 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
     ROTREPORT( m_uiNumDependentDId > 3, "At most 3 dependent dependency layers are supported in SVC" );
   }
   //----- update picture coding type -----
-  if( m_uiBaseLayerId != MSYS_UINT_MAX && m_uiPicCodingType == 0 && pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getPicCodingType() != 0 )
+  if( m_uiBaseLayerId != MSYS_UINT_MAX )
   {
-    m_uiPicCodingType     = 2;
+    if( m_uiQualityLevelCGSSNR && pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getPicCodingType() == 1 && m_uiPicCodingType != 1 )
+    {
+      SETREPORT( m_uiPicCodingType, 1, "B slices disabled for MGS enhancement" );
+    }
+    if( m_uiPicCodingType == 0 && pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getPicCodingType() != 0 )
+    {
+      m_uiPicCodingType = 2;
+    }
   }
   //----- update IDR period -----
   if( bIntraOnly )
@@ -742,17 +747,18 @@ LayerParameters::updateWithLevel( CodingParameter* pcCodingParameter, UInt& ruiL
 Bool
 LayerParameters::xIsBaselineProfile( CodingParameter* pcCodingParameter )
 {
-  ROFRS( m_uiLayerId                    == 0,               false );
-  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
-  ROFRS( m_uiPicCodingType              == 1,               false );
-  ROFRS( m_uiMbAff                      == 0,               false );
-  ROFRS( m_uiPAff                       == 0,               false );
-  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
-  ROFRS( pcCodingParameter->m_uiIPMode  == 0,               false );
-  ROFRS( pcCodingParameter->m_uiIPMode  == 0,               false );
-  ROFRS( m_uiEntropyCodingModeFlag      == 0,               false );
-  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,               false );
-  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  ROFRS( m_uiLayerId                    == 0,                       false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,           false );
+  ROFRS( m_uiPicCodingType              == 1,                       false );
+  ROFRS( m_uiMbAff                      == 0,                       false );
+  ROFRS( m_uiPAff                       == 0,                       false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,                       false );
+  ROFRS( pcCodingParameter->m_uiIPMode  == 0,                       false );
+  ROFRS( pcCodingParameter->m_uiIPMode  == 0,                       false );
+  ROFRS( m_uiEntropyCodingModeFlag      == 0,                       false );
+  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,                       false );
+  ROFRS( m_uiEnable8x8Trafo             == 0,                       false );
+  ROFRS( m_i2ndChromaQPIndexOffset      == m_iChromaQPIndexOffset,  false );
   return true;
 }
 ErrVal
@@ -760,28 +766,31 @@ LayerParameters::xForceBaselineProfile( CodingParameter* pcCodingParameter )
 {
   ROT( m_uiLayerId );
   ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
-  ROTREPORT( m_uiNumSliceGroupsMinus1     > 7, "NumSliceGrpMns1 must be less than 8 in Baseline profile compatibility mode" );
-  SETREPORT( m_uiPicCodingType,             1, "B slices disabled for Baseline profile compatibility" );
-  SETREPORT( m_uiMbAff,                     0, "MbAff disabled for Baseline profile compatibility" );
-  SETREPORT( m_uiPAff,                      0, "PAff disabled for Baseline profile compatibility" );
-  SETREPORT( m_uiScalingMatricesPresent,    0, "Scaling matrices disabled for Baseline profile compatibility" );
-  SETREPORT( pcCodingParameter->m_uiIPMode, 0, "Weighted prediction disabled for Baseline profile compatibility" );
-  SETREPORT( pcCodingParameter->m_uiIPMode,  0, "Weighted prediction disabled for Baseline profile compatibility" );
-  SETREPORT( m_uiEntropyCodingModeFlag,     0, "CABAC disabled for Baseline profile compatibility" );
-  SETREPORT( m_uiEnable8x8Trafo,            0, "8x8 transform disabled for Baseline profile compatibility" );
+  ROTREPORT( m_uiNumSliceGroupsMinus1     > 7,  "NumSliceGrpMns1 must be less than 8 in Baseline profile compatibility mode" );
+  SETREPORT( m_uiPicCodingType,             1,  "B slices disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiMbAff,                     0,  "MbAff disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiPAff,                      0,  "PAff disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiScalingMatricesPresent,    0,  "Scaling matrices disabled for Baseline profile compatibility" );
+  SETREPORT( pcCodingParameter->m_uiIPMode, 0,  "Weighted prediction disabled for Baseline profile compatibility" );
+  SETREPORT( pcCodingParameter->m_uiIPMode, 0,  "Weighted prediction disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiEntropyCodingModeFlag,     0,  "CABAC disabled for Baseline profile compatibility" );
+  SETREPORT( m_uiEnable8x8Trafo,            0,  "8x8 transform disabled for Baseline profile compatibility" );
+  SETREPORT( m_i2ndChromaQPIndexOffset,
+             m_iChromaQPIndexOffset,            "2nd chroma QP index offset ignored for Baseline profile compatibility" );
   return Err::m_nOK;
 }
 
 Bool
 LayerParameters::xIsMainProfile( CodingParameter* pcCodingParameter )
 {
-  ROFRS( m_uiLayerId                    == 0,               false );
-  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
-  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
-  ROFRS( m_uiNumSliceGroupsMinus1       == 0,               false );
-  ROFRS( m_uiUseRedundantSlice          == 0,               false );
-  ROFRS( m_uiUseRedundantKeySlice       == 0,               false );
-  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  ROFRS( m_uiLayerId                    == 0,                       false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,           false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,                       false );
+  ROFRS( m_uiNumSliceGroupsMinus1       == 0,                       false );
+  ROFRS( m_uiUseRedundantSlice          == 0,                       false );
+  ROFRS( m_uiUseRedundantKeySlice       == 0,                       false );
+  ROFRS( m_uiEnable8x8Trafo             == 0,                       false );
+  ROFRS( m_i2ndChromaQPIndexOffset      == m_iChromaQPIndexOffset,  false );
   return true;
 }
 ErrVal
@@ -789,23 +798,26 @@ LayerParameters::xForceMainProfile( CodingParameter* pcCodingParameter )
 {
   ROT( m_uiLayerId );
   ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
-  SETREPORT( m_uiScalingMatricesPresent,  0, "Scaling matrices disabled for Main profile compatibility" );
-  SETREPORT( m_uiNumSliceGroupsMinus1,    0, "NumSliceGrpMns1 set to 0 for Main profile compatibility" );
-  SETREPORT( m_uiUseRedundantSlice,       0, "Redundant slices disabled for Main profile compatibility" );
-  SETREPORT( m_uiUseRedundantKeySlice,    0, "Redundant slices disabled for Main profile compatibility" );
-  SETREPORT( m_uiEnable8x8Trafo,          0, "8x8 transform disabled for Main profile compatibility" );
+  SETREPORT( m_uiScalingMatricesPresent,  0,  "Scaling matrices disabled for Main profile compatibility" );
+  SETREPORT( m_uiNumSliceGroupsMinus1,    0,  "NumSliceGrpMns1 set to 0 for Main profile compatibility" );
+  SETREPORT( m_uiUseRedundantSlice,       0,  "Redundant slices disabled for Main profile compatibility" );
+  SETREPORT( m_uiUseRedundantKeySlice,    0,  "Redundant slices disabled for Main profile compatibility" );
+  SETREPORT( m_uiEnable8x8Trafo,          0,  "8x8 transform disabled for Main profile compatibility" );
+  SETREPORT( m_i2ndChromaQPIndexOffset,
+             m_iChromaQPIndexOffset,          "2nd chroma QP index offset ignored for Main profile compatibility" );
   return Err::m_nOK;
 }
 
 Bool
 LayerParameters::xIsExtendedProfile( CodingParameter* pcCodingParameter )
 {
-  ROFRS( m_uiLayerId                    == 0,               false );
-  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,   false );
-  ROFRS( m_uiScalingMatricesPresent     == 0,               false );
-  ROFRS( m_uiEntropyCodingModeFlag      == 0,               false );
-  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,               false );
-  ROFRS( m_uiEnable8x8Trafo             == 0,               false );
+  ROFRS( m_uiLayerId                    == 0,                       false );
+  ROFRS( m_uiBaseLayerId                == MSYS_UINT_MAX,           false );
+  ROFRS( m_uiScalingMatricesPresent     == 0,                       false );
+  ROFRS( m_uiEntropyCodingModeFlag      == 0,                       false );
+  ROFRS( m_uiNumSliceGroupsMinus1       <= 7,                       false );
+  ROFRS( m_uiEnable8x8Trafo             == 0,                       false );
+  ROFRS( m_i2ndChromaQPIndexOffset      == m_iChromaQPIndexOffset,  false );
   return true;
 }
 ErrVal
@@ -813,10 +825,12 @@ LayerParameters::xForceExtendedProfile( CodingParameter* pcCodingParameter )
 {
   ROT( m_uiLayerId );
   ROF( m_uiBaseLayerId == MSYS_UINT_MAX );
-  ROTREPORT( m_uiNumSliceGroupsMinus1   > 7, "NumSliceGrpMns1 must be less than 8 in Extended profile compatibility mode" );
-  SETREPORT( m_uiScalingMatricesPresent,  0, "Scaling matrices disabled for Extended profile compatibility" );
-  SETREPORT( m_uiEntropyCodingModeFlag,   0, "CABAC disabled for Extended profile compatibility" );
-  SETREPORT( m_uiEnable8x8Trafo,          0, "8x8 transform disabled for Extended profile compatibility" );
+  ROTREPORT( m_uiNumSliceGroupsMinus1   > 7,  "NumSliceGrpMns1 must be less than 8 in Extended profile compatibility mode" );
+  SETREPORT( m_uiScalingMatricesPresent,  0,  "Scaling matrices disabled for Extended profile compatibility" );
+  SETREPORT( m_uiEntropyCodingModeFlag,   0,  "CABAC disabled for Extended profile compatibility" );
+  SETREPORT( m_uiEnable8x8Trafo,          0,  "8x8 transform disabled for Extended profile compatibility" );
+  SETREPORT( m_i2ndChromaQPIndexOffset,
+             m_iChromaQPIndexOffset,          "2nd chroma QP index offset ignored for Extended profile compatibility" );
   return Err::m_nOK;
 }
 
@@ -852,6 +866,7 @@ LayerParameters::xIsIntraOnly( CodingParameter* pcCodingParameter )
   ROTRS( m_uiBaseLayerId                == MSYS_UINT_MAX,                       true  );
   return pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).isIntraOnly();
 }
+
 
 Bool
 LayerParameters::xHasRestrictedESS( CodingParameter* pcCodingParameter )

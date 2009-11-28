@@ -105,7 +105,8 @@ ErrVal
 SliceEncoder::encodeSliceSVC( ControlData&  rcControlData,        // control data
                               Frame&        rcOrgFrame,           // original frame
                               Frame&        rcFrame,              // reconstructed frame
-                              Frame*        pcResidualFrame,      // reconstructed residual
+                              Frame*        pcResidualFrameLF,    // reconstructed residual for loop filter
+                              Frame*        pcResidualFrameILPred,// reconstructed residual for inter-layer prediction
                               Frame*        pcPredFrame,          // prediction signal
                               PicType       ePicType,             // picture type
                               UInt          uiNumMaxIter,         // maximum number of iteration for bi-predictive search
@@ -137,17 +138,19 @@ SliceEncoder::encodeSliceSVC( ControlData&  rcControlData,        // control dat
   {
     RNOK( rcOrgFrame.addFieldBuffer( ePicType ) );
     RNOK( rcFrame   .addFieldBuffer( ePicType ) );
-    if( pcResidualFrame     ) RNOK( pcResidualFrame     ->addFieldBuffer( ePicType ) );
-    if( pcPredFrame         ) RNOK( pcPredFrame         ->addFieldBuffer( ePicType ) );
-    if( pcBaseIntraRecFrame ) RNOK( pcBaseIntraRecFrame ->addFieldBuffer( ePicType ) );
-    if( pcBaseResidualFrame ) RNOK( pcBaseResidualFrame ->addFieldBuffer( ePicType ) );
+    if( pcResidualFrameLF     ) RNOK( pcResidualFrameLF     ->addFieldBuffer( ePicType ) );
+    if( pcResidualFrameILPred ) RNOK( pcResidualFrameILPred ->addFieldBuffer( ePicType ) );
+    if( pcPredFrame           ) RNOK( pcPredFrame           ->addFieldBuffer( ePicType ) );
+    if( pcBaseIntraRecFrame   ) RNOK( pcBaseIntraRecFrame   ->addFieldBuffer( ePicType ) );
+    if( pcBaseResidualFrame   ) RNOK( pcBaseResidualFrame   ->addFieldBuffer( ePicType ) );
   }
-  Frame&  rcOrgPic          = *rcOrgFrame.getPic( ePicType );
-  Frame&  rcPic             = *rcFrame   .getPic( ePicType );
-  Frame*  pcResidualPic     = ( pcResidualFrame     ? pcResidualFrame     ->getPic( ePicType ) : 0 );
-  Frame*  pcPredPic         = ( pcPredFrame         ? pcPredFrame         ->getPic( ePicType ) : 0 );
-  Frame*  pcBaseIntraRecPic = ( pcBaseIntraRecFrame ? pcBaseIntraRecFrame ->getPic( ePicType ) : 0 );
-  Frame*  pcBaseResidualPic = ( pcBaseResidualFrame ? pcBaseResidualFrame ->getPic( ePicType ) : 0 );
+  Frame&  rcOrgPic            = *rcOrgFrame.getPic( ePicType );
+  Frame&  rcPic               = *rcFrame   .getPic( ePicType );
+  Frame*  pcResidualPicLF     = ( pcResidualFrameLF     ? pcResidualFrameLF     ->getPic( ePicType ) : 0 );
+  Frame*  pcResidualPicILPred = ( pcResidualFrameILPred ? pcResidualFrameILPred ->getPic( ePicType ) : 0 );
+  Frame*  pcPredPic           = ( pcPredFrame           ? pcPredFrame           ->getPic( ePicType ) : 0 );
+  Frame*  pcBaseIntraRecPic   = ( pcBaseIntraRecFrame   ? pcBaseIntraRecFrame   ->getPic( ePicType ) : 0 );
+  Frame*  pcBaseResidualPic   = ( pcBaseResidualFrame   ? pcBaseResidualFrame   ->getPic( ePicType ) : 0 );
 
 
   //====== initialization ======
@@ -234,7 +237,7 @@ SliceEncoder::encodeSliceSVC( ControlData&  rcControlData,        // control dat
 
     //===== determine macroblock data =====
     RNOK( m_pcMbEncoder->encodeMacroblockSVC( *pcMbDataAccess, pcMbDataAccessBase, 
-                                              rcOrgPic, rcPic, pcResidualPic, pcPredPic, pcBaseIntraRecPic, pcBaseResidualPic, rcRefListStruct,
+                                              rcOrgPic, rcPic, pcResidualPicLF, pcResidualPicILPred, pcPredPic, pcBaseIntraRecPic, pcBaseResidualPic, rcRefListStruct,
                                               uiMaxMvPerMb, uiNumMaxIter, uiIterSearchRange, bBiPred8x8Disable, bMCBlks8x8Disable, 
                                               true, uiDeltaQp, dLambda, dCost ) );
 
@@ -309,10 +312,11 @@ SliceEncoder::encodeSliceSVC( ControlData&  rcControlData,        // control dat
   {
     RNOK( rcOrgFrame.removeFieldBuffer( ePicType ) );
     RNOK( rcFrame   .removeFieldBuffer( ePicType ) );
-    if( pcResidualFrame     ) RNOK( pcResidualFrame     ->removeFieldBuffer( ePicType ) );
-    if( pcPredFrame         ) RNOK( pcPredFrame         ->removeFieldBuffer( ePicType ) );
-    if( pcBaseIntraRecFrame ) RNOK( pcBaseIntraRecFrame ->removeFieldBuffer( ePicType ) );
-    if( pcBaseResidualFrame ) RNOK( pcBaseResidualFrame ->removeFieldBuffer( ePicType ) );
+    if( pcResidualFrameLF     ) RNOK( pcResidualFrameLF     ->removeFieldBuffer( ePicType ) );
+    if( pcResidualFrameILPred ) RNOK( pcResidualFrameILPred ->removeFieldBuffer( ePicType ) );
+    if( pcPredFrame           ) RNOK( pcPredFrame           ->removeFieldBuffer( ePicType ) );
+    if( pcBaseIntraRecFrame   ) RNOK( pcBaseIntraRecFrame   ->removeFieldBuffer( ePicType ) );
+    if( pcBaseResidualFrame   ) RNOK( pcBaseResidualFrame   ->removeFieldBuffer( ePicType ) );
   }
 
 
@@ -326,7 +330,8 @@ ErrVal
 SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // control data
                                    Frame&        rcOrgFrame,           // original frame
                                    Frame&        rcFrame,              // reconstructed frame
-                                   Frame*        pcResidualFrame,      // reconstructed residual
+                                   Frame*        pcResidualFrameLF,    // reconstructed residual for loop filter
+                                   Frame*        pcResidualFrameILPred,// reconstructed residual for inter-layer prediction
                                    Frame*        pcPredFrame,          // prediction signal
                                    UInt          uiNumMaxIter,         // maximum number of iteration for bi-predictive search
                                    UInt          uiIterSearchRange,    // search range for iterative search
@@ -355,21 +360,24 @@ SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // contro
   UInt            uiNumMbsCoded         =  0;
 
   //===== set frame/field buffers =====
-  Frame*  apcOrgPic         [4] = { 0, 0, 0, 0 };
-  Frame*  apcPic            [4] = { 0, 0, 0, 0 };
-  Frame*  apcResidualPic    [4] = { 0, 0, 0, 0 };
-  Frame*  apcPredPic        [4] = { 0, 0, 0, 0 };
-  Frame*  apcBaseIntraRecPic[4] = { 0, 0, 0, 0 };
-  Frame*  apcBaseResidualPic[4] = { 0, 0, 0, 0 };
-  RNOK( gSetFrameFieldArrays( apcOrgPic,          &rcOrgFrame         ) );
-  RNOK( gSetFrameFieldArrays( apcPic,             &rcFrame            ) );
-  RNOK( gSetFrameFieldArrays( apcResidualPic,     pcResidualFrame     ) );
-  RNOK( gSetFrameFieldArrays( apcPredPic,         pcPredFrame         ) );
-  RNOK( gSetFrameFieldArrays( apcBaseIntraRecPic, pcBaseIntraRecFrame ) );
-  RNOK( gSetFrameFieldArrays( apcBaseResidualPic, pcBaseResidualFrame ) );
+  Frame*  apcOrgPic           [4] = { 0, 0, 0, 0 };
+  Frame*  apcPic              [4] = { 0, 0, 0, 0 };
+  Frame*  apcResidualPicLF    [4] = { 0, 0, 0, 0 };
+  Frame*  apcResidualPicILPred[4] = { 0, 0, 0, 0 };
+  Frame*  apcPredPic          [4] = { 0, 0, 0, 0 };
+  Frame*  apcBaseIntraRecPic  [4] = { 0, 0, 0, 0 };
+  Frame*  apcBaseResidualPic  [4] = { 0, 0, 0, 0 };
+  RNOK( gSetFrameFieldArrays( apcOrgPic,            &rcOrgFrame           ) );
+  RNOK( gSetFrameFieldArrays( apcPic,               &rcFrame              ) );
+  RNOK( gSetFrameFieldArrays( apcResidualPicLF,     pcResidualFrameLF     ) );
+  RNOK( gSetFrameFieldArrays( apcResidualPicILPred, pcResidualFrameILPred ) );
+  RNOK( gSetFrameFieldArrays( apcPredPic,           pcPredFrame           ) );
+  RNOK( gSetFrameFieldArrays( apcBaseIntraRecPic,   pcBaseIntraRecFrame   ) );
+  RNOK( gSetFrameFieldArrays( apcBaseResidualPic,   pcBaseResidualFrame   ) );
   MbDataBuffer  acFldMbData      [2];
   YuvMbBuffer   acFldMbRec       [2];
-  YuvMbBuffer   acFldMbIntraRec  [2];
+  YuvMbBuffer   acFldMbResLF     [2];
+  YuvMbBuffer   acFldMbResILPred [2];
   YuvMbBuffer   acFldMbPredSignal[2];
 
   //====== set frame/field reference lists =====
@@ -437,7 +445,7 @@ SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // contro
       pcMbDataAccess->getMbData().setQp( rcSliceHeader.getSliceQp() );
       UInt uiDeltaQp = ( rcSliceHeader.getTemporalId() == 0 ? 0 : uiMaxDeltaQp ); // old JSVM behaviour
       RNOK( m_pcMbEncoder->encodeMacroblockSVC( *pcMbDataAccess, pcMbDataAccessBase, 
-                                                *apcOrgPic[ uiMbTest ], *apcPic[ uiMbTest ], apcResidualPic[ uiMbTest ], apcPredPic[ uiMbTest ], 
+                                                *apcOrgPic[ uiMbTest ], *apcPic[ uiMbTest ], apcResidualPicLF[ uiMbTest ], apcResidualPicILPred[ uiMbTest ], apcPredPic[ uiMbTest ], 
                                                 apcBaseIntraRecPic[ uiMbTest ], apcBaseResidualPic[ uiMbTest ], rcRefListPicStruct,
                                                 uiMaxMvPerMb, uiNumMaxIter, uiIterSearchRange, bBiPred8x8Disable, bMCBlks8x8Disable, 
                                                 abSkipModeAllowed[ uiMbTest ], uiDeltaQp, dLambda, dCost ) );
@@ -451,9 +459,10 @@ SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // contro
       if( uiFieldMode )
       {
         acFldMbData[uiMbTest].copy( pcMbDataAccess->getMbData() );
-        if( apcPic        [uiMbTest] )  acFldMbRec       [uiMbTest].loadBuffer( apcPic        [uiMbTest]->getFullPelYuvBuffer() );
-        if( apcResidualPic[uiMbTest] )  acFldMbIntraRec  [uiMbTest].loadBuffer( apcResidualPic[uiMbTest]->getFullPelYuvBuffer() );
-        if( apcPredPic    [uiMbTest] )  acFldMbPredSignal[uiMbTest].loadBuffer( apcPredPic    [uiMbTest]->getFullPelYuvBuffer() );
+        if( apcPic              [uiMbTest] )  acFldMbRec       [uiMbTest].loadBuffer( apcPic              [uiMbTest]->getFullPelYuvBuffer() );
+        if( apcResidualPicLF    [uiMbTest] )  acFldMbResLF     [uiMbTest].loadBuffer( apcResidualPicLF    [uiMbTest]->getFullPelYuvBuffer() );
+        if( apcResidualPicILPred[uiMbTest] )  acFldMbResILPred [uiMbTest].loadBuffer( apcResidualPicILPred[uiMbTest]->getFullPelYuvBuffer() );
+        if( apcPredPic          [uiMbTest] )  acFldMbPredSignal[uiMbTest].loadBuffer( apcPredPic          [uiMbTest]->getFullPelYuvBuffer() );
       }
     }
 
@@ -492,9 +501,10 @@ SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // contro
       if( bFieldCodingMode )
       {
         pcMbDataAccess->getMbData().copy( acFldMbData[uiMbIdx] );
-        if( apcPic        [uiMbIdx] ) apcPic        [uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbRec       [uiMbIdx] );
-        if( apcResidualPic[uiMbIdx] ) apcResidualPic[uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbIntraRec  [uiMbIdx] );
-        if( apcPredPic    [uiMbIdx] ) apcPredPic    [uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbPredSignal[uiMbIdx] );
+        if( apcPic              [uiMbIdx] ) apcPic              [uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbRec       [uiMbIdx] );
+        if( apcResidualPicLF    [uiMbIdx] ) apcResidualPicLF    [uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbResLF     [uiMbIdx] );
+        if( apcResidualPicILPred[uiMbIdx] ) apcResidualPicILPred[uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbResILPred [uiMbIdx] );
+        if( apcPredPic          [uiMbIdx] ) apcPredPic          [uiMbIdx]->getFullPelYuvBuffer()->loadBuffer( &acFldMbPredSignal[uiMbIdx] );
       }
 
       //--- write data ---
@@ -558,10 +568,11 @@ SliceEncoder::encodeMbAffSliceSVC( ControlData&  rcControlData,        // contro
   //===== remove field buffers =====
   RNOK( rcOrgFrame.removeFrameFieldBuffer() );
   RNOK( rcFrame   .removeFrameFieldBuffer() );
-  if( pcResidualFrame     ) RNOK( pcResidualFrame     ->removeFrameFieldBuffer() );
-  if( pcPredFrame         ) RNOK( pcPredFrame         ->removeFrameFieldBuffer() );
-  if( pcBaseIntraRecFrame ) RNOK( pcBaseIntraRecFrame ->removeFrameFieldBuffer() );
-  if( pcBaseResidualFrame ) RNOK( pcBaseResidualFrame ->removeFrameFieldBuffer() );
+  if( pcResidualFrameLF     ) RNOK( pcResidualFrameLF     ->removeFrameFieldBuffer() );
+  if( pcResidualFrameILPred ) RNOK( pcResidualFrameILPred ->removeFrameFieldBuffer() );
+  if( pcPredFrame           ) RNOK( pcPredFrame           ->removeFrameFieldBuffer() );
+  if( pcBaseIntraRecFrame   ) RNOK( pcBaseIntraRecFrame   ->removeFrameFieldBuffer() );
+  if( pcBaseResidualFrame   ) RNOK( pcBaseResidualFrame   ->removeFrameFieldBuffer() );
 
   //===== update bits =====
   ruiBits += m_pcMbCoder->getBitCount() - uiBitsStart;
@@ -752,10 +763,12 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
     }
 
     // if cbp==0, tranform size is not transmitted, in this case inherit the transform size from base layer
-    if( pcMbDataAccess->isSCoeffPred() || ( pcMbDataAccess->getMbData().isIntraBL() && pcMbDataAccessBase->getMbData().isIntraButnotIBL() ) )
+    if( ( pcMbDataAccess->getMbData().getResidualPredFlag() && ! pcMbDataAccess->getMbData().isIntra() && ! pcMbDataAccessBase->getMbData().isIntra() ) || ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL ) )
     {
-      if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
+      if( ( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) == 0 )
+      {
         pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+      }
     }
 
     // set I_PCM mode (for deblocking) when CBP is 0, mbMode is I_BL, and base layer mbMode is I_PCM
@@ -836,7 +849,7 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
   {
 	  // Update the macroblock state
 	  // Must be done after the bit-stream has been constructed
-    for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
+    for( Int iSliceGroupId = rcFMO.getFirstSliceGroupId(); ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId = rcFMO.getNextSliceGroupId( iSliceGroupId ) )
     {
       UInt  uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
       UInt  uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
@@ -883,8 +896,10 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
   		    // The 8x8 transform flag is present in the bit-stream unless transform coefficients
 			    // are not transmitted at the enhancement layer.  In this case, inherit the base layer
 			    // transform type.  This makes intra predition work correctly, etc.
-			    if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
-				    pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+          if( ( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) == 0 )
+          {
+            pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+          }
 
 			    xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
 		    }
@@ -979,17 +994,16 @@ SliceEncoder::xAddTCoeffs2( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbData
 	}
 
 	// Add the chroma coefficients and update the BCBP
-	m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(0) ),
-		rcMbDataAccessBase.getMbTCoeffs().get( CIdx(0) ),
-		rcMbDataAccess.getSH().getChromaQp( rcMbDataAccess.getMbData().getQp() ),
-		rcMbDataAccessBase.getSH().getChromaQp( rcMbDataAccessBase.getMbData().getQp() ),
-		bChromaDC, bChromaAC );
-
-	m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(4) ),
-		rcMbDataAccessBase.getMbTCoeffs().get( CIdx(4) ),
-		rcMbDataAccess.getSH().getChromaQp( rcMbDataAccess.getMbData().getQp() ),
-		rcMbDataAccessBase.getSH().getChromaQp( rcMbDataAccessBase.getMbData().getQp() ),
-		bChromaDC, bChromaAC );
+  m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(0) ),
+                                            rcMbDataAccessBase.getMbTCoeffs().get( CIdx(0) ),
+                                            rcMbDataAccess.getSH().getCbQp( rcMbDataAccess.getMbData().getQp() ),
+                                            rcMbDataAccess.getSH().getBaseSliceHeader()->getCbQp( rcMbDataAccessBase.getMbData().getQp() ),
+                                            bChromaDC, bChromaAC );
+  m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(4) ),
+                                            rcMbDataAccessBase.getMbTCoeffs().get( CIdx(4) ),
+                                            rcMbDataAccess.getSH().getCrQp( rcMbDataAccess.getMbData().getQp() ),
+                                            rcMbDataAccess.getSH().getBaseSliceHeader()->getCrQp( rcMbDataAccessBase.getMbData().getQp() ),
+                                            bChromaDC, bChromaAC );
 
 	uiBCBP |= (bChromaAC?2:(bChromaDC?1:0))<<16;
 
@@ -1057,33 +1071,34 @@ SliceEncoder::xAddTCoeffs2( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbData
   }
 
   // Process chroma blocks
-  const QpParameter&  cSrcCQp      = cSrcQuantizer.getChromaQp();
-  const QpParameter&  cDstCQp      = cDstQuantizer.getChromaQp();
-
-  // Set scale factor
-  cScaleQp.setQp( (cSrcCQp.per()*6+cSrcCQp.rem()) - (cDstCQp.per()*6+cDstCQp.rem()), true );
-
-  for( CIdx cIdxi; cIdxi.isLegal(); cIdxi++ )
+  for( CPlaneIdx cPlaneIdx; cPlaneIdx.isLegal(); cPlaneIdx++ )
   {
-	  TCoeff *pcDst = rcMbDataAccess.getMbData().getMbTCoeffs().get( cIdxi );
-	  TCoeff *pcSrc = rcMbDataAccessBase.getMbData().getMbTCoeffs().get( cIdxi );
+    const QpParameter&  cSrcCQp = cSrcQuantizer.getChromaQp( cPlaneIdx );
+    const QpParameter&  cDstCQp = cDstQuantizer.getChromaQp( cPlaneIdx );
 
-	  for( UInt n=0; n<16; n++ )
-	  {
-		  TCoeff cCoeff;
+    // Set scale factor
+    cScaleQp.setQp( (cSrcCQp.per()*6+cSrcCQp.rem()) - (cDstCQp.per()*6+cDstCQp.rem()), true );
 
-		  cCoeff = pcSrc[n]<<cScaleQp.per();
-		  cCoeff *= uiScaleFactor[cScaleQp.rem()];
-		  cCoeff += ( cCoeff>0 ) ? 4 : -4;
-		  cCoeff /= 8;
+    for( CIdx cCIdx( cPlaneIdx ); cCIdx.isLegal( cPlaneIdx ); cCIdx++ )
+    {
+      TCoeff *pcDst = rcMbDataAccess    .getMbData().getMbTCoeffs().get( cCIdx );
+      TCoeff *pcSrc = rcMbDataAccessBase.getMbData().getMbTCoeffs().get( cCIdx );
 
-		  pcDst[n] += cCoeff;
+      for( UInt n=0; n<16; n++ )
+      {
+        TCoeff cCoeff;
 
-	  }
+        cCoeff = pcSrc[n]<<cScaleQp.per();
+        cCoeff *= uiScaleFactor[cScaleQp.rem()];
+        cCoeff += ( cCoeff>0 ) ? 4 : -4;
+        cCoeff /= 8;
+
+        pcDst[n] += cCoeff;
+      }
+    }
   }
 
   return Err::m_nOK;
-
 }
 
 H264AVC_NAMESPACE_END

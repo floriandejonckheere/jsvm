@@ -57,7 +57,8 @@ public:
                                 MbDataAccess*           pcMbDataAccessBase,
                                 const Frame&            rcOrgFrame,
                                 Frame&                  rcFrame,
-                                Frame*                  pcResidual,
+                                Frame*                  pcResidualLF,
+                                Frame*                  pcResidualILPred,
                                 Frame*                  pcPredSignal,
                                 const Frame*            pcBaseLayerIntraRec,
                                 const Frame*            pcBaseLayerResidual,
@@ -179,18 +180,20 @@ protected:
                                   RefListStruct&      rcRefListStruct,
                                   UInt                uiMinQP,
                                   UInt                uiMaxQP,
-                                  Bool                bLowComplexity    = false, // JVT-V079
-                                  Bool                bBLSkip           = false,
-                                  UInt                uiAdditionalBits  = 0,
-                                  Frame*              pcBaseLayerRec    = 0 );
+                                  Bool                bLowComplexity      = false, // JVT-V079
+                                  Bool                bBLSkip             = false,
+                                  UInt                uiAdditionalBits    = 0,
+                                  Frame*              pcBaseLayerRec      = 0,
+                                  const YuvMbBuffer*  pcBaseLayerResidual = 0 );
   ErrVal  xSetRdCost8x8InterMb  ( IntMbTempData&      rcMbTempData,
                                   MbDataAccess*       pcMbDataAccessBaseMotion,
                                   RefListStruct&      rcRefListStruct,
                                   UInt                uiMinQP,
                                   UInt                uiMaxQP,
-                                  Bool                bBLSkip           = false,
-                                  UInt                uiAdditionalBits  = 0,
-                                  Frame*              pcBaseLayerRec    = 0 );
+                                  Bool                bBLSkip             = false,
+                                  UInt                uiAdditionalBits    = 0,
+                                  Frame*              pcBaseLayerRec      = 0,
+                                  const YuvMbBuffer*  pcBaseLayerResidual = 0 );
   ErrVal  xSetRdCostInterSubMb  ( IntMbTempData&      rcMbTempData,
                                   RefListStruct&      rcRefListStruct,
                                   B8x8Idx             c8x8Idx,
@@ -236,7 +239,8 @@ protected:
                                   UInt                uiMaxQP,
                                   Bool                bBLSkip,
                                   MbDataAccess*       pcMbDataAccessBaseMotion,
-                                  Frame*              pcBaseLayerRec = 0 );
+                                  Frame*              pcBaseLayerRec      = 0,
+                                  const YuvMbBuffer*  pcBaseLayerResidual = 0 );
 
   ErrVal  xEstimateMbIntraBL    ( IntMbTempData*&     rpcMbTempData,
                                   IntMbTempData*&     rpcMbBestData,
@@ -289,7 +293,8 @@ protected:
                                   Bool                bBSlice,
                                   MbDataAccess*       pcMbDataAccessBaseMotion,
                                   MbDataAccess&       rcMbDataAccess,
-                                  Bool                bResidualPred );
+                                  Bool                bResidualPred,
+                                  const YuvMbBuffer*  pcBLResidual = 0 );
   ErrVal  xEstimateMbDirect     ( IntMbTempData*&     rpcMbTempData,
                                   IntMbTempData*&     rpcMbBestData,
                                   RefListStruct&      rcRefListStruct,
@@ -404,7 +409,8 @@ protected:
                                   IntMbTempData*&     rpcMbBestData );
   ErrVal  xStoreEstimation      ( MbDataAccess&       rcMbDataAccess,
                                   IntMbTempData&      rcMbBestData,
-                                  Frame*              pcRecSubband,
+                                  Frame*              pcResidualLF,
+                                  Frame*              pcResidualILPred,
                                   Frame*              pcPredSignal,
                                   RefListStruct&      rcRefListStruct,
                                   YuvMbBuffer*        pcBaseLayerBuffer );

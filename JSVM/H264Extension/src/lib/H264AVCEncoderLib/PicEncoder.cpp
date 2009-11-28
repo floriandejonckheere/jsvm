@@ -356,7 +356,7 @@ PicEncoder::xInitPPS()
   m_pcPPS->setNumRefIdxActive                       ( LIST_0, m_pcCodingParameter->getMaxRefIdxActiveBL0() );
   m_pcPPS->setNumRefIdxActive                       ( LIST_1, m_pcCodingParameter->getMaxRefIdxActiveBL1() );
   m_pcPPS->setPicInitQp                             ( gMin( 51, gMax( 0, (Int)m_pcCodingParameter->getBasisQp() ) ) );
-  m_pcPPS->setChomaQpIndexOffset                    ( 0 );
+  m_pcPPS->setChromaQpIndexOffset                   ( 0 );
   m_pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
   m_pcPPS->setConstrainedIntraPredFlag              ( false );
   m_pcPPS->setRedundantPicCntPresentFlag            ( false );  //JVT-Q054 Red. Picture
@@ -636,7 +636,7 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
 //TMM_WP
 
   //===== encoding of slice groups =====
-  for( Int iSliceGroupID = 0; ! rcSliceHeader.getFMO()->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID++ )
+  for( Int iSliceGroupID = rcSliceHeader.getFMO()->getFirstSliceGroupId(); ! rcSliceHeader.getFMO()->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID = rcSliceHeader.getFMO()->getNextSliceGroupId( iSliceGroupID ) )
   {
     UInt  uiBitsSlice = 0;
 

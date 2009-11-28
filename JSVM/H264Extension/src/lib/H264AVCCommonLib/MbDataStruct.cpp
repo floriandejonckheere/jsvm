@@ -45,6 +45,8 @@ const UChar MbDataStruct::m_aucACTab[7] =
 
 MbDataStruct::MbDataStruct()
 : m_uiSliceId           ( 0 )
+, m_uiMbAddr            ( MSYS_UINT_MAX )
+, m_uiMapUnit           ( MSYS_UINT_MAX )
 , m_eSliceType          ( NOT_SPECIFIED_SLICE )
 , m_bBLSkipFlag         ( false )
 , m_eMbMode             ( MODE_SKIP )
@@ -56,11 +58,12 @@ MbDataStruct::MbDataStruct()
 , m_ucQp4LF             ( 0 )
 , m_bResidualPredFlag   ( false )
 , m_bTransformSize8x8   ( false )
-, m_bSkipFlag       ( true )
-, m_bInCropWindowFlag ( false ) //TMM_ESS
-, m_bFieldFlag              ( 0 )
-, m_uiMbCbpResidual         ( 0 )
-, m_bRPSafe								( true )
+, m_bSkipFlag           ( true )
+, m_bInCropWindowFlag   ( false ) //TMM_ESS
+, m_bFieldFlag          ( 0 )
+, m_uiMbCbpResidual     ( 0 )
+, m_uiMbCbpDQId0        ( 0 )    
+, m_bRPSafe							( true )
 {
   DO_DBG( clearIntraPredictionModes( true ) );//TMM_INTERLACE
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
@@ -72,6 +75,8 @@ Void MbDataStruct::reset()
   m_uiBCBP              = 0;
   m_usFwdBwd            = 0;
   m_uiSliceId           = 0;
+  m_uiMbAddr            = MSYS_UINT_MAX;
+  m_uiMapUnit           = MSYS_UINT_MAX;
   m_eSliceType          = NOT_SPECIFIED_SLICE;
   m_bBLSkipFlag         = false;
   m_eMbMode             = MODE_SKIP;
@@ -159,6 +164,8 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
 {
   m_usFwdBwd            = rcMbDataStruct.m_usFwdBwd;
   m_uiSliceId           = rcMbDataStruct.m_uiSliceId;
+  m_uiMbAddr            = rcMbDataStruct.m_uiMbAddr;
+  m_uiMapUnit           = rcMbDataStruct.m_uiMapUnit;
   m_eSliceType          = rcMbDataStruct.m_eSliceType;
   m_bBLSkipFlag         = rcMbDataStruct.m_bBLSkipFlag;
   m_eMbMode             = rcMbDataStruct.m_eMbMode;

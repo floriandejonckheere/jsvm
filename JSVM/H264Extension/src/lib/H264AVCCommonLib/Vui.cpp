@@ -69,6 +69,35 @@ ErrVal VUI::BitstreamRestriction::read( HeaderSymbolReadIf *pcReadIf )
   return Err::m_nOK;
 }
 
+Bool
+VUI::BitstreamRestriction::isSame( const VUI::BitstreamRestriction& rcBitstreamRestriction )  const
+{
+  ROFRS( m_bBitstreamRestrictionFlag            ==  rcBitstreamRestriction.m_bBitstreamRestrictionFlag,           false );
+  ROFRS( m_bBitstreamRestrictionFlag,                                                                             true  );
+  ROFRS( m_bMotionVectorsOverPicBoundariesFlag  ==  rcBitstreamRestriction.m_bMotionVectorsOverPicBoundariesFlag, false );
+  ROFRS( m_uiMaxBytesPerPicDenom                ==  rcBitstreamRestriction.m_uiMaxBytesPerPicDenom,               false );
+  ROFRS( m_uiMaxBitsPerMbDenom                  ==  rcBitstreamRestriction.m_uiMaxBitsPerMbDenom,                 false );
+  ROFRS( m_uiLog2MaxMvLengthHorizontal          ==  rcBitstreamRestriction.m_uiLog2MaxMvLengthHorizontal,         false );
+  ROFRS( m_uiLog2MaxMvLengthVertical            ==  rcBitstreamRestriction.m_uiLog2MaxMvLengthVertical,           false );
+  ROFRS( m_uiMaxDecFrameReordering              ==  rcBitstreamRestriction.m_uiMaxDecFrameReordering,             false );
+  ROFRS( m_uiMaxDecFrameBuffering               ==  rcBitstreamRestriction.m_uiMaxDecFrameBuffering,              false );
+  return true;
+}
+
+ErrVal
+VUI::BitstreamRestriction::copy( const VUI::BitstreamRestriction& rcBitstreamRestriction )
+{
+  m_bBitstreamRestrictionFlag            = rcBitstreamRestriction.m_bBitstreamRestrictionFlag;
+  m_bMotionVectorsOverPicBoundariesFlag  = rcBitstreamRestriction.m_bMotionVectorsOverPicBoundariesFlag;
+  m_uiMaxBytesPerPicDenom                = rcBitstreamRestriction.m_uiMaxBytesPerPicDenom;
+  m_uiMaxBitsPerMbDenom                  = rcBitstreamRestriction.m_uiMaxBitsPerMbDenom;
+  m_uiLog2MaxMvLengthHorizontal          = rcBitstreamRestriction.m_uiLog2MaxMvLengthHorizontal;
+  m_uiLog2MaxMvLengthVertical            = rcBitstreamRestriction.m_uiLog2MaxMvLengthVertical;
+  m_uiMaxDecFrameReordering              = rcBitstreamRestriction.m_uiMaxDecFrameReordering;
+  m_uiMaxDecFrameBuffering               = rcBitstreamRestriction.m_uiMaxDecFrameBuffering;
+  return Err::m_nOK;
+}
+
 
 VUI::AspectRatioInfo::AspectRatioInfo():
   m_bAspectRatioInfoPresentFlag   ( false ),
@@ -77,6 +106,29 @@ VUI::AspectRatioInfo::AspectRatioInfo():
   m_uiSarHeight                   ( 0 )
 {
 }
+
+Bool
+VUI::AspectRatioInfo::isSame( const VUI::AspectRatioInfo& rcAspectRatioInfo )  const
+{
+  ROFRS( m_bAspectRatioInfoPresentFlag  ==  rcAspectRatioInfo.m_bAspectRatioInfoPresentFlag,  false );
+  ROFRS( m_bAspectRatioInfoPresentFlag,                                                       true  );
+  ROFRS( m_uiAspectRatioIdc             ==  rcAspectRatioInfo.m_uiAspectRatioIdc,             false );
+  ROFRS( m_uiAspectRatioIdc             ==  255,                                              true  );
+  ROFRS( m_uiSarWith                    ==  rcAspectRatioInfo.m_uiSarWith,                    false );
+  ROFRS( m_uiSarHeight                  ==  rcAspectRatioInfo.m_uiSarHeight,                  false );
+  return true;
+}
+
+ErrVal
+VUI::AspectRatioInfo::copy( const VUI::AspectRatioInfo& rcAspectRatioInfo )
+{
+  m_bAspectRatioInfoPresentFlag  = rcAspectRatioInfo.m_bAspectRatioInfoPresentFlag;
+  m_uiAspectRatioIdc             = rcAspectRatioInfo.m_uiAspectRatioIdc;
+  m_uiSarWith                    = rcAspectRatioInfo.m_uiSarWith;
+  m_uiSarHeight                  = rcAspectRatioInfo.m_uiSarHeight;
+  return Err::m_nOK;
+}
+
 
 VUI::VideoSignalType::VideoSignalType():
   m_bVideoSignalTypePresentFlag   ( false ),
@@ -89,6 +141,35 @@ VUI::VideoSignalType::VideoSignalType():
 {
 }
 
+Bool
+VUI::VideoSignalType::isSame( const VUI::VideoSignalType& rcVideoSignalType )  const
+{
+  ROFRS( m_bVideoSignalTypePresentFlag    ==  rcVideoSignalType.m_bVideoSignalTypePresentFlag,    false );
+  ROFRS( m_bVideoSignalTypePresentFlag,                                                           true  );
+  ROFRS( m_uiVideoFormat                  ==  rcVideoSignalType.m_uiVideoFormat,                  false );
+  ROFRS( m_bVideoFullRangeFlag            ==  rcVideoSignalType.m_bVideoFullRangeFlag,            false );
+  ROFRS( m_bColourDescriptionPresentFlag  ==  rcVideoSignalType.m_bColourDescriptionPresentFlag,  false );
+  ROFRS( m_bColourDescriptionPresentFlag,                                                         true  );
+  ROFRS( m_uiColourPrimaries              ==  rcVideoSignalType.m_uiColourPrimaries,              false );
+  ROFRS( m_uiTransferCharacteristics      ==  rcVideoSignalType.m_uiTransferCharacteristics,      false );
+  ROFRS( m_uiMatrixCoefficients           ==  rcVideoSignalType.m_uiMatrixCoefficients,           false );
+  return true;
+}
+
+ErrVal
+VUI::VideoSignalType::copy( const VUI::VideoSignalType& rcVideoSignalType )
+{
+  m_bVideoSignalTypePresentFlag    = rcVideoSignalType.m_bVideoSignalTypePresentFlag;
+  m_uiVideoFormat                  = rcVideoSignalType.m_uiVideoFormat;
+  m_bVideoFullRangeFlag            = rcVideoSignalType.m_bVideoFullRangeFlag;
+  m_bColourDescriptionPresentFlag  = rcVideoSignalType.m_bColourDescriptionPresentFlag;
+  m_uiColourPrimaries              = rcVideoSignalType.m_uiColourPrimaries;
+  m_uiTransferCharacteristics      = rcVideoSignalType.m_uiTransferCharacteristics;
+  m_uiMatrixCoefficients           = rcVideoSignalType.m_uiMatrixCoefficients;
+  return Err::m_nOK;
+}
+
+
 VUI::ChromaLocationInfo::ChromaLocationInfo():
   m_bChromaLocationInfoPresentFlag( false ),
   m_uiChromaLocationFrame         ( 0 ),
@@ -96,11 +177,52 @@ VUI::ChromaLocationInfo::ChromaLocationInfo():
 {
 }
 
+Bool
+VUI::ChromaLocationInfo::isSame( const VUI::ChromaLocationInfo& rcChromaLocationInfo )  const
+{
+  ROFRS( m_bChromaLocationInfoPresentFlag ==  rcChromaLocationInfo.m_bChromaLocationInfoPresentFlag,  false );
+  ROFRS( m_bChromaLocationInfoPresentFlag,                                                            true  );
+  ROFRS( m_uiChromaLocationFrame          ==  rcChromaLocationInfo.m_uiChromaLocationFrame,           false );
+  ROFRS( m_uiChromaLocationField          ==  rcChromaLocationInfo.m_uiChromaLocationField,           false );
+  return true;
+}
+
+ErrVal
+VUI::ChromaLocationInfo::copy( const VUI::ChromaLocationInfo& rcChromaLocationInfo )
+{
+  m_bChromaLocationInfoPresentFlag = rcChromaLocationInfo.m_bChromaLocationInfoPresentFlag;
+  m_uiChromaLocationFrame          = rcChromaLocationInfo.m_uiChromaLocationFrame;
+  m_uiChromaLocationField          = rcChromaLocationInfo.m_uiChromaLocationField;
+  return Err::m_nOK;
+}
+
+
 VUI::TimingInfo::TimingInfo():
   m_uiNumUnitsInTick              ( 0 ),
   m_uiTimeScale                   ( 0 ),
   m_bFixedFrameRateFlag           ( 0 )
 {
+}
+
+Bool
+VUI::TimingInfo::isSame( const VUI::TimingInfo& rcTimingInfo )  const
+{
+  ROFRS( m_bTimingInfoPresentFlag ==  rcTimingInfo.m_bTimingInfoPresentFlag,  false );
+  ROFRS( m_bTimingInfoPresentFlag,                                            true  );
+  ROFRS( m_uiNumUnitsInTick       ==  rcTimingInfo.m_uiNumUnitsInTick,        false );
+  ROFRS( m_uiTimeScale            ==  rcTimingInfo.m_uiTimeScale,             false );
+  ROFRS( m_bFixedFrameRateFlag    ==  rcTimingInfo.m_bFixedFrameRateFlag,     false );
+  return true;
+}
+
+ErrVal
+VUI::TimingInfo::copy( const VUI::TimingInfo& rcTimingInfo )
+{
+  m_bTimingInfoPresentFlag = rcTimingInfo.m_bTimingInfoPresentFlag;
+  m_uiNumUnitsInTick       = rcTimingInfo.m_uiNumUnitsInTick;
+  m_uiTimeScale            = rcTimingInfo.m_uiTimeScale;
+  m_bFixedFrameRateFlag    = rcTimingInfo.m_bFixedFrameRateFlag;
+  return Err::m_nOK;
 }
 
 ErrVal VUI::AspectRatioInfo::read( HeaderSymbolReadIf *pcReadIf )
@@ -230,6 +352,39 @@ VUI::~VUI()
 {
 }
 
+
+Bool
+VUI::isSameExceptHRDParametersAndSVCExt( const VUI& rcVUI )  const
+{
+  ROFRS( m_bVuiParametersPresentFlag    == rcVUI.m_bVuiParametersPresentFlag, false );
+  ROFRS( m_bVuiParametersPresentFlag,                                         true  );
+  ROFRS( m_bOverscanInfoPresentFlag     == rcVUI.m_bOverscanInfoPresentFlag,  false );
+  if( m_bOverscanInfoPresentFlag )
+  {
+    ROFRS( m_bOverscanAppropriateFlag   == rcVUI.m_bOverscanAppropriateFlag,  false );
+  }
+  ROFRS( m_cAspectRatioInfo       .isSame( rcVUI.m_cAspectRatioInfo       ),  false );
+  ROFRS( m_cVideoSignalType       .isSame( rcVUI.m_cVideoSignalType       ),  false );
+  ROFRS( m_cChromaLocationInfo    .isSame( rcVUI.m_cChromaLocationInfo    ),  false );
+  ROFRS( m_cBitstreamRestriction  .isSame( rcVUI.m_cBitstreamRestriction  ),  false );
+  return true;
+}
+
+ErrVal
+VUI::copyExceptHRDParametersAndSVCExt( const VUI& rcVUI )
+{
+  m_bVuiParametersPresentFlag  = rcVUI.m_bVuiParametersPresentFlag;
+  m_bOverscanInfoPresentFlag   = rcVUI.m_bOverscanInfoPresentFlag;
+  m_bOverscanAppropriateFlag   = rcVUI.m_bOverscanAppropriateFlag;
+  RNOK( m_cAspectRatioInfo       .copy( rcVUI.m_cAspectRatioInfo       ) );
+  RNOK( m_cVideoSignalType       .copy( rcVUI.m_cVideoSignalType       ) );
+  RNOK( m_cChromaLocationInfo    .copy( rcVUI.m_cChromaLocationInfo    ) );
+  RNOK( m_cBitstreamRestriction  .copy( rcVUI.m_cBitstreamRestriction  ) );
+  return Err::m_nOK;
+}
+
+
+
 ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, UInt uiCpbSize)
 {
   HRD& rcHrd = (eHrdType == HRD::NAL_HRD) ? m_acNalHrd[uiIndex] : m_acVclHrd[uiIndex];
@@ -320,15 +475,25 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( m_cVideoSignalType.write( pcWriteIf ) );
   RNOK( m_cChromaLocationInfo.write( pcWriteIf ) );
 
-  ROT( m_uiDefaultIdx == MSYS_UINT_MAX );
-  RNOK( m_acTimingInfo.get(m_uiDefaultIdx).write( pcWriteIf ) );
-  RNOK( m_acNalHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
-  RNOK( m_acVclHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
-  if( m_acNalHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() || m_acVclHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() )
+  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
   {
-    RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(m_uiDefaultIdx),           "VUI: low_delay_hrd_flag"));
+    RNOK( pcWriteIf->writeFlag( false,  "VUI: timing_info_present_flag"     ) );
+    RNOK( pcWriteIf->writeFlag( false,  "HRD: hdr_parameters_present_flag"  ) );
+    RNOK( pcWriteIf->writeFlag( false,  "HRD: hdr_parameters_present_flag"  ) );
+    RNOK( pcWriteIf->writeFlag( false,  "VUI: pic_struct_present_flag"      ) );
   }
-  RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(m_uiDefaultIdx),        "VUI: pic_struct_present_flag"));
+  else
+  {
+    ROT( m_uiDefaultIdx == MSYS_UINT_MAX );
+    RNOK( m_acTimingInfo.get(m_uiDefaultIdx).write( pcWriteIf ) );
+    RNOK( m_acNalHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
+    RNOK( m_acVclHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
+    if( m_acNalHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() || m_acVclHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() )
+    {
+      RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(m_uiDefaultIdx),           "VUI: low_delay_hrd_flag"));
+    }
+    RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(m_uiDefaultIdx),        "VUI: pic_struct_present_flag"));
+  }
 
   RNOK( m_cBitstreamRestriction.write( pcWriteIf ) );
 

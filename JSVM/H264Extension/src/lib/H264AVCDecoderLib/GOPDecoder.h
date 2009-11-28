@@ -345,34 +345,6 @@ private:
 
 
 
-
-class H264AVCDECODERLIB_API MbStatus
-{
-public:
-  MbStatus();
-  virtual ~MbStatus();
-
-  Void    reset           ();
-  Bool    canBeUpdated    ( const SliceHeader*  pcSliceHeader );
-  ErrVal  update          ( SliceHeader*        pcSliceHeader );
-
-  SliceHeader*        getSliceHeader    ()        { return    m_pcSliceHeader; }
-  const SliceHeader*  getSliceHeader    ()  const { return    m_pcSliceHeader; }
-  UInt                getSliceIdc       ()  const { return    m_uiSliceIdc; }
-  UInt                getFirstMbInSlice ()  const { return    m_uiSliceIdc >> 7; }
-  UInt                getDQId           ()  const { return    m_uiSliceIdc        & 0x7F; }
-  UInt                getDependencyId   ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
-  UInt                getQualityId      ()  const { return    m_uiSliceIdc        & 0xF; }
-  Bool                isCoded           ()  const { return    m_bIsCoded; }
-
-private:
-  UInt          m_uiSliceIdc;
-  Bool          m_bIsCoded;
-  SliceHeader*  m_pcSliceHeader;
-};
-
-
-
 class H264AVCDECODERLIB_API LayerDecoder
 {
   enum { NUM_TMP_FRAMES = 2 };
@@ -435,8 +407,7 @@ private:
   //===== initialization =====
   ErrVal  xReadSliceHeader            ( SliceHeader*&           rpcSliceHeader,
                                         SliceDataNALUnit&       rcSliceDataNalUnit );
-  ErrVal  xInitSliceHeader            ( SliceHeader&            rcSliceHeader,
-                                        const SliceDataNALUnit& rcSliceDataNalUnit );
+  ErrVal  xInitSliceHeader            ( SliceHeader&            rcSliceHeader );
   ErrVal  xInitSPS                    ( const SliceHeader&      rcSliceHeader );
   ErrVal  xInitDPBUnit                ( SliceHeader&            rcSliceHeader,
                                         PicBuffer*              pcPicBuffer,
@@ -465,7 +436,9 @@ private:
                                         BinDataList&            rcBinDataList );
 
   //===== picture processing =====
-  ErrVal  xCheckForMissingSlices      ( const SliceDataNALUnit& rcSliceDataNalUnit );
+  ErrVal  xCheckForMissingSlices      ( const SliceDataNALUnit& rcSliceDataNalUnit,
+                                        PicBufferList&          rcPicBufferOutputList,
+                                        PicBufferList&          rcPicBufferUnusedList );
   ErrVal  xSetLoopFilterQPs           ( SliceHeader&            rcSliceHeader,
                                         MbDataCtrl&             rcMbDataCtrl );
 #ifdef SHARP_AVC_REWRITE_OUTPUT
@@ -511,6 +484,8 @@ protected:
   Bool                  m_bSPSInitialized;
   Bool                  m_bDependencyRepresentationInitialized;
   Bool                  m_bLayerRepresentationInitialized;
+  Bool                  m_bInterLayerPredLayerRep;
+  Bool                  m_bRewritingLayerRep;
   UInt                  m_uiFrameWidthInMb;
   UInt                  m_uiFrameHeightInMb;
   UInt                  m_uiMbNumber;
@@ -527,7 +502,8 @@ protected:
   CurrDPBUnit*          m_pcCurrDPBUnit;
   MbDataCtrl*           m_pcBaseLayerCtrl;
   MbDataCtrl*           m_pcBaseLayerCtrlField;
-  Frame*                m_pcResidual;
+  Frame*                m_pcResidualLF;
+  Frame*                m_pcResidualILPred;
   Frame*                m_pcILPrediction;
   Frame*                m_pcBaseLayerFrame;
   Frame*                m_pcBaseLayerResidual;

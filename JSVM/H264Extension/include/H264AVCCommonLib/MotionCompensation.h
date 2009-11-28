@@ -64,12 +64,16 @@ public:
   ErrVal initSlice( const SliceHeader& rcSH );
   ErrVal uninit();
 
-  ErrVal compensateMbBLSkipIntra( MbDataAccess&      rcMbDataAccessBase,
+  ErrVal compensateMbBLSkipIntra( MbDataAccess&   rcMbDataAccessBase,
                                   YuvMbBuffer*    pcRecBuffer,
                                   Frame*          pcBaseLayerRec );
+  ErrVal updateMbBLSkipResidual ( MbDataAccess&   rcMbDataAccess,
+                                  YuvMbBuffer&    rcMbResBuffer );
+
   ErrVal copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
                         YuvMbBuffer*    pcMbBufDes,
                         Int sX, Int sY, Int eX, Int eY);
+  ErrVal clearMbBuffer( YuvMbBuffer& rcMbBuffer, Int sX, Int sY, Int eX, Int eY );
 
   Void setResizeParameters   (ResizeParameters*				resizeParameters)
   {

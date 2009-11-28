@@ -470,9 +470,7 @@ AccessUnit::xSetParameters()
     {
       if( ISVCL(iIter) )
       {
-        if( SLICE(iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE      ||
-            SLICE(iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR  ||
-            SLICE(iIter)->getTCoeffLevelPredictionFlag() )
+        if( SLICE(iIter)->getNoInterLayerPredFlag() || SLICE(iIter)->getTCoeffLevelPredictionFlag() )
         {
           uiHighestRewriteDQId = SLICE(iIter)->getDQId();
         }
@@ -1155,7 +1153,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   {
     SequenceParameterSet* pcSPS = NULL;
     RNOK( SequenceParameterSet::create  ( pcSPS   ) );
-    RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType ) );
+    Bool bCompletelyParsed = false;
+    RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType, bCompletelyParsed ) );
     uiSPSid = pcSPS->getSeqParameterSetId();
     pcSPS->destroy();
   }

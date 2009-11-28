@@ -122,7 +122,11 @@ enum PicStruct
   PS_TOP           =  1, // top field	field_pic_flag shall be 1, bottom_field_flag shall be 0 1
   PS_BOT           =  2, // bottom field field_pic_flag shall be 1, bottom_field_flag shall be 1 1
   PS_TOP_BOT       =  3, // top field, bottom field, in that order field_pic_flag shall be 0 2
-  PS_BOT_TOP       =  4  // bottom field, top field, in that order field_pic_flag shall be 0 2
+  PS_BOT_TOP       =  4, // bottom field, top field, in that order field_pic_flag shall be 0 2
+  PS_TOP_BOT_TOP   =  5,
+  PS_BOT_TOP_BOT   =  6,
+  PS_FRM_DOUBLING  =  7,
+  PS_FRM_TRIPLING  =  8,
 };
 
 class PicBuffer

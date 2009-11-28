@@ -20,7 +20,7 @@ PictureParameterSet::PictureParameterSet()
 , m_bWeightedPredFlag                       ( false )
 , m_uiWeightedBiPredIdc                     ( 0 )
 , m_uiPicInitQp                             ( 26 )
-, m_iChomaQpIndexOffset                     ( 0 )
+, m_iChromaQpIndexOffset                    ( 0 )
 , m_bDeblockingFilterParametersPresentFlag  ( false )
 , m_bConstrainedIntraPredFlag               ( false )
 , m_bRedundantPicCntPresentFlag             ( false )  // JVT-Q054, Red. Picture
@@ -139,12 +139,12 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( pcWriteIf->writeCode( m_uiWeightedBiPredIdc, 2,                   "PPS: weighted_bipred_idc" ) );
   RNOK( pcWriteIf->writeSvlc( (Int)getPicInitQp() - 26,                   "PPS: pic_init_qp_minus26" ) );
   RNOK( pcWriteIf->writeSvlc( 0,                                          "PPS: pic_init_qs_minus26" ) );
-  RNOK( pcWriteIf->writeSvlc( getChomaQpIndexOffset(),                    "PPS: chroma_qp_index_offset" ) );
+  RNOK( pcWriteIf->writeSvlc( getChromaQpIndexOffset(),                   "PPS: chroma_qp_index_offset" ) );
   RNOK( pcWriteIf->writeFlag( getDeblockingFilterParametersPresentFlag(), "PPS: deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
   RNOK( pcWriteIf->writeFlag( getConstrainedIntraPredFlag(),              "PPS: constrained_intra_pred_flag" ) );
   RNOK( pcWriteIf->writeFlag( getRedundantPicCntPresentFlag(),            "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
 
-  if( getTransform8x8ModeFlag() || m_bPicScalingMatrixPresentFlag || m_iSecondChromaQpIndexOffset != m_iChomaQpIndexOffset )
+  if( getTransform8x8ModeFlag() || m_bPicScalingMatrixPresentFlag || m_iSecondChromaQpIndexOffset != m_iChromaQpIndexOffset )
   {
     RNOK( xWriteFrext( pcWriteIf ) );
   }
@@ -238,7 +238,8 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   RNOK( pcReadIf->getSvlc( iTmp,                                          "PPS: pic_init_qs_minus26" ) );
   RNOK( pcReadIf->getSvlc( iTmp,                                          "PPS: chroma_qp_index_offset" ) );
   ROT ( iTmp < -12 || iTmp > 12 );
-  setChomaQpIndexOffset( iTmp );
+  setChromaQpIndexOffset    ( iTmp );
+  set2ndChromaQpIndexOffset ( iTmp ); // default
   RNOK( pcReadIf->getFlag( m_bDeblockingFilterParametersPresentFlag,      "PPS: deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
   RNOK( pcReadIf->getFlag( m_bConstrainedIntraPredFlag,                   "PPS: constrained_intra_pred_flag" ) );
   RNOK( pcReadIf->getFlag( m_bRedundantPicCntPresentFlag,                 "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
@@ -275,6 +276,7 @@ PictureParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
     RNOK( m_cPicScalingMatrix.read( pcReadIf, m_bTransform8x8ModeFlag ) );
   }
   RNOK  ( pcReadIf->getSvlc ( m_iSecondChromaQpIndexOffset,               "PPS: second_chroma_qp_index_offset" ) );
+  ROT   ( m_iSecondChromaQpIndexOffset < -12 || m_iSecondChromaQpIndexOffset > 12 );
 
   return Err::m_nOK;
 }

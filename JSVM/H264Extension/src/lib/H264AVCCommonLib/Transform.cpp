@@ -582,16 +582,15 @@ ErrVal Transform::predictMb16x16( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, 
 
 }
 
-ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs )
+ErrVal Transform::predictChromaBlocks( UInt uiComp, TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs )
 {
-
 	// DECLARATIONS
 	TCoeff cScaledRef[64];
   int i;
 
 	for( UInt x=0; x<0x40; x+=0x10 )
 	{
-		ScaleCoeffLevels( &cScaledRef[x], &piRef[x], getChromaQp().value(), uiRefQp, 16 );
+    ScaleCoeffLevels( &cScaledRef[x], &piRef[x], getChromaQp( uiComp ).value(), uiRefQp, 16 );
 
 		for( UInt n=0; n<16; n++ )
 		{
@@ -615,7 +614,7 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
 
 }
 ErrVal
-Transform::predictScaledACCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, const UChar* pucScale )
+Transform::predictScaledACCoeffs( UInt uiComp, TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, const UChar* pucScale )
 {
 
 	// DECLARATIONS
@@ -623,16 +622,17 @@ Transform::predictScaledACCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, 
 	UInt uiDcAbs=0, uiAcAbs=0;
 
 	// Predict the chroma coefficients
-	predictChromaBlocks( cPredCoeff, piRef, uiRefQp, uiDcAbs, uiAcAbs  );
+  predictChromaBlocks( uiComp, cPredCoeff, piRef, uiRefQp, uiDcAbs, uiAcAbs  );
 
 	for( UInt i=0; i<64; i++ )
 		cPredCoeff[i] = -cPredCoeff[i];
 
 	// Scale the coefficients
-  x4x4DequantChroma( &cPredCoeff[0x00], &cPredCoeff[0x00], m_cChromaQp, pucScale );
-  x4x4DequantChroma( &cPredCoeff[0x10], &cPredCoeff[0x10], m_cChromaQp, pucScale );
-  x4x4DequantChroma( &cPredCoeff[0x20], &cPredCoeff[0x20], m_cChromaQp, pucScale );
-  x4x4DequantChroma( &cPredCoeff[0x30], &cPredCoeff[0x30], m_cChromaQp, pucScale );
+  const QpParameter& rcCQp = ( uiComp ? m_cCrQp : m_cCbQp );
+  x4x4DequantChroma( &cPredCoeff[0x00], &cPredCoeff[0x00], rcCQp, pucScale );
+  x4x4DequantChroma( &cPredCoeff[0x10], &cPredCoeff[0x10], rcCQp, pucScale );
+  x4x4DequantChroma( &cPredCoeff[0x20], &cPredCoeff[0x20], rcCQp, pucScale );
+  x4x4DequantChroma( &cPredCoeff[0x30], &cPredCoeff[0x30], rcCQp, pucScale );
 
 	// Substitute
 	for( UInt x=0x00; x<0x40; x+=0x10 )
@@ -644,15 +644,15 @@ Transform::predictScaledACCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, 
 }
 
 ErrVal
-Transform::predictScaledChromaCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp, const UChar* pucScaleCb, const UChar* pucScaleCr )
+Transform::predictScaledChromaCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefCbQp, UInt uiRefCrQp, const UChar* pucScaleCb, const UChar* pucScaleCr )
 {
   // DECLARATIONS
   TCoeff  cPredCoeff[0x80] = {0};
   UInt    uiDcAbs=0, uiAcAbs=0;
 
   // Predict the chroma coefficients
-  predictChromaBlocks( cPredCoeff+0x00, piRef+0x00, uiRefQp, uiDcAbs, uiAcAbs  );
-  predictChromaBlocks( cPredCoeff+0x40, piRef+0x40, uiRefQp, uiDcAbs, uiAcAbs  );
+  predictChromaBlocks( 0, cPredCoeff+0x00, piRef+0x00, uiRefCbQp, uiDcAbs, uiAcAbs  );
+  predictChromaBlocks( 1, cPredCoeff+0x40, piRef+0x40, uiRefCrQp, uiDcAbs, uiAcAbs  );
 
   for( UInt uiBlkOff = 0x00; uiBlkOff < 0x80; uiBlkOff += 0x10 )
   {
@@ -663,8 +663,9 @@ Transform::predictScaledChromaCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRef
     {
       piPredBlk[i0] = -piPredBlk[i0];
     }
-    const UChar* pucScale = ( uiBlkOff >= 0x40 ? pucScaleCr : pucScaleCb );
-    x4x4DequantChroma( piPredBlk, piPredBlk, m_cChromaQp, pucScale );
+    const UChar*        pucScale  = ( uiBlkOff >= 0x40 ? pucScaleCr : pucScaleCb );
+    const QpParameter&  rcQp      = ( uiBlkOff >= 0x40 ? m_cCrQp    : m_cCbQp    );
+    x4x4DequantChroma( piPredBlk, piPredBlk, rcQp, pucScale );
     for( UInt i1 = 0; i1 < 16; i1++ )
     {
       piCoefBlk[i1] = piPredBlk[i1];
@@ -1040,10 +1041,11 @@ ErrVal Transform::transformChromaBlocks( XPel*          pucOrg,
 
   xForTransformChromaDc( piQuantCoeff );
 
-  xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+  const QpParameter& rcCQp  =  ( cCIdx.plane() ? m_cCrQp : m_cCbQp );
+  xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
 
   if( m_storeCoeffFlag )
   {
@@ -1088,10 +1090,11 @@ ErrVal Transform::transformChromaBlocksCGS( XPel*       pucOrg,
 		  piQuantCoeff[uiOffset+ui] = ( piQuantCoeff[uiOffset+ui].getCoeff() - ( ( normAdjust[ui/4] * normAdjust[ui%4] * piCoeffBase[uiOffset+ui].getLevel() + (1<<5) ) >> 6 ) );
   }
 
-  xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
-  xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+  const QpParameter&  rcCQp  = ( cCIdx.plane() ? m_cCrQp : m_cCbQp );
+  xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
+  xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, rcCQp, pucScale, ruiDcAbs, ruiAcAbs );
 
   // add the base layer coeff back and also store the dequantized coeffs
   for( UInt ui=0; ui<64; ui++ )

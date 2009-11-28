@@ -954,25 +954,25 @@ MotionUpsampling::xSetPredMbData()
 
 
 MbDataCtrl::MbDataCtrl():
-  m_pcMbTCoeffs     ( NULL ),
-  m_pcMbData        ( NULL ),
-  m_pcMbDataAccess  ( NULL ),
-  m_pcSliceHeader   ( NULL ),
-  m_ucLastMbQp      ( 0 ),
-  m_ucLastMbQp4LF   ( 0 ),
-  m_uiMbStride      ( 0 ),
-  m_uiMbOffset      ( 0 ),
-  m_iMbPerLine      ( 0 ),
-  m_iMbPerColumn    ( 0 ),
-  m_uiSize          ( 0 ),
-  m_uiMbProcessed   ( 0 ),
-  m_uiSliceId       ( 0 ),
-	m_iColocatedOffset( 0 ),
-  m_eProcessingState( PRE_PROCESS),
-  m_pcMbDataCtrl0L1 ( NULL ),
-  m_bUseTopField    ( false ),
-  m_bPicCodedField  ( false ),
-  m_bInitDone       ( false )
+  m_pcMbTCoeffs       ( NULL ),
+  m_pcMbData          ( NULL ),
+  m_pcMbDataAccess    ( NULL ),
+  m_pcSliceHeader     ( NULL ),
+  m_ucLastMbQp        ( 0 ),
+  m_ucLastMbQp4LF     ( 0 ),
+  m_uiMbStride        ( 0 ),
+  m_uiMbOffset        ( 0 ),
+  m_iMbPerLine        ( 0 ),
+  m_iMbPerColumn      ( 0 ),
+  m_uiSize            ( 0 ),
+  m_uiMbProcessed     ( 0 ),
+  m_uiSliceId         ( 0 ),
+	m_iColocatedOffset  ( 0 ),
+  m_eProcessingState  ( PRE_PROCESS),
+  m_pcMbDataCtrl0L1   ( NULL ),
+  m_bUseTopField      ( false ),
+  m_bPicCodedField    ( false ),
+  m_bInitDone         ( false )
 {
   m_apcMbMvdData    [LIST_0]  = NULL;
   m_apcMbMvdData    [LIST_1]  = NULL;
@@ -1008,7 +1008,7 @@ ErrVal MbDataCtrl::xCreateData( UInt uiSize )
 
   // clear outside mb data
   m_pcMbData[uiSize-1].getMbTCoeffs().setAllCoeffCount( 0 );
-  m_pcMbData[uiSize-1].initMbData( 0, 0, MSYS_UINT_MAX, NOT_SPECIFIED_SLICE );
+  m_pcMbData[uiSize-1].initMbData( 0, 0, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, NOT_SPECIFIED_SLICE );
 
   return Err::m_nOK;
 }
@@ -1206,10 +1206,43 @@ ErrVal MbDataCtrl::initUsedField( SliceHeader& rcSH, RefFrameList& rcRefFrameLis
 }
 //TMM }
 
-ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
+
+ErrVal 
+MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
+{
+  RNOK( initSlice( rcSH, POST_PROCESS, false, NULL ) );
+
+  UInt uiCurrDQId = ( rcSH.getDependencyId() << 4 ) + rcSH.getQualityId();
+  for( UInt uiMbAddress = 0; uiMbAddress < rcSH.getMbInPic(); uiMbAddress++ )
+  {
+    UInt  uiMbX   = 0;
+    UInt  uiMbY   = 0;
+    UInt  uiMbIdx = rcSH.getMbIndexFromAddress(  uiMbAddress );
+    rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress );
+    MbData&         rcMbData      = getMbData( uiMbX, uiMbY );
+    const MbStatus& rcMbStatus    = apcMbStatus[ uiMbIdx ];
+    UInt            uiMbCbpDQID0  = 0;
+    if( apcMbStatus )
+    {
+      if( rcMbStatus.getLastCodedDQId() == 0 )
+      {
+        uiMbCbpDQID0  = rcMbStatus.getMbCbpDQId0();
+      }
+    }
+    else if( uiCurrDQId == 0 )
+    {
+      uiMbCbpDQID0    = rcMbData.getMbExtCbp();
+    }
+    rcMbData.setMbCbpDQId0( uiMbCbpDQID0 );
+  }
+  return Err::m_nOK;
+}
+
+
+ErrVal MbDataCtrl::initSlice( SliceHeader&    rcSH,
                               ProcessingState eProcessingState,
-                              Bool bDecoder,
-                              MbDataCtrl* pcMbDataCtrl )
+                              Bool            bDecoder,
+                              MbDataCtrl*     pcMbDataCtrl )
 {
   AOF_DBG( m_bInitDone );
 
@@ -1299,11 +1332,11 @@ const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId,
   ROTRS( iMbX >= m_iMbPerLine,   xGetOutMbData() );
   ROTRS( iMbY >= m_iMbPerColumn, xGetOutMbData() );
 
-  //--ICU/ETRI FMO Implementation
-  ROTRS( !bLoopFilter && uiCurrSliceID != getSliceGroupIDofMb(iMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + iMbX ) , xGetOutMbData() ); //TMM_INTERLACE
-
   // get the ref mb data
   const MbData& rcMbData = getMbData( iMbY * m_uiMbStride + iMbX + m_uiMbOffset );
+
+  ROTRS( ! m_pcSliceHeader->isTrueSlice() && m_pcSliceHeader->getTCoeffLevelPredictionFlag(), rcMbData ); // special case
+  ROTRS( !bLoopFilter && uiCurrSliceID != getSliceGroupIDofMb( m_pcSliceHeader->getMapUnitFromPosition( UInt(iMbY), UInt(iMbX) ) ), xGetOutMbData() ); // different slice group
   // test slice id
   return (( rcMbData.getSliceId() == uiSliceId || bLoopFilter ) ? rcMbData : xGetOutMbData() );
 }
@@ -1365,14 +1398,17 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
     m_ucLastMbQp4LF = m_pcMbDataAccess->getMbData().getQp4LF();
   }
 
-  UInt uiSliceId = rcMbDataCurr.getSliceId();
+  UInt uiSliceId    = rcMbDataCurr.getSliceId();
+  UInt uiMbAddr     = m_pcSliceHeader->getMbAddressFromPosition ( uiMbY, uiMbX );
+  UInt uiMapUnit    = m_pcSliceHeader->getMapUnitFromPosition   ( uiMbY, uiMbX );
+
   if( PARSE_PROCESS == m_eProcessingState || ENCODE_PROCESS == m_eProcessingState)
   {
     if( 0 == uiSliceId )
     {
       uiSliceId = m_uiSliceId;
       rcMbDataCurr.getMbTCoeffs().clear();
-      rcMbDataCurr.initMbData( m_ucLastMbQp, m_ucLastMbQp4LF, uiSliceId, m_pcSliceHeader->getSliceType() );
+      rcMbDataCurr.initMbData( m_ucLastMbQp, m_ucLastMbQp4LF, uiSliceId, uiMbAddr, uiMapUnit, m_pcSliceHeader->getSliceType() );
       rcMbDataCurr.clear();
       m_uiMbProcessed++;
     }
@@ -1395,10 +1431,10 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 
   const Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL ) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
 
-  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + uiMbX ); //TMM_INTERLACE
+  Int icurrSliceGroupID = getSliceGroupIDofMb( uiMapUnit );
 
   m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess( rcMbDataCurr,                                      // current
-                                                          	rcMbDataComp,                                    // complementary
+                                                        	rcMbDataComp,                                      // complementary
                                                           xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left
                                                           xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above
                                                           xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
@@ -1432,9 +1468,9 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 
 ControlData::ControlData()
 : m_pcMbDataCtrl         ( 0   )
-, m_pcMbDataCtrl0L1( 0 )
+, m_pcMbDataCtrl0L1      ( 0   )
 , m_pcSliceHeader        ( 0   )
-, m_pcSliceHeaderBot     ( 0 )
+, m_pcSliceHeaderBot     ( 0   )
 , m_dLambda              ( 0   )
 , m_pcBaseLayerRec       ( 0   )
 , m_pcBaseLayerSbb       ( 0   )

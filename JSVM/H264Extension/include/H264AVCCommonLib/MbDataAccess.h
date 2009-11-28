@@ -395,7 +395,19 @@ protected:
   }
   Bool  xIsAvailableIntra( const MbData& rcMbData )  const
   {
-    if( !xIsAvailable( rcMbData ) )
+    if( ! m_rcSliceHeader.isTrueSlice() && m_rcSliceHeader.getTCoeffLevelPredictionFlag() )
+    {
+      //===== special handling for incomplete layer representations with tcoeff_level_prediction_flag equal to 1 =====
+      const SliceHeader*  pcLastCodedSliceHeader  = m_rcSliceHeader.getLastCodedSliceHeader();
+      AOF  ( pcLastCodedSliceHeader );
+      const FMO*          pcFMO                   = pcLastCodedSliceHeader->getFMO();
+      AOF  ( pcFMO );
+      ROFRS( rcMbData.getMbAddr()                            != MSYS_UINT_MAX,                                     false );  // outside
+      ROFRS( rcMbData.getMbAddr()                            >= pcLastCodedSliceHeader->getFirstMbInSlice(),       false );  // smaller MbAddr then first of actual coded slice
+      ROFRS( pcFMO->getSliceGroupId( rcMbData.getMapUnit() ) == pcFMO->getSliceGroupId( m_rcMbCurr.getMapUnit() ), false );  // different slice group
+      ROTRS( rcMbData.getSliceId()                           != m_rcMbCurr.getSliceId(),                           true  );  // different actual slice
+    }
+    else if( !xIsAvailable( rcMbData ) )
     {
       return false;
     }
@@ -1297,8 +1309,8 @@ __inline const MbData& MbDataAccess::xGetBlockAboveLeft( LumaIdx& cIdx ) const
   }
   if( ! m_rcMbCurr.getFieldFlag() || ( isTopMb() && ! m_rcMbAboveLeft.getFieldFlag() ) )
   {
-  return m_rcMbAboveLeft;
-}
+    return m_rcMbAboveLeft;
+  }
   return m_rcMbAboveAboveLeft;
 }
 

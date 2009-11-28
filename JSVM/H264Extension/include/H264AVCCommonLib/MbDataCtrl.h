@@ -182,13 +182,14 @@ public:
   ErrVal uninit();
   ErrVal reset();
   ErrVal resetData() { return xResetData(); }
+  ErrVal initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus );
   ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl );
   ErrVal initUsedField(SliceHeader& rcSH, RefFrameList&           rcRefFrameList1); //TMM
   Bool isPicDone( const SliceHeader& rcSH );
   Bool isFrameDone( const SliceHeader& rcSH );
   UInt  getSize() { return m_uiSize; }
 
-	SliceHeader* getSliceHeader() { return m_pcSliceHeader; }
+	SliceHeader* getSliceHeader()                             { return m_pcSliceHeader; }
 	Void         setSliceHeader( SliceHeader* pcSliceHeader ) { m_pcSliceHeader = pcSliceHeader; }
 
   const MbData& getMbData( UInt uiIndex )   const { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }

@@ -472,16 +472,33 @@ sub CheckResults
     #----------------
     ::PrintLog("\tPSNR\t($res_psnrY)\t\t");
     ($test->{mode}==2) and (($res_psnrY == $res_psnrY2) or ::PrintLog("Failed (PSNRY = $res_psnrY and PSNRY2 = $res_psnrY2 )\n"));
-    if (($res_psnrY>=$expextedPSNR) or  CheckRange($res_psnrY,$expextedPSNR,$simu->{psnrcheckrange}))
+    
+    if ( $expextedPSNR == 99.99 )
     {
-      ::PrintLog("Passed\n");
-      $result &= 1;
+    	if( ( $res_psnrY == 99.99 ) and ( $res_psnrCb == 99.99 ) and ( $res_psnrCr == 99.99 ) )
+    	{
+	  ::PrintLog("Passed\n");
+	  $result &= 1;
+    	}
+    	else
+    	{
+	  ::PrintLog("Failed (Y=$res_psnrY, U=$res_psnrCb, V=$res_psnrCr)\n");
+	  $result &= 0;
+    	}
     }
     else
     {
-      ::PrintLog("Failed (result = $res_psnrY - Target: $expextedPSNR)\n");
-      $result &= 0;
-    }
+   	if (($res_psnrY>=$expextedPSNR) or  CheckRange($res_psnrY,$expextedPSNR,$simu->{psnrcheckrange}))
+	{
+	  ::PrintLog("Passed\n");
+	  $result &= 1;
+	}
+	else
+	{
+	  ::PrintLog("Failed (result = $res_psnrY - Target: $expextedPSNR)\n");
+	  $result &= 0;
+	}
+     }
   }
 
   return $result;

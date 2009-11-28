@@ -951,7 +951,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     if(uiBaseLayerId != MSYS_UINT_MAX)
     {
       getLayerParameters(uiBaseLayerId).setNonDiscardable();
-      getLayerParameters(uiBaseLayerId).setQLDiscardable(getLayerParameters(ui).getBaseQualityLevel()+1);
     }
 //~DS_FIX_FT_09_2007
 
@@ -1056,7 +1055,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ILModePred",             &(rcLayer.m_uiILPredMode),           MSYS_UINT_MAX );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ILMotionPred",           &(rcLayer.m_uiILPredMotion),         MSYS_UINT_MAX );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ILResidualPred",         &(rcLayer.m_uiILPredResidual),       MSYS_UINT_MAX );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",            &(rcLayer.m_uiBaseQualityLevel),         15        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("CbQPIndexOffset",        &(rcLayer.m_iChromaQPIndexOffset),       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("CrQPIndexOffset",        &(rcLayer.m_i2ndChromaQPIndexOffset),    0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("LowComplexityMbMode",    &(rcLayer.m_uiLowComplexMbEnable), 0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",                 &(rcLayer.m_cResizeParameters.m_iExtendedSpatialScalability), 0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ESSPicParamFile",        &(rcLayer.m_cESSFilename),                                              "ess.dat" );

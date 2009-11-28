@@ -43,9 +43,8 @@ public:
   }
 
   // Hanke@RWTH
-  Bool          isCurr4x4BlkNotZero ( LumaIdx cIdx );
-  Bool          isLeft4x4BlkNotZero ( LumaIdx cIdx );
-  Bool          isAbove4x4BlkNotZero( LumaIdx cIdx );
+  Bool          isCurr4x4BlkNotZero ( LumaIdx c4x4Idx );
+  Bool          isCurr8x8BlkNotZero ( B8x8Idx c8x8Idx );
 
   XPel*         getYBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getYBlk( cIdx ); }
   XPel*         getUBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getUBlk( cIdx ); }

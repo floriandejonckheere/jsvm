@@ -22,7 +22,7 @@
 #==========================================================#  
       tests      => [
 		                  #----------#
-                      # Test   0 #
+                      # Test   6.6.18.1 #
                       #----------#
                       {
             		        name   => "AVCCAFI-1",
@@ -35,7 +35,7 @@
             		        psnr => 99.99,
             		      },
             		      #----------#
-                      # Test   1 #
+                      # Test   6.6.18.2 #
                       #----------#
             		      {
             		        name => "AVCCAFI-2",
@@ -48,14 +48,14 @@
             		        psnr => 99.99,
             		      },
             		      #----------#
-                      # Test   2 #
+                      # Test   6.6.18.1 #
                       #----------#
                       {
             		        name   => "AVCCAFI-3",
             		        mode   => 0,
             		        width  => 720,
             		        height => 480,
-                        		        bitstreamname => "camp_mot_fld0_full.26l",
+                        	bitstreamname => "camp_mot_fld0_full.26l",
             		        decodedname   => "camp_mot_fld0_full_720x480.yuv",
             		        origname      => "camp_mot_fld0_full_rec.yuv",
             		        psnr => 99.99,

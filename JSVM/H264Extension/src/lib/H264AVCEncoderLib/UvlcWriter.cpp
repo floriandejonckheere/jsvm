@@ -856,7 +856,7 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   }
   UInt uiTemp = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
 
-  if( uiStart != 0 || uiStop != 16 )
+  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() && ( uiStart != 0 || uiStop != 16 ) )
   {
     UInt uiPrevCbp = 0;
     if( rcMbDataAccess.isAvailableLeft() )

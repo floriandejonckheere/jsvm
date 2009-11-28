@@ -989,6 +989,83 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
   return Err::m_nOK;
 }
 
+
+ErrVal 
+MotionCompensation::updateMbBLSkipResidual( MbDataAccess& rcMbDataAccess,
+                                            YuvMbBuffer&  rcMbResBuffer )
+{
+  ROFRS( rcMbDataAccess.getMbData().getBLSkipFlag(),                        Err::m_nOK );
+  ROFRS( m_pcResizeParameters,                                              Err::m_nOK );
+  ROTRS( m_pcResizeParameters->m_bRefLayerIsMbAffFrame,                     Err::m_nOK );
+  ROTRS( m_pcResizeParameters->m_bIsMbAffFrame,                             Err::m_nOK );
+  ROTRS( m_pcResizeParameters->getRestrictedSpatialResolutionChangeFlag(),  Err::m_nOK );
+
+  Int iMbX      = rcMbDataAccess.getMbX() * 16;
+  Int iMbY      = rcMbDataAccess.getMbY() * 16;
+  Int iRefW     = m_pcResizeParameters->m_iRefLayerFrmWidth;
+  Int iRefH     = m_pcResizeParameters->m_iRefLayerFrmHeight;
+  Int iScaledW  = m_pcResizeParameters->m_iScaledRefFrmWidth;
+  Int iScaledH  = m_pcResizeParameters->m_iScaledRefFrmHeight;
+  Int iLeftOff  = m_pcResizeParameters->m_iLeftFrmOffset;
+  Int iTopOff   = m_pcResizeParameters->m_iTopFrmOffset;
+  if( m_pcResizeParameters->m_bFieldPicFlag )
+  {
+    iScaledH   /= 2;
+    iTopOff    /= 2;
+  }
+  if( m_pcResizeParameters->m_bRefLayerFieldPicFlag )
+  {
+    iRefH      /= 2;
+  }
+  Int iShiftX   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefW ) );
+  Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) );
+  Int iScaleX   = ( ( (UInt)iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
+  Int iScaleY   = ( ( (UInt)iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
+  Int iBaseMbX0 = ( ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
+  Int iBaseMbY0 = ( ( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+  Int iCX       = 0;
+  Int iCY       = 0;
+
+  //----- determine first location that points to a different macroblock (not efficient implementation!) -----
+  for( ; iCX < 16; iCX++ )
+  {
+    Int iBaseMbX = ( ( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
+    if( iBaseMbX > iBaseMbX0 )
+    {
+      break;
+    }
+  }
+  for( ; iCY < 16; iCY++ )
+  {
+    Int iBaseMbY = ( ( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+    if( iBaseMbY > iBaseMbY0 )
+    {
+      break;
+    }
+  }
+
+  //----- copy intra data -----
+  MbData& rcMbData = rcMbDataAccess.getMbDataAccessBase()->getMbData();
+  if( rcMbData.isBaseIntra( 0, 0 ) )
+  {
+    RNOK( clearMbBuffer( rcMbResBuffer, 0, 0, iCX, iCY ) );
+  }
+  if( rcMbData.isBaseIntra( 1, 0 ) && iCX < 16 )
+  {
+    RNOK( clearMbBuffer( rcMbResBuffer, iCX, 0, 16, iCY ) );
+  }
+  if( rcMbData.isBaseIntra( 0, 1 ) && iCY < 16 )
+  {
+    RNOK( clearMbBuffer( rcMbResBuffer, 0, iCY, iCX, 16 ) );
+  }
+  if( rcMbData.isBaseIntra( 1, 1 ) && iCX < 16 && iCY < 16 )
+  {
+    RNOK( clearMbBuffer( rcMbResBuffer, iCX, iCY, 16, 16 ) );
+  }
+  return Err::m_nOK;
+}
+
+
 ErrVal MotionCompensation::copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
                                           YuvMbBuffer*    pcMbBufDes,
                                           Int sX, Int sY, Int eX, Int eY)
@@ -1055,6 +1132,48 @@ ErrVal MotionCompensation::copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
     }
     pDes += iDesStride;
     pSrc += iSrcStride;
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+MotionCompensation::clearMbBuffer( YuvMbBuffer& rcMbBuffer, Int sX, Int sY, Int eX, Int eY )
+{
+  ROTRS( sX == eX || sY == eY, Err::m_nOK );
+
+  Int   iStride = rcMbBuffer.getLStride  ();
+  XPel* pBuf    = rcMbBuffer.getMbLumAddr() + sY * iStride;
+  for( Int y = sY; y < eY; y++, pBuf += iStride )
+  {
+    for( Int x = sX; x < eX; x++ )
+    {
+      pBuf[x] = 0;
+    }
+  }
+
+  sX      = ( sX + 1 ) >> 1;
+  sY      = ( sY + 1 ) >> 1;
+  eX      = ( eX + 1 ) >> 1;
+  eY      = ( eY + 1 ) >> 1;
+  iStride = rcMbBuffer.getCStride ();
+  pBuf    = rcMbBuffer.getMbCbAddr() + sY * iStride;
+  for( Int y = sY; y < eY; y++, pBuf += iStride )
+  {
+    for( Int x = sX; x < eX; x++ )
+    {
+      pBuf[x] = 0;
+    }
+  }
+
+  pBuf    = rcMbBuffer.getMbCrAddr() + sY * iStride;
+  for( Int y = sY; y < eY; y++, pBuf += iStride )
+  {
+    for( Int x = sX; x < eX; x++ )
+    {
+      pBuf[x] = 0;
+    }
   }
 
   return Err::m_nOK;

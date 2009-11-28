@@ -54,7 +54,8 @@ public:
                           Frame*                    pcResidual,
                           MbDataCtrl*               pcMbDataCtrl,
                           const DBFilterParameter*  pcInterLayerDBParameter,
-                          Bool                      bSpatialScalabilityFlag );
+                          Bool                      bSpatialScalabilityFlag,
+                          const MbStatus*           apcMbStatus = 0 );
 
 private:
   ErrVal        xFilterMb             ( MbDataAccess&             rcMbDataAccess,
@@ -63,8 +64,6 @@ private:
                                         const DBFilterParameter*  pcInterLayerDBParameter,
                                         Bool                      bSpatialScalableFlag,
                                         LFPass                    eLFPass );            //VB-JV 04/08
-
-  ErrVal        xRecalcCBP            ( MbDataAccess&             rcMbDataAccess );
 
   //===== determination of filter strength =====
   UInt          xGetHorFilterStrength ( const MbDataAccess&       rcMbDataAccess,

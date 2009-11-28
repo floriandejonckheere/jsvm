@@ -1693,6 +1693,10 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
       RNOK(     rcReadIf.getFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );
     }
   }
+  else
+  { 
+    m_bTCoeffLevelPredictionFlag = false; 
+  }
   if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag )
   {
     RNOK(       rcReadIf.getCode ( m_uiScanIdxStart, 4,                            "SH: scan_idx_start" ) );
@@ -1838,50 +1842,110 @@ SliceHeaderSyntax::xInitScalingMatrix()
 {
   ROF( parameterSetsInitialized() );
 
-  if( ! getSPS().getSeqScalingMatrixPresentFlag() && ! getPPS().getPicScalingMatrixPresentFlag() )
+  const Bool    bSeqScalMatPresent  = getSPS().getSeqScalingMatrixPresentFlag();
+  const Bool    bPicScalMatPresent  = getPPS().getPicScalingMatrixPresentFlag();
+  const UChar*  apucSeqScalMat[12]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const UChar*  apucPicScalMat[12]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+  //----- check for flat scaling matrices -----
+  if( ! bSeqScalMatPresent && ! bPicScalMatPresent )
   {
-    m_acScalingMatrix.setAll( 0 );
+    m_acScalingMatrix.setAll( 0 ); // use flat scaling matrices
     return Err::m_nOK;
   }
+
+  //----- derive sequence scaling matrices -----
+  if( bSeqScalMatPresent )
+  {
+    for( UInt uiIndex = 0; uiIndex < m_acScalingMatrix.size(); uiIndex++ )
+    {
+      const UChar*  puc = getSPS().getSeqScalingMatrix().get( uiIndex );
+      if( ! puc )
+      { // fall-back rule A for sequence-level scaling matrices
+        switch( uiIndex )
+        {
+        case  0:    puc = g_aucScalingMatrixDefault4x4Intra;  break;
+        case  3:    puc = g_aucScalingMatrixDefault4x4Inter;  break;
+        case  6:    puc = g_aucScalingMatrixDefault8x8Intra;  break;
+        case  7:    puc = g_aucScalingMatrixDefault8x8Inter;  break;
+        default:    puc = apucSeqScalMat[ uiIndex - 1 ];
+        }
+      }
+      apucSeqScalMat[ uiIndex ] = puc;
+    }
+  }
+
+  //----- derive picture scaling matrices -----
+  if( bPicScalMatPresent )
+  {
+    for( UInt uiIndex = 0; uiIndex < m_acScalingMatrix.size(); uiIndex++ )
+    {
+      const Bool    bChroma = ( uiIndex != 0 && uiIndex != 3 && uiIndex != 6 && uiIndex != 7 );
+      const UChar*  puc     = getPPS().getPicScalingMatrix().get( uiIndex );
+      if( ! puc )
+      {
+        if( getSPS().getSeqScalingMatrixPresentFlag() )
+        { // fall-back rule B
+          if( bChroma )
+          {
+            puc = apucPicScalMat[ uiIndex - 1 ];
+          }
+          else
+          {
+            puc = apucSeqScalMat[ uiIndex ];
+          }
+        }
+        else
+        { // fall-back rule A
+          switch( uiIndex )
+          {
+          case  0:    puc = g_aucScalingMatrixDefault4x4Intra;  break;
+          case  3:    puc = g_aucScalingMatrixDefault4x4Inter;  break;
+          case  6:    puc = g_aucScalingMatrixDefault8x8Intra;  break;
+          case  7:    puc = g_aucScalingMatrixDefault8x8Inter;  break;
+          default:    puc = apucPicScalMat[ uiIndex - 1 ];
+          }
+        }
+      }
+      apucPicScalMat[ uiIndex ] = puc;
+    }
+  }
+  else
+  { // use sequence-level scaling matrices
+    for( UInt uiIndex = 0; uiIndex < m_acScalingMatrix.size(); uiIndex++ )
+    {
+      apucPicScalMat[ uiIndex ] = apucSeqScalMat[ uiIndex ];
+    }
+  }
+  
+  //----- set scaling matrices -----
   for( UInt uiIndex = 0; uiIndex < m_acScalingMatrix.size(); uiIndex++ )
   {
-    const UChar* puc = getPPS().getPicScalingMatrix().get( uiIndex );
-    if( ! puc )
-    {
-      puc = getSPS().getSeqScalingMatrix().get( uiIndex );
-    }
-    if( ! puc && ( uiIndex == 1 || uiIndex == 2 || uiIndex == 4 || uiIndex == 5 ) )
-    {
-      puc = m_acScalingMatrix.get( uiIndex - 1 );
-    }
-    if( ! puc || puc[0] == 0 )
+    ROF( apucPicScalMat[ uiIndex ] );
+    if ( apucPicScalMat[ uiIndex ][ 0 ] == 0 )
     {
       switch( uiIndex )
       {
-      case 0:
-      case 1:
-      case 2:
-        puc = g_aucScalingMatrixDefault4x4Intra;
-        break;
-      case 3:
-      case 4:
-      case 5:
-        puc = g_aucScalingMatrixDefault4x4Inter;
-        break;
-      case 6:
-        puc = g_aucScalingMatrixDefault8x8Intra;
-        break;
-      case 7:
-        puc = g_aucScalingMatrixDefault8x8Inter;
-        break;
-      default:
-        RERR();
+      case  0: 
+      case  1:
+      case  2:  apucPicScalMat[ uiIndex ] = g_aucScalingMatrixDefault4x4Intra;  break;
+      case  3:
+      case  4:
+      case  5:  apucPicScalMat[ uiIndex ] = g_aucScalingMatrixDefault4x4Inter;  break;
+      case  6: 
+      case  8:
+      case 10:  apucPicScalMat[ uiIndex ] = g_aucScalingMatrixDefault8x8Intra;  break;
+      case  7:
+      case  9:
+      case 11:  apucPicScalMat[ uiIndex ] = g_aucScalingMatrixDefault8x8Inter;  break;
+      default:  RERR();
       }
     }
-    m_acScalingMatrix.set( uiIndex, puc );
+    m_acScalingMatrix.set( uiIndex, apucPicScalMat[ uiIndex ] );
   }
   return Err::m_nOK;
 }
+
 
 ErrVal
 SliceHeaderSyntax::xInitParameterSets( ParameterSetMng& rcParameterSetMng, UInt uiPPSId, Bool bSubSetSPS )
@@ -1891,6 +1955,39 @@ SliceHeaderSyntax::xInitParameterSets( ParameterSetMng& rcParameterSetMng, UInt 
   UInt                  uiDQId  = (getDependencyId()<<4)+getQualityId();
   RNOK( rcParameterSetMng.get( pcPPS, uiPPSId ) );
   RNOK( rcParameterSetMng.get( pcSPS, pcPPS->getSeqParameterSetId(), bSubSetSPS ) );
+  {
+    Bool bSupported = true;
+    if( bSubSetSPS )
+    {
+      if( pcSPS->getProfileIdc() != SCALABLE_HIGH_PROFILE && pcSPS->getProfileIdc() != SCALABLE_BASELINE_PROFILE )
+      {
+        bSupported = false;
+      }
+    }
+    else
+    {
+      Bool  bClassAProfile  = ( pcSPS->getProfileIdc() == BASELINE_PROFILE || pcSPS->getProfileIdc() == EXTENDED_PROFILE || pcSPS->getProfileIdc() == MAIN_PROFILE || pcSPS->getProfileIdc() == HIGH_PROFILE );
+      Bool  bClassBProfile  = ( pcSPS->getProfileIdc() == HIGH_10_PROFILE || pcSPS->getProfileIdc() == HIGH_422_PROFILE || pcSPS->getProfileIdc() == HIGH_444_PROFILE  || pcSPS->getProfileIdc() == CAVLC_444_PROFILE );
+      Bool  bConstraintSet  = ( pcSPS->getConstrainedSet0Flag() || pcSPS->getConstrainedSet1Flag() );
+      if( ! bClassAProfile && ! ( bClassBProfile && bConstraintSet ) )
+      {
+        // SP,SI slices are separately checked
+        bSupported = false;
+      }
+    }
+    if( ! bSupported )
+    {
+      fprintf( stderr, "\n" );
+      fprintf( stderr, "Unsupported conformance point:\n" );
+      fprintf( stderr, "   profile_idc          = %d\n", (Int)pcSPS->getProfileIdc() );
+      fprintf( stderr, "   constraint_set0_flag = %d\n", ( pcSPS->getConstrainedSet0Flag() ? 1 : 0 ) );
+      fprintf( stderr, "   constraint_set1_flag = %d\n", ( pcSPS->getConstrainedSet1Flag() ? 1 : 0 ) );
+      fprintf( stderr, "   constraint_set2_flag = %d\n", ( pcSPS->getConstrainedSet2Flag() ? 1 : 0 ) );
+      fprintf( stderr, "   constraint_set3_flag = %d\n", ( pcSPS->getConstrainedSet3Flag() ? 1 : 0 ) );
+      fprintf( stderr, "\n" );
+      RERR();
+    }
+  }
   rcParameterSetMng.setActiveSPS( pcSPS->getSeqParameterSetId(), uiDQId );
   RNOK( xInitParameterSets( *pcSPS, *pcPPS ) );
   return Err::m_nOK;

@@ -45,7 +45,7 @@ Copyright (c) ISO/IEC 2005.
 
 COPYRIGHT AND WARRANTY INFORMATION
 
-Copyright 2005, International Telecommunications Union, Geneva
+Copyright 2005-2009, International Telecommunications Union, Geneva
 
 The Fraunhofer HHI hereby donate this source code to the ITU, with the following
 understanding:
