@@ -3,8 +3,38 @@ but the YUV files for the SVC conformance streams do not represent the correct o
 
 
 
-JSVM_9_18 -> JSVM_9_18_1
+JSVM_9_19 -> JSVM_9_19_1
 ========================
+
+changes:
+- correction of position calculation (clipping) in intra-inter combination process
+
+Known bugs:
+  currently all known/reported bugs have been fixed,
+  but the missing features below need to be implemented
+
+Missing features:
+- support of field pictures in scalable configurations in encoder
+  (currently only correctly supported in single-layer coding)
+- adding of remaining profile/level constraints in encoder
+  (add checks in decoder?)
+- error detection & concealment 
+  (without the restriction to two layers and 
+  fixed prediction structures that was found
+  in the previously implemented version)
+
+Further desirable improvements:
+- support GOP structures with non-dyadic prediction structures
+- combination of MGS and CGS coding
+- higher flexibility of "MGS vector mode"
+- if feasible, support of slice data partitioning
+- support of large file sizes (>4GB)
+- setting of IROI parameters in scalability info SEI and IROI-based extraction
+
+
+
+JSVM_9_18 -> JSVM_9_19
+======================
 
 changes:
 - correction of scaling matrix selection

@@ -94,10 +94,12 @@ private:
                                         Int       iYInsideCurrMb,
                                         Int&      riBaseMbIdx,
                                         Int&      riXInsideBaseMb,
-                                        Int&      riYInsideBaseMb );
+                                        Int&      riYInsideBaseMb,
+                                        Bool      bClipFlag );
   ErrVal  xGetRefLayerPartIdc         ( Int       iXInsideCurrMb,     // subclause G.6.2
                                         Int       iYInsideCurrMb,
-                                        Int&      riPartIdc );
+                                        Int&      riPartIdc,
+                                        Bool      bClipFlag = false );
   ErrVal  xSetPartIdcArray            ();                             // subclause G.8.6.1.1
 
   ErrVal  xGetInitialBaseRefIdxAndMv  ( Int       i4x4BlkX,           // reference index and motion vector scaling of subclause G.8.6.1.2

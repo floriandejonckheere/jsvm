@@ -212,7 +212,8 @@ MotionUpsampling::xGetRefLayerMb( Int   iXInsideCurrMb,
                                   Int   iYInsideCurrMb,
                                   Int&  riBaseMbIdx,
                                   Int&  riXInsideBaseMb,
-                                  Int&  riYInsideBaseMb )
+                                  Int&  riYInsideBaseMb,
+                                  Bool  bClipFlag )
 {
   //===== reset output values =====
   riBaseMbIdx           = MSYS_INT_MAX;
@@ -229,6 +230,13 @@ MotionUpsampling::xGetRefLayerMb( Int   iXInsideCurrMb,
   //===== get luma location in reference picture =====
   Int     iBasePosX     = ( iCurrPosX * m_cPosCalc.m_iScaleX + m_cPosCalc.m_iAddX ) >> m_cPosCalc.m_iShiftX;
   Int     iBasePosY     = ( iCurrPosY * m_cPosCalc.m_iScaleY + m_cPosCalc.m_iAddY ) >> m_cPosCalc.m_iShiftY;
+
+  //===== clip position ====
+  if( bClipFlag )
+  {
+    iBasePosX = gMax( 0, gMin( iBasePosX, m_cPosCalc.m_iRefW - 1 ) );
+    iBasePosY = gMax( 0, gMin( iBasePosY, m_cPosCalc.m_iRefH - 1 ) );
+  }
 
   //===== check whether base position lies inside frame =====
   ROFRS( 0 <= iBasePosX && iBasePosX < m_cPosCalc.m_iRefW,  Err::m_nOK );  // not available
@@ -289,14 +297,15 @@ MotionUpsampling::xGetRefLayerMb( Int   iXInsideCurrMb,
 ErrVal
 MotionUpsampling::xGetRefLayerPartIdc( Int  iXInsideCurrMb,
                                        Int  iYInsideCurrMb,
-                                       Int& riPartIdc )
+                                       Int& riPartIdc,
+                                       Bool bClipFlag )
 {
   Int iBase8x8MbPartIdx     = 0;  // index of top-left 8x8 block that is covered by the macroblock partition
   Int iBase4x4SubMbPartIdx  = 0;  // index of top-left 4x4 block that is covered by the sub-macroblock partition (inside 8x8 block)
   Int iBaseMbIdx            = MSYS_INT_MAX;
   Int iXInsideBaseMb        = MSYS_INT_MAX;
   Int iYInsideBaseMb        = MSYS_INT_MAX;
-  RNOK( xGetRefLayerMb( iXInsideCurrMb, iYInsideCurrMb, iBaseMbIdx, iXInsideBaseMb, iYInsideBaseMb ) );
+  RNOK( xGetRefLayerMb( iXInsideCurrMb, iYInsideCurrMb, iBaseMbIdx, iXInsideBaseMb, iYInsideBaseMb, bClipFlag ) );
 
   //===== check whether available =====
   if( iBaseMbIdx == MSYS_INT_MAX )
@@ -797,7 +806,7 @@ MotionUpsampling::xSetInterIntraIdc()
     Int iXPos     = iX * 15;
     Int iYPos     = iY * 15;
     Int iPartIdc  = -2;
-    RNOK( xGetRefLayerPartIdc( iXPos, iYPos, iPartIdc ) );
+    RNOK( xGetRefLayerPartIdc( iXPos, iYPos, iPartIdc, true ) );
     m_aabBaseIntra[iX][iY] = ( iPartIdc == -1 );
   }
   return Err::m_nOK;
