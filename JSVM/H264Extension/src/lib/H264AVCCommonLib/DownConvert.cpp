@@ -2174,7 +2174,6 @@ DownConvert::xUpdateBaseModeFlagsIntraUps( ResizeParameters* pcParameters,
     }
   }
 }
-#endif
 
 
 void
