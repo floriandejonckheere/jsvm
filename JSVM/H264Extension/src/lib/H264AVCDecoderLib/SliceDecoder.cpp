@@ -114,6 +114,11 @@ SliceDecoder::decode( SliceHeader&  rcSH,
     }
     RNOK( m_pcControlMng->initMbForDecoding ( *pcMbDataAccess,     uiMbY, uiMbX, false ) );
 
+    if( pcMbDataAccess->getMbData().getBLSkipFlag() && ! m_apabBaseModeFlagAllowedArrays[ ePicType == FRAME ? 0 : 1 ][ uiMbAddress ] )
+    {
+      printf( "CIU constraint violated (MbAddr=%d) ==> ignore\n", uiMbAddress );
+    }
+
     RNOK( m_pcMbDecoder ->decode            ( *pcMbDataAccess,
                                               pcMbDataAccessBase,
                                               pcFrame                                  ->getPic( ePicType ),
@@ -247,6 +252,11 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
       {
         pcRefFrameList0F = apcRefFrameList0[eP];
         pcRefFrameList1F = apcRefFrameList1[eP];
+      }
+
+      if( pcMbDataAccess->getMbData().getBLSkipFlag() && ! m_apabBaseModeFlagAllowedArrays[ eMbPicType == FRAME ? 0 : 1 ][ uiMbAddressMbAff ] )
+      {
+        printf( "CIU constraint violated (MbAddr=%d) ==> ignore\n", uiMbAddressMbAff );
       }
 
       RNOK( m_pcMbDecoder->decode ( *pcMbDataAccess,

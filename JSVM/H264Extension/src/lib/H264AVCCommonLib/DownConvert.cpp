@@ -54,6 +54,8 @@ DownConvert::DownConvert()
 , m_paiTransBlkIdc          ( 0 )
 , m_paeMbMapFrm             ( 0 )
 , m_paeMbMapFld             ( 0 )
+, m_pabIntraUpsAvailableFrm ( 0 )
+, m_pabIntraUpsAvailableFld ( 0 )
 #endif
 {
 }
@@ -87,6 +89,8 @@ DownConvert::init( int iMaxWidth, int iMaxHeight, int iMaxMargin )
   m_paiTransBlkIdc          = new int       [ iPicSize ];
   m_paeMbMapFrm             = new MbMapEntry[ iMapSize ];
   m_paeMbMapFld             = new MbMapEntry[ iMapSize ];
+  m_pabIntraUpsAvailableFrm = new bool      [ iMapSize ];
+  m_pabIntraUpsAvailableFld = new bool      [ iMapSize ];
 #endif
 
   ROFRS( m_paiImageBuffer,          true );
@@ -101,6 +105,8 @@ DownConvert::init( int iMaxWidth, int iMaxHeight, int iMaxMargin )
   ROFRS( m_paiTransBlkIdc,          true );
   ROFRS( m_paeMbMapFrm,             true );
   ROFRS( m_paeMbMapFld,             true );
+  ROFRS( m_pabIntraUpsAvailableFrm, true );
+  ROFRS( m_pabIntraUpsAvailableFld, true );
 #endif
 
 #ifdef DOWN_CONVERT_STATIC
@@ -583,8 +589,9 @@ DownConvert::intraUpsampling( Frame*                pcFrame,
 
   //--- initialization ---
   pcFrame->setZero();
-  xInitBaseModeAllowedFlags( pcParameters, pabBaseModeAllowedFlagArrayFrm, pabBaseModeAllowedFlagArrayFld );
-  xInitSliceIdList         ( cSliceIdList, pcParameters, pcMbDataCtrlBase );
+  xInitBaseModeAllowedFlags ( pcParameters, pabBaseModeAllowedFlagArrayFrm, pabBaseModeAllowedFlagArrayFld );
+  xInitIntraUpsAvailFlags   ( pcParameters );
+  xInitSliceIdList          ( cSliceIdList, pcParameters, pcMbDataCtrlBase );
 
   //--- loop over slices ---
   while( !cSliceIdList.empty() )
@@ -599,10 +606,12 @@ DownConvert::intraUpsampling( Frame*                pcFrame,
     //--- generate mb maps for slice and update intra BL maps ---
     xGenerateMbMapsForSliceId   ( pcParameters, pcMbDataCtrlBase, pcMbDataCtrlPredFrm, pcMbDataCtrlPredFld, uiSliceId );
     xUpdateBaseModeAllowedFlags ( pcParameters, pabBaseModeAllowedFlagArrayFrm, pabBaseModeAllowedFlagArrayFld );
+    xUpdateIntraUpsAvailFlags   ( pcParameters );
 
     //--- copy prediction data for current slice id ---
     xUpdateIntraPredFrame( pcFrame, pcTempFrame, pcParameters );
   }
+  xUpdateBaseModeFlagsIntraUps( pcParameters, pcMbDataCtrlPredFrm, pcMbDataCtrlPredFld, pabBaseModeAllowedFlagArrayFrm, pabBaseModeAllowedFlagArrayFld );
 }
 
 void
@@ -647,6 +656,8 @@ DownConvert::xDestroy()
   delete [] m_paiTransBlkIdc;
   delete [] m_paeMbMapFrm;
   delete [] m_paeMbMapFld;
+  delete [] m_pabIntraUpsAvailableFrm;
+  delete [] m_pabIntraUpsAvailableFld;
 #endif
   m_paiImageBuffer          = 0;
   m_paiTmp1dBuffer          = 0;
@@ -660,6 +671,8 @@ DownConvert::xDestroy()
   m_paiTransBlkIdc          = 0;
   m_paeMbMapFrm             = 0;
   m_paeMbMapFld             = 0;
+  m_pabIntraUpsAvailableFrm = 0;
+  m_pabIntraUpsAvailableFld = 0;
 #endif
 }
 
@@ -1996,6 +2009,7 @@ DownConvert::xInitBaseModeAllowedFlags( ResizeParameters* pcParameters,
   }
 }
 
+
 void
 DownConvert::xUpdateBaseModeAllowedFlags( ResizeParameters* pcParameters,
                                           bool*             pabBaseModeAllowedFlagArrayFrm,
@@ -2044,6 +2058,124 @@ DownConvert::xUpdateBaseModeAllowedFlags( ResizeParameters* pcParameters,
     }
   }
 }
+
+
+void
+DownConvert::xInitIntraUpsAvailFlags( ResizeParameters* pcParameters )
+{
+  int iFrmSizeInMbs = ( pcParameters->m_iFrameWidth * pcParameters->m_iFrameHeight ) >> 8;
+  for( int iMbAddr  = 0; iMbAddr < iFrmSizeInMbs; iMbAddr++ )
+  {
+    m_pabIntraUpsAvailableFrm[ iMbAddr ] = false;
+    m_pabIntraUpsAvailableFld[ iMbAddr ] = false;
+  }
+}
+
+
+void
+DownConvert::xUpdateIntraUpsAvailFlags( ResizeParameters* pcParameters )
+{
+  int iFrmSizeInMbs = ( pcParameters->m_iFrameWidth * pcParameters->m_iFrameHeight ) >> 8;
+  int iMbStride     = ( pcParameters->m_iFrameWidth >> 4 );
+  int iField        = ( pcParameters->m_bFieldPicFlag ? 1 : 0 );
+  int iBotField     = ( pcParameters->m_bBotFieldFlag ? 1 : 0 );
+
+  if( ! pcParameters->m_bFieldPicFlag )
+  {
+    for( int iMbIdx = 0; iMbIdx < iFrmSizeInMbs; iMbIdx++ )
+    {
+      int iMbX      = ( iMbIdx % iMbStride );
+      int iMbY      = ( iMbIdx / iMbStride );
+      int iMbMapIdx = iMbY * m_iMbMapStride + iMbX;
+      int iMbAddr   = iMbIdx;
+      if( pcParameters->m_bIsMbAffFrame )
+      {
+        iMbAddr = ( ( ( iMbY >> 1 ) * iMbStride + iMbX ) << 1 ) + ( iMbY % 2 );
+      }
+      if( ( m_paeMbMapFrm[ iMbMapIdx ] & INTRA_UPS_ALLOWED ) == INTRA_UPS_ALLOWED )
+      {
+        AOT( m_pabIntraUpsAvailableFrm[ iMbAddr ] ); // something wrong
+        m_pabIntraUpsAvailableFrm[ iMbAddr ] = true;
+      }
+    }
+  }
+
+  if( pcParameters->m_bFieldPicFlag || pcParameters->m_bIsMbAffFrame )
+  {
+    for( int iMbIdx = 0; iMbIdx < ( iFrmSizeInMbs >> iField ); iMbIdx++ )
+    {
+      int iMbX      =   ( iMbIdx % iMbStride );
+      int iMbY      = ( ( iMbIdx / iMbStride ) << iField ) + iBotField;
+      int iMbMapIdx = iMbY * m_iMbMapStride + iMbX;
+      int iMbAddr   = iMbIdx;
+      if( pcParameters->m_bIsMbAffFrame )
+      {
+        iMbAddr = ( ( ( iMbY >> 1 ) * iMbStride + iMbX ) << 1 ) + ( iMbY % 2 );
+      }
+      if( ( m_paeMbMapFld[ iMbMapIdx ] & INTRA_UPS_ALLOWED ) == INTRA_UPS_ALLOWED )
+      {
+        AOT( m_pabIntraUpsAvailableFld[ iMbAddr ] ); // something wrong
+        m_pabIntraUpsAvailableFld[ iMbAddr ] = true;
+      }
+    }
+  }
+}
+
+
+void
+DownConvert::xUpdateBaseModeFlagsIntraUps( ResizeParameters* pcParameters,
+                                           MbDataCtrl*       pcMbDataCtrlPredFrm,
+                                           MbDataCtrl*       pcMbDataCtrlPredFld,
+                                           bool*             pabBaseModeAllowedFlagArrayFrm,
+                                           bool*             pabBaseModeAllowedFlagArrayFld )
+{
+  ROTVS( pcParameters->m_bIsMbAffFrame );
+  ROTVS( pcParameters->m_bRefLayerIsMbAffFrame );
+  ROTVS( pcParameters->getRestrictedSpatialResolutionChangeFlag() );
+
+  int iFrmSizeInMbs = ( pcParameters->m_iFrameWidth * pcParameters->m_iFrameHeight ) >> 8;
+  int iField        = ( pcParameters->m_bFieldPicFlag ? 1 : 0 );
+
+  if( pabBaseModeAllowedFlagArrayFrm && ! pcParameters->m_bFieldPicFlag )
+  {
+    for( int iMbIdx = 0; iMbIdx < iFrmSizeInMbs; iMbIdx++ )
+    {
+      if( pabBaseModeAllowedFlagArrayFrm[ iMbIdx ] && !m_pabIntraUpsAvailableFrm[ iMbIdx ] )
+      {
+        const MbData& rcMbPredData = pcMbDataCtrlPredFrm->getMbData( iMbIdx );
+        if( rcMbPredData.getInCropWindowFlag() &&
+            ( rcMbPredData.isBaseIntra( 0, 0 ) ||
+              rcMbPredData.isBaseIntra( 0, 1 ) ||
+              rcMbPredData.isBaseIntra( 1, 0 ) ||
+              rcMbPredData.isBaseIntra( 1, 1 )  ) )
+        {
+          pabBaseModeAllowedFlagArrayFrm[ iMbIdx ] = false;
+        }
+      }
+    }
+  }
+
+  if( pabBaseModeAllowedFlagArrayFld && ( pcParameters->m_bFieldPicFlag || pcParameters->m_bIsMbAffFrame ) )
+  {
+    for( int iMbIdx = 0; iMbIdx < ( iFrmSizeInMbs >> iField ); iMbIdx++ )
+    {
+      if( pabBaseModeAllowedFlagArrayFld[ iMbIdx ] && !m_pabIntraUpsAvailableFld[ iMbIdx ] )
+      {
+        const MbData& rcMbPredData = pcMbDataCtrlPredFld->getMbData( iMbIdx );
+        if( rcMbPredData.getInCropWindowFlag() &&
+            ( rcMbPredData.isBaseIntra( 0, 0 ) ||
+              rcMbPredData.isBaseIntra( 0, 1 ) ||
+              rcMbPredData.isBaseIntra( 1, 0 ) ||
+              rcMbPredData.isBaseIntra( 1, 1 )  ) )
+        {
+          pabBaseModeAllowedFlagArrayFld[ iMbIdx ] = false;
+        }
+      }
+    }
+  }
+}
+#endif
+
 
 void
 DownConvert::xGenerateMbMapsForSliceId( ResizeParameters* pcParameters,

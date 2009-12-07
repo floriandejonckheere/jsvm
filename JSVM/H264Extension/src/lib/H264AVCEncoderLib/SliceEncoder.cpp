@@ -221,7 +221,7 @@ SliceEncoder::encodeSliceSVC( ControlData&  rcControlData,        // control dat
     pcMbDataAccess          ->setMbDataAccessBase ( pcMbDataAccessBase );
     if  ( ! rcSliceHeader.getNoInterLayerPredFlag () )
     {
-      m_pcMbEncoder->setBaseModeAllowedFlag       ( m_apabBaseModeFlagAllowedArrays[ 0 ][ uiMbAddress ] );
+      m_pcMbEncoder->setBaseModeAllowedFlag       ( m_apabBaseModeFlagAllowedArrays[ ePicType == FRAME ? 0 : 1 ][ uiMbAddress ] );
     }
     if  ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
     {

@@ -209,6 +209,13 @@ public:
   void  xUpdateBaseModeAllowedFlags ( ResizeParameters*     pcParameters,
                                       bool*                 pabBaseModeAllowedFlagArrayFrm,
                                       bool*                 pabBaseModeAllowedFlagArrayFld );
+  void  xInitIntraUpsAvailFlags     ( ResizeParameters*     pcParameters );
+  void  xUpdateIntraUpsAvailFlags   ( ResizeParameters*     pcParameters );
+  void  xUpdateBaseModeFlagsIntraUps( ResizeParameters*     pcParameters,
+                                      MbDataCtrl*           pcMbDataCtrlPredFrm,
+                                      MbDataCtrl*           pcMbDataCtrlPredFld,
+                                      bool*                 pabBaseModeAllowedFlagArrayFrm,
+                                      bool*                 pabBaseModeAllowedFlagArrayFld );
   void  xGenerateMbMapsForSliceId   ( ResizeParameters*     pcParameters,
                                       MbDataCtrl*           pcMbDataCtrlBase,
                                       MbDataCtrl*           pcMbDataCtrlPredFrm,
@@ -270,6 +277,8 @@ private:
   int         m_iMbMapStride;
   MbMapEntry* m_paeMbMapFrm;
   MbMapEntry* m_paeMbMapFld;
+  bool*       m_pabIntraUpsAvailableFrm;
+  bool*       m_pabIntraUpsAvailableFld;
 #endif
 };
 

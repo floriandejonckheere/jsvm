@@ -460,6 +460,11 @@ ErrVal CodingParameter::check()
       ROTREPORT( uiLogFactorRate == MSYS_UINT_MAX, "Input Frame rate must be a power of 2 from layer to layer" );
       pcLayer->setBaseLayerTempRes( uiLogFactorRate );
 
+      if( bResolutionChange && m_uiCIUFlag )
+      {
+        ROTREPORT( pcLayer->getILPredMode() == 1, "ILModePred == 1 not allowed in connection with ConstrainedIntraUps == 1 and resolution changes" );
+      }
+
       ROTREPORT( m_uiCGSSNRRefinementFlag && !bResolutionChange && pcLayer->getPicCodingType() != pcBaseLayer->getPicCodingType(),
         "DisableBSlices shall be the same in successive MGS layers" );
 

@@ -508,6 +508,7 @@ protected:
   Frame*                m_pcBaseLayerFrame;
   Frame*                m_pcBaseLayerResidual;
   Frame*                m_apcFrameTemp[NUM_TMP_FRAMES];
+  Bool*                 m_apabBaseModeFlagAllowedArrays[2];
 };
 
 H264AVC_NAMESPACE_END

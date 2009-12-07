@@ -53,10 +53,17 @@ public:
                           MbDataCtrl*         pcMbDataCtrl0L1,
                           Bool                bReconstructAll );
 
+  Void setIntraBLFlagArrays( Bool* apabBaseModeFlagAllowedArrays[2] )
+  {
+    m_apabBaseModeFlagAllowedArrays[0] = apabBaseModeFlagAllowedArrays[0];
+    m_apabBaseModeFlagAllowedArrays[1] = apabBaseModeFlagAllowedArrays[1];
+  }
+
 protected:
   Bool            m_bInitDone;
   ControlMngIf*   m_pcControlMng;
   MbDecoder*      m_pcMbDecoder;
+  Bool*           m_apabBaseModeFlagAllowedArrays[2];
 };
 
 

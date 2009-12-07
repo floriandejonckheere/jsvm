@@ -2070,6 +2070,8 @@ LayerDecoder::LayerDecoder()
 , m_pcBaseLayerResidual                 ( 0 )
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
+  m_apabBaseModeFlagAllowedArrays[0] = 0;
+  m_apabBaseModeFlagAllowedArrays[1] = 0;
 }
 
 
@@ -2907,6 +2909,10 @@ LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   //========= CREATE STATUS MAP ======
   ROFS( ( m_pacMbStatus = new MbStatus[ m_uiMbNumber ] ) );
 
+  //========= CREATE ARRAYS for BaseModeFlag checking =====
+  ROFS( ( m_apabBaseModeFlagAllowedArrays[0] = new Bool [ m_uiMbNumber ] ) );
+  ROFS( ( m_apabBaseModeFlagAllowedArrays[1] = new Bool [ m_uiMbNumber ] ) );
+
   return Err::m_nOK;
 }
 
@@ -2981,6 +2987,18 @@ LayerDecoder::xDeleteData()
     delete [] m_pacMbStatus;
     m_pacMbStatus = 0;
   }
+
+  if( m_apabBaseModeFlagAllowedArrays[0] )
+  {
+    delete [] m_apabBaseModeFlagAllowedArrays [0];
+    m_apabBaseModeFlagAllowedArrays[0] = 0;
+  }
+  if( m_apabBaseModeFlagAllowedArrays[1] )
+  {
+    delete [] m_apabBaseModeFlagAllowedArrays [1];
+    m_apabBaseModeFlagAllowedArrays[1] = 0;
+  }
+
   ROF( m_cSliceHeaderList.empty() );
 
   return Err::m_nOK;
@@ -3129,7 +3147,9 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
       Frame*  pcTempFrame     = m_apcFrameTemp[1];
       RNOK( m_pcBaseLayerFrame->intraUpsampling( pcBaseFrame, pcTempBaseFrame, pcTempFrame, m_cDownConvert, &m_cResizeParameters,
                                                  pcBaseDataCtrl, m_pcBaseLayerCtrl, m_pcBaseLayerCtrlField,
-                                                 m_pcReconstructionBypass, rcControlData.getSliceHeader()->getConstrainedIntraResamplingFlag() ) );
+                                                 m_pcReconstructionBypass, rcControlData.getSliceHeader()->getConstrainedIntraResamplingFlag(),
+                                                 m_apabBaseModeFlagAllowedArrays[0], m_apabBaseModeFlagAllowedArrays[1] ) );
+      m_pcSliceDecoder->setIntraBLFlagArrays   ( m_apabBaseModeFlagAllowedArrays );
     }
     rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
   }

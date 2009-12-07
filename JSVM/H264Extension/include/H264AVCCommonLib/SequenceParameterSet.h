@@ -6,6 +6,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <cstdio>
+
 #include "H264AVCCommonLib/HeaderSymbolReadIf.h"
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
 #include "H264AVCCommonLib/ScalingMatrix.h"
