@@ -941,10 +941,10 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
   Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) );
   Int iScaleX   = ( ( (UInt)iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
   Int iScaleY   = ( ( (UInt)iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
-  Int iBasePosX0= ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX;
-  Int iBasePosY0= ( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY;
-  iBasePosX0    = gMax( 0, gMin( iBasePosX0, iRefW - 1 ) );
-  iBasePosY0    = gMax( 0, gMin( iBasePosY0, iRefH - 1 ) );
+  Int iBasePosX0= (Int)( (UInt)( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX );
+  Int iBasePosY0= (Int)( (UInt)( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY );
+  iBasePosX0    = gMin( iBasePosX0, iRefW - 1 );
+  iBasePosY0    = gMin( iBasePosY0, iRefH - 1 );
   Int iBaseMbX0 = iBasePosX0 >> 4;
   Int iBaseMbY0 = iBasePosY0 >> 4;
   Int iCX       = 0;
@@ -953,8 +953,8 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
   //----- determine first location that points to a different macroblock (not efficient implementation!) -----
   for( ; iCX < 16; iCX++ )
   {
-    Int iBasePosX = ( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX;
-    iBasePosX     = gMax( 0, gMin( iBasePosX, iRefW - 1 ) );
+    Int iBasePosX = (Int)( (UInt)( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX );
+    iBasePosX     = gMin( iBasePosX, iRefW - 1 );
     Int iBaseMbX  = iBasePosX >> 4;
     if( iBaseMbX  > iBaseMbX0 )
     {
@@ -963,8 +963,8 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
   }
   for( ; iCY < 16; iCY++ )
   {
-    Int iBasePosY = ( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY;
-    iBasePosY     = gMax( 0, gMin( iBasePosY, iRefH - 1 ) );
+    Int iBasePosY = (Int)( (UInt)( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY );
+    iBasePosY     = gMin( iBasePosY, iRefH - 1 );
     Int iBaseMbY  = iBasePosY >> 4;
     if( iBaseMbY > iBaseMbY0 )
     {
@@ -1029,15 +1029,21 @@ MotionCompensation::updateMbBLSkipResidual( MbDataAccess& rcMbDataAccess,
   Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) );
   Int iScaleX   = ( ( (UInt)iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
   Int iScaleY   = ( ( (UInt)iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
-  Int iBaseMbX0 = ( ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
-  Int iBaseMbY0 = ( ( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+  Int iBasePosX0= (Int)( (UInt)( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX );
+  Int iBasePosY0= (Int)( (UInt)( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY );
+  iBasePosX0    = gMin( iBasePosX0, iRefW - 1 );
+  iBasePosY0    = gMin( iBasePosY0, iRefH - 1 );
+  Int iBaseMbX0 = iBasePosX0 >> 4;
+  Int iBaseMbY0 = iBasePosY0 >> 4;
   Int iCX       = 0;
   Int iCY       = 0;
 
   //----- determine first location that points to a different macroblock (not efficient implementation!) -----
   for( ; iCX < 16; iCX++ )
   {
-    Int iBaseMbX = ( ( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
+    Int iBasePosX = (Int)( (UInt)( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX );
+    iBasePosX     = gMin( iBasePosX, iRefW - 1 );
+    Int iBaseMbX  = iBasePosX >> 4;
     if( iBaseMbX > iBaseMbX0 )
     {
       break;
@@ -1045,7 +1051,9 @@ MotionCompensation::updateMbBLSkipResidual( MbDataAccess& rcMbDataAccess,
   }
   for( ; iCY < 16; iCY++ )
   {
-    Int iBaseMbY = ( ( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+    Int iBasePosY = (Int)( (UInt)( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY );
+    iBasePosY     = gMin( iBasePosY, iRefH - 1 );
+    Int iBaseMbY  = iBasePosY >> 4;
     if( iBaseMbY > iBaseMbY0 )
     {
       break;

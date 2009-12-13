@@ -228,14 +228,14 @@ MotionUpsampling::xGetRefLayerMb( Int   iXInsideCurrMb,
   Int     iCurrPosX     = iMbPosX +   iXInsideCurrMb;
   Int     iCurrPosY     = iMbPosY + ( iYInsideCurrMb << iFldInFrame );
   //===== get luma location in reference picture =====
-  Int     iBasePosX     = ( iCurrPosX * m_cPosCalc.m_iScaleX + m_cPosCalc.m_iAddX ) >> m_cPosCalc.m_iShiftX;
-  Int     iBasePosY     = ( iCurrPosY * m_cPosCalc.m_iScaleY + m_cPosCalc.m_iAddY ) >> m_cPosCalc.m_iShiftY;
+  Int     iBasePosX     = (Int)( (UInt)( iCurrPosX * m_cPosCalc.m_iScaleX + m_cPosCalc.m_iAddX ) >> m_cPosCalc.m_iShiftX );
+  Int     iBasePosY     = (Int)( (UInt)( iCurrPosY * m_cPosCalc.m_iScaleY + m_cPosCalc.m_iAddY ) >> m_cPosCalc.m_iShiftY );
 
   //===== clip position ====
   if( bClipFlag )
   {
-    iBasePosX = gMax( 0, gMin( iBasePosX, m_cPosCalc.m_iRefW - 1 ) );
-    iBasePosY = gMax( 0, gMin( iBasePosY, m_cPosCalc.m_iRefH - 1 ) );
+    iBasePosX = gMin( iBasePosX, m_cPosCalc.m_iRefW - 1 );
+    iBasePosY = gMin( iBasePosY, m_cPosCalc.m_iRefH - 1 );
   }
 
   //===== check whether base position lies inside frame =====

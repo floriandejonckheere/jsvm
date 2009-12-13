@@ -365,9 +365,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       EndOfSequence cEndOfSequence( *m_pcNalUnitParser );
       RNOK( cEndOfSequence.read   ( *m_pcHeaderSymbolReadIf ) );
       printf("  NON-VCL: END OF SEQUENCE\n" );
-#if IGNORE_TRAILING_BITS_IN_END_OF_SEQUENCE
       bCompletelyParsed  = false;
-#endif
       break;
     }
   case NAL_UNIT_END_OF_STREAM: // just read, but ignore
@@ -375,9 +373,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
       EndOfStream cEndOfStream( *m_pcNalUnitParser );
       RNOK( cEndOfStream.read ( *m_pcHeaderSymbolReadIf ) );
       printf("  NON-VCL: END OF STREAM\n" );
-#if IGNORE_TRAILING_BITS_IN_END_OF_STREAM
       bCompletelyParsed  = false;
-#endif
       break;
     }
   case NAL_UNIT_FILLER_DATA: // just read, but ignore

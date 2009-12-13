@@ -1,73 +1,52 @@
-﻿[Currently, all validation scripts work except for those that use error concealment features. The SVC conformance validation scripts show mismatches for several streams; it is believed that the JSVM decoding process is correct, 
-but the YUV files for the SVC conformance streams do not represent the correct output for an SVC compatible decoder.]
+﻿[Currently, all validation scripts work except for those that use error concealment features.]
 
+
+Known bugs:
+  currently all known/reported bugs have been fixed,
+  but the missing features below need to be implemented
+
+Missing features:
+- support of field pictures in scalable configurations in encoder
+  (currently only correctly supported in single-layer coding)
+- adding of remaining profile/level constraints in encoder
+  (add checks in decoder?)
+- error detection & concealment 
+  (without the restriction to two layers and 
+  fixed prediction structures that was found
+  in the previously implemented version)
+
+Further desirable improvements:
+- support GOP structures with non-dyadic prediction structures
+- combination of MGS and CGS coding
+- higher flexibility of "MGS vector mode"
+- if feasible, support of slice data partitioning
+- support of large file sizes (>4GB)
+- setting of IROI parameters in scalability info SEI and IROI-based extraction
+
+
+
+JSVM_9_19_2 -> JSVM_9_19_3
+==========================
+changes:
+- prevent overflow in position calculation equations
+- relax constraint on presence of scalable SEI for bitstream extractor
 
 
 JSVM_9_19_1 -> JSVM_9_19_2
 ==========================
-
 changes:
 - checking whether base_mode_flag equal to 1 is allowed when
   constrained_intra_upsampling_flag is equal to 1
 
-Known bugs:
-  currently all known/reported bugs have been fixed,
-  but the missing features below need to be implemented
-
-Missing features:
-- support of field pictures in scalable configurations in encoder
-  (currently only correctly supported in single-layer coding)
-- adding of remaining profile/level constraints in encoder
-  (add checks in decoder?)
-- error detection & concealment 
-  (without the restriction to two layers and 
-  fixed prediction structures that was found
-  in the previously implemented version)
-
-Further desirable improvements:
-- support GOP structures with non-dyadic prediction structures
-- combination of MGS and CGS coding
-- higher flexibility of "MGS vector mode"
-- if feasible, support of slice data partitioning
-- support of large file sizes (>4GB)
-- setting of IROI parameters in scalability info SEI and IROI-based extraction
-
-
-
 
 JSVM_9_19 -> JSVM_9_19_1
 ========================
-
 changes:
 - correction of position calculation (clipping) in intra-inter combination process
-
-Known bugs:
-  currently all known/reported bugs have been fixed,
-  but the missing features below need to be implemented
-
-Missing features:
-- support of field pictures in scalable configurations in encoder
-  (currently only correctly supported in single-layer coding)
-- adding of remaining profile/level constraints in encoder
-  (add checks in decoder?)
-- error detection & concealment 
-  (without the restriction to two layers and 
-  fixed prediction structures that was found
-  in the previously implemented version)
-
-Further desirable improvements:
-- support GOP structures with non-dyadic prediction structures
-- combination of MGS and CGS coding
-- higher flexibility of "MGS vector mode"
-- if feasible, support of slice data partitioning
-- support of large file sizes (>4GB)
-- setting of IROI parameters in scalability info SEI and IROI-based extraction
-
 
 
 JSVM_9_18 -> JSVM_9_19
 ======================
-
 changes:
 - correction of scaling matrix selection
 - support of 2nd chroma QP offset
@@ -89,28 +68,6 @@ changes:
 - correction of SPS setting for MGS enhancements of spatial layers (reported on 11.09.2009 by Stefan Eckard)
 - correction of decoding of incomplete layer representation in rewrite mode
 
-Known bugs:
-  currently all known/reported bugs have been fixed,
-  but the missing features below need to be implemented
-
-Missing features:
-- support of field pictures in scalable configurations in encoder
-  (currently only correctly supported in single-layer coding)
-- adding of remaining profile/level constraints in encoder
-  (add checks in decoder?)
-- error detection & concealment 
-  (without the restriction to two layers and 
-  fixed prediction structures that was found
-  in the previously implemented version)
-
-Further desirable improvements:
-- support GOP structures with non-dyadic prediction structures
-- combination of MGS and CGS coding
-- higher flexibility of "MGS vector mode"
-- if feasible, support of slice data partitioning
-- support of large file sizes (>4GB)
-- setting of IROI parameters in scalability info SEI and IROI-based extraction
-
 
 
 JSVM_9_18 -> JSVM_9_18_1
@@ -125,20 +82,6 @@ changes:
 
 added validation scripts:
 - ESS2PlusMGS
-
-known bugs:
-- The reference layer chroma QPs for AVC rewriting are not correctly set when the reference and the current layer have different values of chroma_qp_index_offset.
-- The bit rate that is printed out during the encoder run is not correct when PAFF is selected.
-- The JSVM software doesn't correctly support the syntax element second_chroma_qp_index_offset.
-- The JSVM encoder accepts configurations in which different slices types are selected for MGS layers of the same dependency layer. This is not supported by the standard and results in incorrect bitstreams. It is suggested to add a check to the encoder.
-- The condition on the residual prediction signal in the deblocking filter is not correctly implemented.
-- The ESS parameters are not correctly set for MGS layers that are on top of spatial enhancement layers.
-- The Poc mode 2 is not correctly implemented at the decoder side.
-- The JSVM software does not implement the condition "ref_layer_dq_id greater than or equal to 0" specified in subclause G.9.1.
-- The JSVM software does set correctly the syntax element layer_profile_level_idc in SEI messages.
-- software manual should be updated/corrected regarding some points.
-- It was reported that the following AVC conformance streams cannot be correctly decoded with the JSVM decoder: FRExt2_Panasonic.avc, HPCAQ2LQ_BRCM_B, FREXT_MMCO4_SONY_B, FREXT1_PANASONIC_C, FREXT3_PANASONIC_D
-- Some of the errata issues reported in JVT-AF011 might also require a correction of the JSVM software.
 
 
 
@@ -188,31 +131,7 @@ General improvements / added features
   - using same functions for coding with and without "slices"
 - improvement/correction of encoder/decoder trace files
   (trace files can now be compared and should be identical)
-- resoliving of some memory issues (e.g. memory leaks)
-
-Known bugs: (currently all known/reported bugs have been fixed,
-             but the missing features below need to be implemented)
-
-Missing features:
-- support of field pictures in scalable configurations in encoder
-  (currently only correctly supported in single-layer coding)
-- adding of remaining profile/level constraints in encoder
-  (add checks in decoder?)
-- decoder support for AVC rewrite mode in connection 
-  with incomplete layer representations
-  (as adopted at the Geneva meeting in April 2008) 
-- error detection & concealment 
-  (without the restriction to two layers and 
-  fixed prediction structures that was found
-  in the previously implemented version)
-
-Further desirable improvements: support of more flexible encoder configurations, including
-- GOP structures with non-dyadic prediction structures
-- combination of MGS and CGS coding
-- higher flexibility of "MGS vector mode"
-- if feasible, support of slice data partitioning
-- support of large file sizes (>4GB)
-
+- resolving of some memory issues (e.g. memory leaks)
 
 
 JSVM_9_16 -> JSVM_9_17

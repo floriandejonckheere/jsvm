@@ -415,10 +415,11 @@ Extractor::xAnalyse()
   Int64                   i64EndPos     = 0;
   m_uiMaxSize                           = 0;
 
-  //========== initialize (scalable SEI message shall be the first packet of the stream) ===========
+  //========== initialize (scalable SEI message shall be present in first access unit) ===========
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+  while( true )
   {
-    RNOK( m_pcH264AVCPacketAnalyzer->init() );
-    //--- get first packet ---
+    //--- get packet ---
     RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
 
     if( bEOS )
@@ -431,6 +432,13 @@ Extractor::xAnalyse()
     RNOK( m_pcH264AVCPacketAnalyzer ->process( pcBinData, cPacketDescription, pcScalableSei ) );
     if( !pcScalableSei )
     {
+      if( cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE          &&
+          cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_IDR      &&
+          cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_SCALABLE   )
+      {
+        RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+        continue;
+      }
       printf("No scalability SEI messages found!\nExtractor exit.\n\n ");
       exit( 0 );
     }
@@ -514,6 +522,8 @@ Extractor::xAnalyse()
     }
 
     xSetROIParameters();
+
+    break;
   }
 
   while( ! bEOS )

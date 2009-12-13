@@ -877,6 +877,9 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
     {  2, 30 }
   };
 
+  int iShiftXM4 = iShiftX - 4;
+  int iShiftYM4 = iShiftY - 4;
+
   //========== horizontal upsampling ===========
   {
     for( int j = 0; j < iBaseH + 2 * iMargin; j++ )
@@ -892,7 +895,7 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
 
         m_paiTmp1dBuffer[i] = 0;
 
-        int iRefPos16 = ( ( ( i - iOffsetX ) * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
+        int iRefPos16 = (int)( (unsigned int)( ( i - iOffsetX ) * iScaleX + iAddX ) >> iShiftXM4 ) - iDeltaX;
         int iPhase    = iRefPos16 & 15;
         int iRefPos   = iRefPos16 >> 4;
 
@@ -934,9 +937,11 @@ DownConvert::xBasicIntraUpsampling( int  iBaseW,   int  iBaseH,   int  iCurrW,  
 
         m_paiTmp1dBuffer[j+iYBorder] = 0;
 
-        int iRefPos16 = ( ( ( j - iOffsetY ) * iScaleY + iAddY ) >> ( iShiftY - 4 ) ) - iDeltaY;
-        int iPhase    = iRefPos16 & 15;
-        int iRefPos   = iRefPos16 >> 4;
+        int iPreShift   = ( j - iOffsetY ) * iScaleY + iAddY;
+        int iPostShift  = ( j >= iOffsetY ? (int)( (unsigned int)iPreShift >> iShiftYM4 ) : ( iPreShift >> iShiftYM4 ) );
+        int iRefPos16   = iPostShift - iDeltaY;
+        int iPhase      = iRefPos16 & 15;
+        int iRefPos     = iRefPos16 >> 4;
 
         if( bChromaFilter )
         {
@@ -1650,6 +1655,9 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
   else if (  4 * iCropW >  5 * iBaseW )   iHorFilter  = 2;
   else if ( 19 * iCropW > 20 * iBaseW )   iHorFilter  = 1;
 
+  int iShiftXM4 = iShiftX - 4;
+  int iShiftYM4 = iShiftY - 4;
+
   //===== horizontal downsampling =====
   {
     for( int j = 0; j < iCurrH; j++ )
@@ -1657,7 +1665,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
       int* piSrc = &m_paiImageBuffer[j*m_iImageStride];
       for( int i = 0; i < iBaseW; i++ )
       {
-        int iRefPos16 = ( ( i * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
+        int iRefPos16 = (int)( (unsigned int)( i * iScaleX + iAddX ) >> iShiftXM4 ) - iDeltaX;
         int iPhase    = iRefPos16  & 15;
         int iRefPos   = iRefPos16 >>  4;
 
@@ -1680,7 +1688,7 @@ DownConvert::xBasicDownsampling( int iBaseW,   int iBaseH,   int iCurrW,   int i
       int* piSrc = &m_paiImageBuffer[i];
       for( int j = 0; j < iBaseH; j++ )
       {
-        int iRefPos16 = ( ( j * iScaleY + iAddY ) >> ( iShiftY - 4 ) ) - iDeltaY;
+        int iRefPos16 = (int)( (unsigned int)( j * iScaleY + iAddY ) >> iShiftYM4 ) - iDeltaY;
         int iPhase    = iRefPos16  & 15;
         int iRefPos   = iRefPos16 >>  4;
 
@@ -2323,6 +2331,8 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
     }
   }
 
+  int iShiftXM4 = iShiftX - 4;
+  int iShiftYM4 = iShiftY - 4;
 
   //===== loop over macroblocks =====
   for( int iMbY = 0; iMbY < iPicHeightInMbs; iMbY++ )
@@ -2330,7 +2340,16 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
   {
     MbMapEntry& reMapEntry  = paeMbMap[ iMbMapOffset + iMbY * iMbMapStride + iMbX ];
     int         iMbIdxCurr  = iMbY * ( iPicWidthInMbs << iFieldPic ) + iMbX + ( iPicWidthInMbs * iBotField );
-    bool        bIsPredIBL  = pcMbDataCtrlPred->getMbDataByIndex( (unsigned int)iMbIdxCurr ).isIntraBL();
+    MbData&     rcMbDataPrd = pcMbDataCtrlPred->getMbDataByIndex( (unsigned int)iMbIdxCurr );
+    bool        bInCropWnd  = rcMbDataPrd.getInCropWindowFlag();
+    bool        bIsPredIBL  = rcMbDataPrd.isIntraBL();
+
+    if( ! bInCropWnd )
+    {
+      // outside cropping window
+      reMapEntry = MbMapEntry( reMapEntry & ( ~( INTRA_UPS_ALLOWED | BASE_MODE_ALLOWED ) ) );
+      continue;
+    }
 
     if( ! bInterIntraAllowed && ! bIsPredIBL )
     {
@@ -2347,10 +2366,10 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
     int   iYCurrMax     = ( iMbH - 1 + iYLumMbInComp ) >> iExtraYShift;
 
     int   iB            = ( ! bAdaptiveBotFlag ? iFixedBotFlag : iMbY % 2 );
-    int   iXRefMin      = ( ( ( ( iXCurrMin - iOffsetX ) * iScaleX +  iAddX     ) >> ( iShiftX - 4 ) ) -  iDeltaX          ) >> 4;
-    int   iXRefMax      = ( ( ( ( iXCurrMax - iOffsetX ) * iScaleX +  iAddX     ) >> ( iShiftX - 4 ) ) -  iDeltaX     + 15 ) >> 4;
-    int   iYRefMin      = ( ( ( ( iYCurrMin - iOffsetY ) * iScaleY + aiAddY[iB] ) >> ( iShiftY - 4 ) ) - aiDeltaY[iB]      ) >> 4;
-    int   iYRefMax      = ( ( ( ( iYCurrMax - iOffsetY ) * iScaleY + aiAddY[iB] ) >> ( iShiftY - 4 ) ) - aiDeltaY[iB] + 15 ) >> 4;
+    int   iXRefMin      = ( (int)( (unsigned int)( ( iXCurrMin - iOffsetX ) * iScaleX +  iAddX     ) >> iShiftXM4 ) -  iDeltaX          ) >> 4;
+    int   iXRefMax      = ( (int)( (unsigned int)( ( iXCurrMax - iOffsetX ) * iScaleX +  iAddX     ) >> iShiftXM4 ) -  iDeltaX     + 15 ) >> 4;
+    int   iYRefMin      = ( (int)( (unsigned int)( ( iYCurrMin - iOffsetY ) * iScaleY + aiAddY[iB] ) >> iShiftYM4 ) - aiDeltaY[iB]      ) >> 4;
+    int   iYRefMax      = ( (int)( (unsigned int)( ( iYCurrMax - iOffsetY ) * iScaleY + aiAddY[iB] ) >> iShiftYM4 ) - aiDeltaY[iB] + 15 ) >> 4;
 
     bool  bIsIntraCurr  = false;
     bool  bIsIntraDiff  = false;
@@ -2844,6 +2863,9 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
                                        int iOffsetX, int iOffsetY, int iAddX,    int iAddY,
                                        int iDeltaX,  int iDeltaY,  int iYBorder )
 {
+  int iShiftXM4 = iShiftX - 4;
+  int iShiftYM4 = iShiftY - 4;
+
   //========== horizontal upsampling ===========
   {
     for( int j = 0; j < iBaseH; j++ )
@@ -2858,7 +2880,7 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
           continue;
         }
 
-        int iRefPosX16  = ( ( ( i - iOffsetX ) * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
+        int iRefPosX16  = (int)( (unsigned int)( ( i - iOffsetX ) * iScaleX + iAddX ) >> iShiftXM4 ) - iDeltaX;
         int iPhase      = iRefPosX16 & 15;
         int iRefPosX    = iRefPosX16 >> 4;
         int iRefPosX0   = xClip( iRefPosX,     0, iBaseW - 1 );
@@ -2884,7 +2906,7 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
   {
     for( int i = 0; i < iCurrW; i++ )
     {
-      int   iRefPosX16  = ( ( ( i - iOffsetX ) * iScaleX + iAddX ) >> ( iShiftX - 4 ) ) - iDeltaX;
+      int   iRefPosX16  = (int)( (unsigned int)( ( i - iOffsetX ) * iScaleX + iAddX ) >> iShiftXM4 ) - iDeltaX;
       int   iRndPosX    = ( iRefPosX16 >> 4 ) + ( ( iRefPosX16 & 15 ) >> 3 );
       int   iRefPosX    = xClip( iRndPosX, 0, iBaseW - 1 );
       int*  piSrc       = &m_paiImageBuffer[i];
@@ -2897,7 +2919,9 @@ DownConvert::xBasicResidualUpsampling( int iBaseW,   int iBaseH,   int iCurrW,  
           continue;
         }
 
-        int iRefPosY16  = ( ( ( j - iOffsetY ) * iScaleY + iAddY ) >> ( iShiftY - 4 ) ) - iDeltaY;
+        int iPreShift   = ( j - iOffsetY ) * iScaleY + iAddY;
+        int iPostShift  = ( j >= iOffsetY ? (int)( (unsigned int)iPreShift >> iShiftYM4 ) : ( iPreShift >> iShiftYM4 ) );
+        int iRefPosY16  = iPostShift - iDeltaY;
         int iPhase      = iRefPosY16 & 15;
         int iRefPosY    = iRefPosY16 >> 4;
         int iRefPosY0   = xClip( iRefPosY,     0, iBaseH - 1 );

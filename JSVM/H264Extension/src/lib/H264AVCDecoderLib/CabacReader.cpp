@@ -1229,7 +1229,7 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
     {
       UInt uiSig;
       //--- read significance symbol ---
-        RNOK( CabaDecoder::getSymbol( uiSig, pcMapCCModel[pos2ctx_map[ui]] ) );
+      RNOK( CabaDecoder::getSymbol( uiSig, pcMapCCModel[pos2ctx_map[ui]] ) );
 
       if( uiSig )
       {
