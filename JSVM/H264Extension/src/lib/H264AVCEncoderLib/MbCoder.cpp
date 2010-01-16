@@ -702,8 +702,7 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
                                    UInt                     uiMGSFragment
                                    )
 {
-
-  Bool bWriteDQp = true;
+  Bool bWriteDQp = ( uiStart < uiStop );
 
   if( uiMGSFragment == 0 ) // required, since we don't have the correct slice header
   if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
@@ -724,34 +723,33 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
   }
   const UInt uiCbp = rcMbDataAccess.getMbData().calcMbCbp( uiStart, uiStop );
 
-  if( uiStart != uiStop && !rcMbDataAccess.getMbData().isIntra16x16() )
+  if( uiStart < uiStop && ( rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra16x16() ) )
   {
     RNOK( m_pcMbSymbolWriteIf->cbp( rcMbDataAccess, uiStart, uiStop ) );
     bWriteDQp = ( 0 != uiCbp );
   }
 
-
-  if( uiStart != uiStop && bTrafo8x8Flag && (uiCbp & 0x0F) )
+  if( uiStart < uiStop && bTrafo8x8Flag && ( uiCbp & 0x0F ) )
   {
     ROT( rcMbDataAccess.getMbData().isIntra16x16() );
     ROT( rcMbDataAccess.getMbData().isIntra4x4  () );
     RNOK( m_pcMbSymbolWriteIf->transformSize8x8Flag( rcMbDataAccess, uiStart, uiStop ) );
   }
 
-  if( uiStart != uiStop && bWriteDQp )
+  if( bWriteDQp )
   {
     RNOK( m_pcMbSymbolWriteIf->deltaQp( rcMbDataAccess ) );
   }
 
-  if( uiStart != uiStop && rcMbDataAccess.getMbData().isIntra16x16() )
+  if( uiStart < uiStop && rcMbDataAccess.getMbData().isIntra16x16() )
   {
     ROT( uiStart != 0 || uiStop != 16 ); // not allowed in this encoder
     RNOK( xScanLumaIntra16x16( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().isAcCoded(), uiStart, uiStop ) );
-    RNOK( xScanChromaBlocks  ( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().getCbpChroma16x16() ) );
+    RNOK( xScanChromaBlocks  ( rcMbDataAccess, rcMbTCoeff, rcMbDataAccess.getMbData().getCbpChroma16x16(), uiStart, uiStop ) );
     return Err::m_nOK;
   }
 
-  if( uiStart != uiStop )
+  if( uiStart < uiStop )
   {
     if( rcMbDataAccess.getMbData().isTransformSize8x8() )
     {
@@ -790,7 +788,7 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
 
 ErrVal MbCoder::xScanLumaIntra16x16( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcTCoeff, Bool bAC, UInt uiStart, UInt uiStop )
 {
-  if( uiStart == 0 )
+  if( uiStart == 0 && uiStop != 0 )
   {
     RNOK( m_pcMbSymbolWriteIf->residualBlock( rcMbDataAccess, B4x4Idx(0), LUMA_I16_DC, uiStart, uiStop ) );
   }

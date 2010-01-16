@@ -25,6 +25,12 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_3 -> JSVM_9_19_4
+==========================
+changes:
+- corrections related to parsing with scan_idx_start != 0 and/or scan_idx_end != 15
+
+
 JSVM_9_19_2 -> JSVM_9_19_3
 ==========================
 changes:

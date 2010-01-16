@@ -401,7 +401,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
     }
     m_pcSliceEncoder->getMbEncoder()->setRatio(dRatio);
     m_pcSliceEncoder->getMbEncoder()->setPLR(auiPLR);
-    pcLayerParameters->setContrainedIntraPred();
+    pcLayerParameters->setConstrainedIntraPred( 1 );
   }
   //JVT-R057 LA-RDO}
 

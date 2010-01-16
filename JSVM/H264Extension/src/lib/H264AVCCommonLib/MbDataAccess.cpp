@@ -200,7 +200,7 @@ UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx, UInt uiStart, UInt uiStop )  
     if( xIsAvailable( rcMbDataLeft ) )
     {
       bLeftAvailable = true;
-      if( uiStart == 0 && uiStop == 16 )
+      if( ( uiStart == 0 && uiStop == 16 ) || rcMbDataLeft.isPCM() )
       {
         uiCoeffCount = rcMbDataLeft.getMbTCoeffs().getCoeffCount( cIdxL );
       }
@@ -217,7 +217,7 @@ UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx, UInt uiStart, UInt uiStop )  
   const MbData& rcMbDataAbove = xGetBlockAbove( cIdx );
   if( xIsAvailable( rcMbDataAbove ) )
   {
-    if( uiStart == 0 && uiStop == 16 )
+    if( ( uiStart == 0 && uiStop == 16 ) || rcMbDataAbove.isPCM() )
     {
       uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( cIdx );
     }
@@ -263,7 +263,7 @@ UInt MbDataAccess::getCtxCoeffCount( ChromaIdx cIdx, UInt uiStart, UInt uiStop )
     if( xIsAvailable( rcMbDataLeft ) )
     {
       bLeftAvailable = true;
-      if( uiStart == 0 && uiStop == 16 )
+      if( ( uiStart == 0 && uiStop == 16 ) || rcMbDataLeft.isPCM() )
       {
         uiCoeffCount += rcMbDataLeft.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdxL.b4x4() ] ) );
       }
@@ -280,7 +280,7 @@ UInt MbDataAccess::getCtxCoeffCount( ChromaIdx cIdx, UInt uiStart, UInt uiStop )
   const MbData& rcMbDataAbove = xGetBlockAbove( cLumIdx );
   if( xIsAvailable( rcMbDataAbove ) )
   {
-    if( uiStart == 0 && uiStop == 16 )
+    if( ( uiStart == 0 && uiStop == 16 ) || rcMbDataAbove.isPCM() )
     {
       uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdx.b4x4() ] ) );
     }

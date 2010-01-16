@@ -674,12 +674,12 @@ MbParser::xReadMotionVectors( MbDataAccess& rcMbDataAccess, MbMode eMbMode, List
 
 ErrVal
 MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
-                            Bool						bTrafo8x8Flag,
+                            Bool            bTrafo8x8Flag,
                             Bool            bBaseLayerAvailable,
                             UInt            uiStart,
                             UInt            uiStop )
 {
-  Bool bReadDQp = true;
+  Bool bReadDQp = ( uiStart < uiStop );
 
   if( !rcMbDataAccess.getSH().isIntraSlice() && 
       rcMbDataAccess.getMbData().getInCropWindowFlag() && 
@@ -702,7 +702,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
      !rcMbDataAccess.getMbData().isIntra16x16() )
   {
-    if( uiStart == uiStop )
+    if( uiStart >= uiStop )
     {
       rcMbDataAccess.getMbData().setMbCbp( 0 );
     }
@@ -732,7 +732,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   if( bIntra16x16 )
   {
     UInt uiDummy = 0;
-    if( uiStart == 0 )
+    if( uiStart == 0 && uiStop != 0 )
     {
       DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess, B4x4Idx(0), LUMA_I16_DC, uiDummy, uiStart, uiStop ) );
     }
@@ -744,8 +744,12 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
       }
       rcMbDataAccess.getMbData().setMbCbp( 0xf + ( rcMbDataAccess.getMbData().getCbpChroma16x16() << 4) );
     }
+    else
+    {
+      rcMbDataAccess.getMbData().setMbCbp( 0x0 + ( rcMbDataAccess.getMbData().getCbpChroma16x16() << 4) );
+    }
 
-    DECRNOK( xScanChromaBlocks( rcMbDataAccess,  rcMbDataAccess.getMbData().getCbpChroma16x16() ) );
+    DECRNOK( xScanChromaBlocks( rcMbDataAccess,  rcMbDataAccess.getMbData().getCbpChroma16x16(), uiStart, uiStop ) );
     return Err::m_nOK;
   }
 

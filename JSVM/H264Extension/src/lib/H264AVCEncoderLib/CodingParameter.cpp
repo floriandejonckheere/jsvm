@@ -86,10 +86,11 @@ ErrVal LayerParameters::check()
   ROTREPORT( getPicCodingType           () > 1,         "The value for DisableBSlices is not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
   ROTREPORT( getChromaQPIndexOffset     () < -12 ||
-             getChromaQPIndexOffset     () >  12,       "Unsuppoted value for CbQPIndexOffset" );
+             getChromaQPIndexOffset     () >  12,       "Unsupported value for CbQPIndexOffset" );
   ROTREPORT( get2ndChromaQPIndexOffset  () < -12 ||
-             get2ndChromaQPIndexOffset  () >  12,       "Unsuppoted value for CrQPIndexOffset" );
-  
+             get2ndChromaQPIndexOffset  () >  12,       "Unsupported value for CrQPIndexOffset" );
+  ROTREPORT( getConstrainedIntraPred    () > 1,         "Unsupported value for ConstrainedIntraPred" );
+
   //----- check inter-layer prediction modes -----
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported value for InterLayerPred" );
   if( m_uiILPredMode     == MSYS_UINT_MAX )   m_uiILPredMode      = m_uiInterLayerPredictionMode;
@@ -340,6 +341,7 @@ ErrVal CodingParameter::check()
                getMaxRefIdxActiveBL1    ()  > 15,             "Unvalid value for MaxRefIdxActiveBL1" );
     ROTREPORT( getMaxRefIdxActiveP      () <= 0 ||
                getMaxRefIdxActiveP      ()  > 15,             "Unvalid value for MaxRefIdxActiveP" );
+    ROTREPORT( getConstrainedIntraPred  ()  > 1,              "Unvalid value for ConstrainedIntraPred" );
 
     return Err::m_nOK;
   }
@@ -442,7 +444,7 @@ ErrVal CodingParameter::check()
       ROTREPORT( !getCGSSNRRefinement(),    "MGS vectors are only supported in MGS." );
       ROTREPORT( !pcBaseLayer,              "MGS vectors are not allowed in the base layer." );
       ROTREPORT( !pcLayer->getILPredMode(), "MGS vectors cannot be used with ILModePred = 0." );
-      pcLayer->setContrainedIntraPred();
+      pcLayer->setConstrainedIntraPred( 1 );
     }
 
     ROTREPORT( ! pcBaseLayer && pcLayer->getSliceSkip(), "Slice skip only supported in enhancement layers" );
@@ -512,12 +514,12 @@ ErrVal CodingParameter::check()
         ROTREPORT( bVer &&  bI, "Cropping window must be vertically aligned on a 4 pixel grid for interlaced configurations" );
       }
 
-      pcBaseLayer->setContrainedIntraPred();
+      pcBaseLayer->setConstrainedIntraPred( 1 );
 
       if( pcLayer->getSliceSkip() )
       {
         pcLayer->setSliceSkipTLevelStart( pcLayer->getSliceSkip() - 1 );
-        pcLayer->setContrainedIntraPred ();
+        pcLayer->setConstrainedIntraPred( 1 );
       }
 
       if( pcLayer->getTCoeffLevelPredictionFlag() )
@@ -529,7 +531,7 @@ ErrVal CodingParameter::check()
     }
     if( pcLayer->getTCoeffLevelPredictionFlag() )
     {
-      pcLayer->setContrainedIntraPred();
+      pcLayer->setConstrainedIntraPred( 1 );
       pcLayer->setILPredMode( pcLayer->getILPredMode() > 0 ? 2 : 0 );
     }
   }

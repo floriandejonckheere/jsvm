@@ -358,7 +358,7 @@ PicEncoder::xInitPPS()
   m_pcPPS->setPicInitQp                             ( gMin( 51, gMax( 0, (Int)m_pcCodingParameter->getBasisQp() ) ) );
   m_pcPPS->setChromaQpIndexOffset                   ( 0 );
   m_pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
-  m_pcPPS->setConstrainedIntraPredFlag              ( false );
+  m_pcPPS->setConstrainedIntraPredFlag              ( m_pcCodingParameter->getConstrainedIntraPred() > 0 );
   m_pcPPS->setRedundantPicCntPresentFlag            ( false );  //JVT-Q054 Red. Picture
   m_pcPPS->setTransform8x8ModeFlag                  ( m_pcCodingParameter->getEnable8x8Trafo() > 0 );
   m_pcPPS->setPicScalingMatrixPresentFlag           ( false );

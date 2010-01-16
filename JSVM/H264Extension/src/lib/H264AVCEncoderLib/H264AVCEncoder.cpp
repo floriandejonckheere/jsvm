@@ -1458,7 +1458,7 @@ H264AVCEncoder::xInitParameterSets()
     // JVT-W043 }
     pcPPS->setChromaQpIndexOffset                   ( rcLayerParameters.getChromaQPIndexOffset() );
     pcPPS->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
-    pcPPS->setConstrainedIntraPredFlag              ( rcLayerParameters.getContrainedIntraPred() );
+    pcPPS->setConstrainedIntraPredFlag              ( rcLayerParameters.getConstrainedIntraPred() > 0 );
     pcPPS->setRedundantPicCntPresentFlag            ( rcLayerParameters.getUseRedundantSliceFlag() ); // JVT-Q054 Red. Picture
     //JVT-W049 {
     pcPPS->setRedundantKeyPicCntPresentFlag         ( rcLayerParameters.getUseRedundantKeySliceFlag() );

@@ -393,7 +393,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     {
       n--;
       ROTS( NULL == argv[n] );
-      CodingParameter::getLayerParameters(0).setContrainedIntraPred();
+      CodingParameter::getLayerParameters(0).setConstrainedIntraPred( 1 );
       continue;
     }
     if( equals( pcCom, "-pf", 3) )
@@ -739,6 +739,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",            &m_uiFrameHeight,                                      0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",              &m_uiSymbolMode,                                       1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("Enable8x8Transform",      &m_uiEnable8x8Trafo,                                   0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("ConstrainedIntraPred",    &m_uiConstrainedIntraPred,                             0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("ScalingMatricesPresent",  &m_uiScalingMatricesPresent,                           0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("BasisQP",                 &m_dBasisQp,                                          26 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("DPBSize",                 &m_uiDPBSize,                                           1 );
@@ -1041,6 +1042,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("PAff",                   &(rcLayer.m_uiPAff),                     0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",             &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("Enable8x8Transform",     &(rcLayer.m_uiEnable8x8Trafo),           0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ConstrainedIntraPred",   &(rcLayer.m_uiConstrainedIntraPred),     0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ScalingMatricesPresent", &(rcLayer.m_uiScalingMatricesPresent),   0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",             &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",                     &(rcLayer.m_dBaseQpResidual),            32.0      );

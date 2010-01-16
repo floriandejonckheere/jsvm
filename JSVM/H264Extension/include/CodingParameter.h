@@ -146,7 +146,7 @@ public:
     , m_uiFrameDelay                      (0)
     , m_iChromaQPIndexOffset              ( 0 )
     , m_i2ndChromaQPIndexOffset           ( 0 )
-    , m_bConstrainedIntraPred             (false)
+    , m_uiConstrainedIntraPred            ( 0 )
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
     , m_uiMbAff                           ( 0 )
@@ -300,7 +300,7 @@ public:
 
   UInt                            getBaseLayerSpatRes               () const {return m_uiBaseLayerSpatRes; }
   UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
-  Bool                            getContrainedIntraPred            () const {return m_bConstrainedIntraPred; }
+  UInt                            getConstrainedIntraPred           () const {return m_uiConstrainedIntraPred; }
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
   UInt                            getMbAff                          () const {return m_uiMbAff;}
@@ -377,7 +377,7 @@ public:
   Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
   Void setChromaQPIndexOffset             (Int    p) { m_iChromaQPIndexOffset             = p; }
   Void set2ndChromaQPIndexOffset          (Int    p) { m_i2ndChromaQPIndexOffset          = p; }
-  Void setContrainedIntraPred             ()         { m_bConstrainedIntraPred            = true; }
+  Void setConstrainedIntraPred            (UInt   p) { m_uiConstrainedIntraPred           = p; }
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
   Void setMbAff                           (UInt   p) { m_uiMbAff                          = p; }
@@ -509,7 +509,7 @@ public:
   UInt                      m_uiILPredMode;
   UInt                      m_uiILPredMotion;
   UInt                      m_uiILPredResidual;
-  Bool                      m_bConstrainedIntraPred;
+  UInt                      m_uiConstrainedIntraPred;
   UInt                      m_uiForceReorderingCommands;
   UInt                      m_uiBaseLayerId;
   Int                       m_iChromaQPIndexOffset;
@@ -683,6 +683,7 @@ public:
     , m_uiFrameHeight                     ( 0 )
     , m_uiSymbolMode                      ( 0 )
     , m_uiEnable8x8Trafo                  ( 0 )
+    , m_uiConstrainedIntraPred            ( 0 )
     , m_uiScalingMatricesPresent          ( 0 )
     , m_dBasisQp                          ( 0 )
     , m_uiDPBSize                         ( 0 )
@@ -876,6 +877,9 @@ public:
   }
   //JVT-U106 Behaviour at slice boundaries}
 
+  Void  setConstrainedIntraPred   ( UInt ui )          { m_uiConstrainedIntraPred = ui; }
+  UInt  getConstrainedIntraPred   ()           const   { return m_uiConstrainedIntraPred; }
+
   Void  setEncodeKeyPictures      ( UInt ui )          { m_uiEncodeKeyPictures = ui; }
   UInt  getEncodeKeyPictures      ()           const   { return m_uiEncodeKeyPictures; }
 
@@ -937,6 +941,7 @@ protected:
   UInt                      m_uiFrameHeight;
   UInt                      m_uiSymbolMode;
   UInt                      m_uiEnable8x8Trafo;
+  UInt                      m_uiConstrainedIntraPred;
   UInt                      m_uiScalingMatricesPresent;
   Double                    m_dBasisQp;
   UInt                      m_uiDPBSize;
