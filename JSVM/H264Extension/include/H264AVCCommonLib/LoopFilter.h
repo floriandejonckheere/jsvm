@@ -58,12 +58,14 @@ public:
                           const MbStatus*           apcMbStatus = 0 );
 
 private:
-  ErrVal        xFilterMb             ( MbDataAccess&             rcMbDataAccess,
+  ErrVal        xFilterMb             ( const MbDataCtrl*         pcMbDataCtrl,
+                                        MbDataAccess&             rcMbDataAccess,
                                         YuvPicBuffer*             pcYuvBuffer,
                                         YuvPicBuffer*             pcResidual,
                                         const DBFilterParameter*  pcInterLayerDBParameter,
                                         Bool                      bSpatialScalableFlag,
-                                        LFPass                    eLFPass );            //VB-JV 04/08
+                                        LFPass                    eLFPass,
+                                        const SliceHeader*        pcDBSliceHeader );
 
   //===== determination of filter strength =====
   UInt          xGetHorFilterStrength ( const MbDataAccess&       rcMbDataAccess,

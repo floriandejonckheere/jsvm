@@ -3345,6 +3345,7 @@ ErrVal
 Extractor::xExtractTrace()
 {
   Bool    bEOS            = false;
+  Bool    bFirstPacket    = true;
   Int64   i64StartPos     = 0;
   Int64   i64EndPos       = 0;
   UInt    uiNextStart     = 0;
@@ -3379,7 +3380,22 @@ Extractor::xExtractTrace()
     h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
     h264::PacketDescription cPacketDescription;
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
-    delete pcScalableSEIMessage;
+    if( ! pcScalableSEIMessage )
+    {
+      if( bFirstPacket &&
+          cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE          &&
+          cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_IDR      &&
+          cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_SCALABLE   )
+      {
+        RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+        continue;
+      }
+    }
+    else
+    {
+      bFirstPacket  = false;
+      delete pcScalableSEIMessage;
+    }
 
     if( ! cPacketDescription.ApplyToNext )
     {

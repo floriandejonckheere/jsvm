@@ -1098,11 +1098,9 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 
   m_iMbPerLine = rcSPS.getFrameWidthInMbs();
 
-  RNOK( m_cDBFPBuffer   .init( uiSize + 1 ) );
-  RNOK( m_cILDBFPBuffer .init( uiSize + 1 ) );
-  m_cDBFPBuffer   .clear();
-  m_cILDBFPBuffer .clear();
-  m_bInitDone     = true;
+  RNOK( m_cDBFPBuffer.init( uiSize + 1 ) );
+  m_cDBFPBuffer.clear();
+  m_bInitDone = true;
 
   return Err::m_nOK;
 }
@@ -1175,12 +1173,6 @@ ErrVal MbDataCtrl::uninit()
     m_cDBFPBuffer.set( n, 0 );
   }
   RNOK( m_cDBFPBuffer.uninit() );
-  for( UInt m = 0; m < m_cILDBFPBuffer.size(); m++ )
-  {
-    delete m_cILDBFPBuffer.get( m );
-    m_cILDBFPBuffer.set( m, 0 );
-  }
-  RNOK( m_cILDBFPBuffer.uninit() );
 
   m_bInitDone = false;
   return Err::m_nOK;
@@ -1216,7 +1208,7 @@ ErrVal MbDataCtrl::initUsedField( SliceHeader& rcSH, RefFrameList& rcRefFrameLis
 //TMM }
 
 
-ErrVal 
+ErrVal
 MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
 {
   RNOK( initSlice( rcSH, POST_PROCESS, false, NULL ) );
@@ -1295,19 +1287,12 @@ ErrVal MbDataCtrl::initSlice( SliceHeader&    rcSH,
     m_uiSliceId++;
 
     DBFilterParameter* pcDBF   = new DBFilterParameter( rcSH.getDeblockingFilterParameter() );
-    DBFilterParameter* pcILDBF = new DBFilterParameter( rcSH.getInterLayerDeblockingFilterParameter() );
     if( m_cDBFPBuffer.get( m_uiSliceId ) )
     {
       delete m_cDBFPBuffer.get( m_uiSliceId );
       m_cDBFPBuffer  .set( m_uiSliceId, 0 );
     }
-    if( m_cILDBFPBuffer.get( m_uiSliceId ) )
-    {
-      delete m_cILDBFPBuffer.get( m_uiSliceId );
-      m_cILDBFPBuffer.set( m_uiSliceId, 0 );
-    }
     m_cDBFPBuffer  .set( m_uiSliceId, pcDBF );
-    m_cILDBFPBuffer.set( m_uiSliceId, pcILDBF );
   }
   m_pcSliceHeader = &rcSH;
 

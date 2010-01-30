@@ -259,7 +259,7 @@ ScalingMatrix::SeqScaling<uiBufSize>::isSame( const ScalingMatrix::SeqScaling<ui
   ROFRS( m_bScalingListPresentFlag      == rcSS.m_bScalingListPresentFlag,      false );
   ROFRS( m_bScalingListPresentFlag,                                             true  );
   ROFRS( m_bUseDefaultScalingMatrixFlag == rcSS.m_bUseDefaultScalingMatrixFlag, false );
-  ROFRS( m_bUseDefaultScalingMatrixFlag,                                        true  );
+  ROTRS( m_bUseDefaultScalingMatrixFlag,                                        true  );
   ROFRS( m_aiScalingList          .isSame( rcSS.m_aiScalingList              ), false );
   return true;
 }

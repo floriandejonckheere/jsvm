@@ -25,6 +25,14 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_4 -> JSVM_9_19_5
+==========================
+changes:
+- fix for packet trace mode of extractor
+- fix for checking of scaling matrices
+- fix of deblocking for multiple slices with different deblocking parameters
+
+
 JSVM_9_19_3 -> JSVM_9_19_4
 ==========================
 changes:

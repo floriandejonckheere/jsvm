@@ -82,11 +82,11 @@ ScalingMatrix::isSame( const ScalingMatrix&  rcSM )  const
 {
   for( UInt ui = 0; ui < 6; ui++ )
   {
-    ROTRS( m_acScalingMatrix4x4[ ui ].isSame( rcSM.m_acScalingMatrix4x4[ ui ] ),  false );
+    ROFRS( m_acScalingMatrix4x4[ ui ].isSame( rcSM.m_acScalingMatrix4x4[ ui ] ),  false );
   }
   for( UInt ui = 0; ui < 2; ui++ )
   {
-    ROTRS( m_acScalingMatrix8x8[ ui ].isSame( rcSM.m_acScalingMatrix8x8[ ui ] ),  false );
+    ROFRS( m_acScalingMatrix8x8[ ui ].isSame( rcSM.m_acScalingMatrix8x8[ ui ] ),  false );
   }
   return true;
 }

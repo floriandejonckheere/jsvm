@@ -194,6 +194,13 @@ public:
 	SliceHeader* getSliceHeader()                             { return m_pcSliceHeader; }
 	Void         setSliceHeader( SliceHeader* pcSliceHeader ) { m_pcSliceHeader = pcSliceHeader; }
 
+  const DBFilterParameter&  getDBFPars( const MbDataAccess& rcMbDataAccess )  const
+  {
+    const DBFilterParameter* pcDBFPars = m_cDBFPBuffer.get( rcMbDataAccess.getMbData().getSliceId() );
+    AOF( pcDBFPars );
+    return *pcDBFPars;
+  }
+
   const MbData& getMbData( UInt uiIndex )   const { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }
   const Bool isPicCodedField( )              const { return m_bPicCodedField; }
 
@@ -237,7 +244,6 @@ protected:
 
 protected:
   DynBuf<DBFilterParameter*>  m_cDBFPBuffer;
-  DynBuf<DBFilterParameter*>  m_cILDBFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
   MbMvData*           m_apcMbMvdData[2];

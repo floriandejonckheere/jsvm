@@ -170,12 +170,7 @@ LoopFilter::process( SliceHeader&             rcSH,
 
 
   //===== filtering =====
-  Bool                      bInterLayerFlag = ( pcInterLayerDBParameter != 0 );
-  const DBFilterParameter&  rcDFP           = ( bInterLayerFlag ? *pcInterLayerDBParameter : rcSH.getDeblockingFilterParameter() );
-  Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
-  LFPass                    eNumPasses      = ( iFilterIdc == 3 || iFilterIdc == 6 ? TWO_PASSES : ONE_PASS );
-
-  for( LFPass eLFPass = FIRST_PASS; eLFPass < eNumPasses; eLFPass = LFPass( eLFPass + 1 ) )
+  for( LFPass eLFPass = FIRST_PASS; eLFPass < TWO_PASSES; eLFPass = LFPass( eLFPass + 1 ) )
   {
     for( UInt uiMbAddress = 0; uiMbAddress < rcSH.getMbInPic(); uiMbAddress++ )
     {
@@ -185,12 +180,20 @@ LoopFilter::process( SliceHeader&             rcSH,
 
       RNOK( pcMbDataCtrl    ->initMb            (  pcMbDataAccess, uiMbY, uiMbX ) );
       RNOK( m_pcControlMngIf->initMbForFiltering( *pcMbDataAccess, uiMbY, uiMbX, rcSH.isMbaffFrame() ) );
-      PicType       eMbPicType        = pcMbDataAccess->getMbPicType();
-      YuvPicBuffer* pcFrameBuffer     = apcFrame[ eMbPicType ]->getFullPelYuvBuffer();
-      YuvPicBuffer* pcResidualBuffer  = ( pcResidual ? apcResidual[ eMbPicType ]->getFullPelYuvBuffer() : 0 );
+      PicType             eMbPicType        = pcMbDataAccess->getMbPicType();
+      YuvPicBuffer*       pcFrameBuffer     = apcFrame[ eMbPicType ]->getFullPelYuvBuffer();
+      YuvPicBuffer*       pcResidualBuffer  = ( pcResidual ? apcResidual[ eMbPicType ]->getFullPelYuvBuffer() : 0 );
 
-      RNOK( xFilterMb( *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, pcInterLayerDBParameter, bSpatialScalabilityFlag, eLFPass ) ); //VB-JV 04/08
-	  }
+      const SliceHeader*  pcDBSliceHeader   = 0;
+      if( apcMbStatus )
+      {
+        const UInt      uiMbIdx     = rcSH.getMbIndexFromAddress( uiMbAddress );
+        const MbStatus& rcMbStatus  = apcMbStatus[ uiMbIdx ];
+        pcDBSliceHeader             = rcMbStatus.getLastCodedSliceHeader();
+      }
+
+      RNOK( xFilterMb( pcMbDataCtrl, *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, pcInterLayerDBParameter, bSpatialScalabilityFlag, eLFPass, pcDBSliceHeader ) ); //VB-JV 04/08
+    }
   }
 
   return Err::m_nOK;
@@ -198,15 +201,24 @@ LoopFilter::process( SliceHeader&             rcSH,
 
 
 ErrVal
-LoopFilter::xFilterMb( MbDataAccess& rcMbDataAccess, YuvPicBuffer* pcYuvBuffer, YuvPicBuffer* pcResidual, const DBFilterParameter* pcInterLayerDBParameter, Bool bSpatialScalableFlag, LFPass eLFPass ) //VB-JV 04/08
+LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
+                       MbDataAccess&            rcMbDataAccess,
+                       YuvPicBuffer*            pcYuvBuffer,
+                       YuvPicBuffer*            pcResidual,
+                       const DBFilterParameter* pcInterLayerDBParameter,
+                       Bool                     bSpatialScalableFlag,
+                       LFPass                   eLFPass,
+                       const SliceHeader*       pcDBSliceHeader )
 {
   Bool                      bInterLayerFlag = ( pcInterLayerDBParameter != 0 );//VB-JV 04/08
-  const DBFilterParameter&  rcDFP           = ( bInterLayerFlag ? *pcInterLayerDBParameter : rcMbDataAccess.getSH().getDeblockingFilterParameter() );//VB-JV 04/08
+  const DBFilterParameter&  rcDFPStd        = ( pcDBSliceHeader ? pcDBSliceHeader->getDeblockingFilterParameter() : pcMbDataCtrl->getDBFPars( rcMbDataAccess ) );
+  const DBFilterParameter&  rcDFP           = ( bInterLayerFlag ? *pcInterLayerDBParameter : rcDFPStd );
   Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
   Bool                      b8x8            = rcMbDataAccess.getMbData().isTransformSize8x8();
 
-  ROTRS( iFilterIdc == 1,                                           Err::m_nOK );
-  ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(), Err::m_nOK );
+  ROTRS( iFilterIdc == 1,                                               Err::m_nOK );
+  ROTRS( eLFPass == SECOND_PASS && iFilterIdc != 3 && iFilterIdc != 6,  Err::m_nOK );
+  ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(),     Err::m_nOK );
 
   //===== check residual blocks and set "residual CBP" =====
   UInt uiCbp = 0;
