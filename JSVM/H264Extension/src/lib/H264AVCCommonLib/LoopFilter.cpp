@@ -216,10 +216,6 @@ LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
   Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
   Bool                      b8x8            = rcMbDataAccess.getMbData().isTransformSize8x8();
 
-  ROTRS( iFilterIdc == 1,                                               Err::m_nOK );
-  ROTRS( eLFPass == SECOND_PASS && iFilterIdc != 3 && iFilterIdc != 6,  Err::m_nOK );
-  ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(),     Err::m_nOK );
-
   //===== check residual blocks and set "residual CBP" =====
   UInt uiCbp = 0;
   if( pcResidual )
@@ -544,8 +540,7 @@ Bool
 LoopFilter::xFilterInsideEdges( const MbDataAccess& rcMbDataAccess, Int iFilterIdc, Bool bInterLayerFlag, LFPass eLFPass )
 {
   ROTRS( iFilterIdc == 1,                                           false );
-  ROTRS( iFilterIdc == 3 && eLFPass == SECOND_PASS,                 false );
-  ROTRS( iFilterIdc == 6 && eLFPass == SECOND_PASS,                 false );
+  ROTRS( eLFPass    == SECOND_PASS,                                 false );
   ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(), false );
   return true;
 }
@@ -562,11 +557,12 @@ LoopFilter::xFilterLeftEdge( const MbDataAccess& rcMbDataAccess, Int iFilterIdc,
     ROTRS( iFilterIdc == 5,                                         false );
     ROTRS( iFilterIdc == 3 && eLFPass == FIRST_PASS,                false );
     ROTRS( iFilterIdc == 6 && eLFPass == FIRST_PASS,                false );
+    ROTRS( iFilterIdc == 0 && eLFPass == SECOND_PASS,               false );
+    ROTRS( iFilterIdc == 4 && eLFPass == SECOND_PASS,               false );
   }
   else
   {
-    ROTRS( iFilterIdc == 3 && eLFPass == SECOND_PASS,               false );
-    ROTRS( iFilterIdc == 6 && eLFPass == SECOND_PASS,               false );
+    ROTRS( eLFPass    == SECOND_PASS,                               false );
   }
   ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(), false );
   // NOTE: intra status of neighboring MB must be checked in dependence of the block index (and field mode)
@@ -585,11 +581,12 @@ LoopFilter::xFilterTopEdge( const MbDataAccess& rcMbDataAccess, Int iFilterIdc, 
     ROTRS( iFilterIdc == 5,                                         false );
     ROTRS( iFilterIdc == 3 && eLFPass == FIRST_PASS,                false );
     ROTRS( iFilterIdc == 6 && eLFPass == FIRST_PASS,                false );
+    ROTRS( iFilterIdc == 0 && eLFPass == SECOND_PASS,               false );
+    ROTRS( iFilterIdc == 4 && eLFPass == SECOND_PASS,               false );
   }
   else
   {
-    ROTRS( iFilterIdc == 3 && eLFPass == SECOND_PASS,               false );
-    ROTRS( iFilterIdc == 6 && eLFPass == SECOND_PASS,               false );
+    ROTRS( eLFPass    == SECOND_PASS,                               false );
   }
   ROTRS( bInterLayerFlag && ! rcMbDataAccess.getMbData().isIntra(), false );
   // NOTE: intra status of neighboring MB must be checked in dependence of the block index (and field mode)
