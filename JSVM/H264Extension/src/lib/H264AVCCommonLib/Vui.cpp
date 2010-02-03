@@ -452,9 +452,9 @@ ErrVal VUI::init( UInt uiNumTemporalLevels, UInt uiNumFGSLevels )
 
 ErrVal VUI::LayerInfo::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
-  RNOK( pcWriteIf->writeCode( m_uiTemporalId, 3,                       "VUI: temporal_level"));
-  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "VUI: dependency_id"));
-  RNOK( pcWriteIf->writeCode( m_uiQualityId, 4,                        "VUI: quality_level"));
+  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,  "VUI: dependency_id"  ) );
+  RNOK( pcWriteIf->writeCode( m_uiQualityId,    4,  "VUI: quality_level"  ) );
+  RNOK( pcWriteIf->writeCode( m_uiTemporalId,   3,  "VUI: temporal_level" ) );
   return Err::m_nOK;
 }
 
@@ -524,9 +524,9 @@ ErrVal VUI::writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf ) const
 
 ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf )
 {
-  RNOKS( pcReadIf->getCode( m_uiTemporalId, 3,               "VUI: temporal_level"));
-  RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,               "VUI: dependency_id"));
-  RNOKS( pcReadIf->getCode( m_uiQualityId, 4,               "VUI: quality_level"));
+  RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,  "VUI: dependency_id"  ) );
+  RNOKS( pcReadIf->getCode( m_uiQualityId,    4,  "VUI: quality_level"  ) );
+  RNOKS( pcReadIf->getCode( m_uiTemporalId,   3,  "VUI: temporal_level" ) );
   return Err::m_nOK;
 }
 

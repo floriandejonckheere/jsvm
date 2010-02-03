@@ -30,6 +30,7 @@ JSVM_9_19_5 -> JSVM_9_19_6
 changes:
 - fix for motion upsampling with very large resolution ratios
 - minor fix for deblocking of multiple slices with different deblocking parameters
+- correct order of layer information in SVC VUI extension
 
 
 JSVM_9_19_4 -> JSVM_9_19_5
