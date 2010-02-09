@@ -1785,14 +1785,17 @@ DownConvert::xCrop( Frame*            pcFrame,
   int           iSrcStrideY = pcBaseFrame->getFullPelYuvBuffer()->getLStride  ();
   int           iSrcStrideC = pcBaseFrame->getFullPelYuvBuffer()->getCStride  ();
 
-  int           iOutWidth   = pcParameters->m_iScaledRefFrmWidth;
-  int           iOutHeight  = pcParameters->m_iScaledRefFrmHeight;
-  int           iPosX       = pcParameters->m_iLeftFrmOffset;
-  int           iPosY       = pcParameters->m_iTopFrmOffset;
+  int           iSrcPosX    = gMax(0, -pcParameters->m_iLeftFrmOffset);
+  int           iSrcPosY    = gMax(0, -pcParameters->m_iTopFrmOffset);
+  int           iPosX       = gMax(0,  pcParameters->m_iLeftFrmOffset);
+  int           iPosY       = gMax(0,  pcParameters->m_iTopFrmOffset);
+  int           iOutWidth   = gMin(pcParameters->m_iScaledRefFrmWidth  - iSrcPosX, pcParameters->m_iFrameWidth  - iPosX);
+  int           iOutHeight  = gMin(pcParameters->m_iScaledRefFrmHeight - iSrcPosY, pcParameters->m_iFrameHeight - iPosY);
   int           iGlobWidth  = pcParameters->m_iFrameWidth;
   int           iGlobHeight = pcParameters->m_iFrameHeight;
 
   //===== luma =====
+  psSrcY += iSrcPosY * iSrcStrideY + iSrcPosX;
   xCopyToImageBuffer  ( psSrcY, iOutWidth,  iOutHeight,  iSrcStrideY         );
   xInitializeWithValue( psDesY, iGlobWidth, iGlobHeight, iDesStrideY, iValue );
   psDesY += iPosY * iDesStrideY + iPosX;
@@ -1801,18 +1804,22 @@ DownConvert::xCrop( Frame*            pcFrame,
   //===== parameters for chroma =====
   iOutWidth   >>= 1;
   iOutHeight  >>= 1;
+  iSrcPosX    >>= 1;
+  iSrcPosY    >>= 1;
   iPosX       >>= 1;
   iPosY       >>= 1;
   iGlobWidth  >>= 1;
   iGlobHeight >>= 1;
 
   //===== chroma cb =====
+  psSrcU += iSrcPosY * iSrcStrideC + iSrcPosX;
   xCopyToImageBuffer  ( psSrcU, iOutWidth,  iOutHeight,  iSrcStrideC         );
   xInitializeWithValue( psDesU, iGlobWidth, iGlobHeight, iDesStrideC, iValue );
   psDesU += iPosY * iDesStrideC + iPosX;
   xCopyFromImageBuffer( psDesU, iOutWidth,  iOutHeight,  iDesStrideC         );
 
   //===== chroma cr =====
+  psSrcV += iSrcPosY * iSrcStrideC + iSrcPosX;
   xCopyToImageBuffer  ( psSrcV, iOutWidth,  iOutHeight,  iSrcStrideC         );
   xInitializeWithValue( psDesV, iGlobWidth, iGlobHeight, iDesStrideC, iValue );
   psDesV += iPosY * iDesStrideC + iPosX;

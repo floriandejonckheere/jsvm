@@ -25,7 +25,7 @@ private:
     BufferParameters();
     virtual ~BufferParameters();
 
-    ErrVal      init( const h264::SliceDataNALUnit& rcSliceDataNalUnit );
+    ErrVal      init( const h264::AccessUnit& rcAccessUnit );
 
     UInt        getLumaOffset ()  const { return m_uiLumaOffset; }
     UInt        getCbOffset   ()  const { return m_uiCbOffset; }

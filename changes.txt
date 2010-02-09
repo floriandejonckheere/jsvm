@@ -25,6 +25,13 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_6 -> JSVM_9_19_7
+==========================
+changes:
+- correction of maximum buffer size (for cases the base layer picture is larger than the enhancement layer picture)
+- correction of cropping (for CGS cases with negative ScaledRefLayerLeftOffset and/or ScaledRefLayerTopOffset)
+
+
 JSVM_9_19_5 -> JSVM_9_19_6
 ==========================
 changes:

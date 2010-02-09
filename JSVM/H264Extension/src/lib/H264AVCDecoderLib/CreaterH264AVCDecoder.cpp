@@ -286,6 +286,27 @@ AccessUnit::getAndRemoveNextNalUnit( NALUnit*& rpcNalUnit )
 #define ISVCL(i)  ((*i)->isVCLNALUnit())
 #define SLICE(i)  ((SliceDataNALUnit*)((*i)->getInstance()))
 
+UInt
+AccessUnit::getMaxBufferSize() const
+{
+  UInt                              uiMaxBufferSize = 0;
+  MyList<NALUnit*>::const_iterator  iIter           = m_cNalUnitList.begin();
+  MyList<NALUnit*>::const_iterator  iEnd            = m_cNalUnitList.end  ();
+  while( iIter != iEnd )
+  {
+    if( ISVCL(iIter) )
+    {
+      const SliceDataNALUnit* pcNAL   = SLICE(iIter);
+      UInt                    uiMbX   = pcNAL->getFrameWidthInMb  ();
+      UInt                    uiMbY   = pcNAL->getFrameHeightInMb ();
+      UInt                    uiSize  = 6 * ( ( uiMbX << 3 ) + YUV_X_MARGIN ) * ( ( uiMbY << 3 ) + YUV_Y_MARGIN );
+      uiMaxBufferSize                 = gMax( uiMaxBufferSize, uiSize );
+    }
+    iIter++;
+  }
+  return uiMaxBufferSize;
+}
+
 Void
 AccessUnit::xSetComplete( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit,
                           SliceHeader*      pcFirstSliceHeaderOfNextAccessUnit )

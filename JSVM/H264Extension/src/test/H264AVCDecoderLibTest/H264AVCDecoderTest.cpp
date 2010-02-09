@@ -21,10 +21,12 @@ H264AVCDecoderTest::BufferParameters::~BufferParameters()
 }
 
 ErrVal
-H264AVCDecoderTest::BufferParameters::init( const h264::SliceDataNALUnit& rcSliceDataNalUnit )
+H264AVCDecoderTest::BufferParameters::init( const h264::AccessUnit& rcAccessUnit )
 {
-  UInt uiMbX        = rcSliceDataNalUnit.getFrameWidthInMb  ();
-  UInt uiMbY        = rcSliceDataNalUnit.getFrameHeightInMb ();
+  const h264::SliceDataNALUnit* pcSliceDataNalUnit = rcAccessUnit.getLastVCLNalUnit();
+  ROF( pcSliceDataNalUnit );
+  UInt uiMbX        = pcSliceDataNalUnit->getFrameWidthInMb ();
+  UInt uiMbY        = pcSliceDataNalUnit->getFrameHeightInMb();
   UInt uiChromaSize = ( ( uiMbX << 3 ) + YUV_X_MARGIN     ) * ( ( uiMbY << 3 ) + YUV_Y_MARGIN );
   m_uiLumaOffset    = ( ( uiMbX << 4 ) + YUV_X_MARGIN * 2 ) * YUV_Y_MARGIN     + YUV_X_MARGIN;
   m_uiCbOffset      = ( ( uiMbX << 3 ) + YUV_X_MARGIN     ) * YUV_Y_MARGIN / 2 + YUV_X_MARGIN / 2 + uiChromaSize * 4;
@@ -32,14 +34,14 @@ H264AVCDecoderTest::BufferParameters::init( const h264::SliceDataNALUnit& rcSlic
   m_uiLumaHeight    =   ( uiMbY << 4 );
   m_uiLumaWidth     =   ( uiMbX << 4 );
   m_uiLumaStride    =   ( uiMbX << 4 ) + YUV_X_MARGIN * 2;
-  m_uiBufferSize    = 6 * uiChromaSize;
-  m_auiCropping[0]  = rcSliceDataNalUnit.getCroppingRectangle ()[0];
-  m_auiCropping[1]  = rcSliceDataNalUnit.getCroppingRectangle ()[1];
-  m_auiCropping[2]  = rcSliceDataNalUnit.getCroppingRectangle ()[2];
-  m_auiCropping[3]  = rcSliceDataNalUnit.getCroppingRectangle ()[3];
+  m_uiBufferSize    = rcAccessUnit.getMaxBufferSize();
+  ROF( m_uiBufferSize >= 6 * uiChromaSize );
+  m_auiCropping[0]  = pcSliceDataNalUnit->getCroppingRectangle()[0];
+  m_auiCropping[1]  = pcSliceDataNalUnit->getCroppingRectangle()[1];
+  m_auiCropping[2]  = pcSliceDataNalUnit->getCroppingRectangle()[2];
+  m_auiCropping[3]  = pcSliceDataNalUnit->getCroppingRectangle()[3];
   return Err::m_nOK;
 }
-
 
 
 
@@ -207,9 +209,7 @@ H264AVCDecoderTest::xProcessAccessUnit( h264::AccessUnit& rcAccessUnit, Bool& rb
   //===== get buffer dimensions =====
   if( rbFirstAccessUnit )
   {
-    const h264::SliceDataNALUnit* pcSliceDataNalUnit = rcAccessUnit.getLastVCLNalUnit();
-    ROF ( pcSliceDataNalUnit );
-    RNOK( m_cBufferParameters.init( *pcSliceDataNalUnit ) );
+    RNOK( m_cBufferParameters.init( rcAccessUnit ) );
     rbFirstAccessUnit = false;
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 #else

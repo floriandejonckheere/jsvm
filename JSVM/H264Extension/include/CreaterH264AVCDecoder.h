@@ -190,6 +190,7 @@ public:
   const SliceDataNALUnit* getLastVCLNalUnit   ()  const   { return m_pcLastVCLNALUnit; }
   const PrefixHeader*     getLastPrefixHeader ()  const   { return m_pcLastPrefixHeader; }
   const SliceHeader*      getLastSliceHeader  ()  const   { return m_pcLastSliceHeader; }
+  UInt                    getMaxBufferSize    ()  const;
 
 private:
   Void  xSetComplete      ( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,
