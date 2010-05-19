@@ -173,9 +173,9 @@ H264AVCEncoderTest::xGetNewPicBuffer ( PicBuffer*&  rpcPicBuffer,
 {
   if( m_acUnusedPicBufferList[uiLayer].empty() )
   {
-	UChar* pcBuffer = new UChar[ uiSize ];
-  ::memset( pcBuffer,  0x00, uiSize*sizeof(UChar) );
-   rpcPicBuffer = new PicBuffer( pcBuffer );
+	  UChar* pcBuffer = new UChar[ uiSize ];
+    ::memset( pcBuffer,  0x00, uiSize*sizeof(UChar) );
+    rpcPicBuffer = new PicBuffer( pcBuffer );
   }
   else
   {
@@ -408,23 +408,27 @@ H264AVCEncoderTest::go()
   }
 
   //===== determine parameters for required frame buffers =====
+  UInt  uiAllocMbX = 0;
+  UInt  uiAllocMbY = 0;
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
-    h264::LayerParameters& rcLayer = m_pcEncoderCodingParameter->getLayerParameters( uiLayer );
-    auiMbX        [uiLayer]        = rcLayer.getFrameWidthInMbs ();
-    auiMbY        [uiLayer]        = rcLayer.getFrameHeightInMbs();
-    m_aauiCropping[uiLayer][0]     = 0;
-    m_aauiCropping[uiLayer][1]     = rcLayer.getHorPadding      ();
-    m_aauiCropping[uiLayer][2]     = 0;
-    m_aauiCropping[uiLayer][3]     = rcLayer.getVerPadding      ();
-    UInt  uiSize            = ((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN);
-    auiPicSize    [uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)*((auiMbY[uiLayer]<<4)+2*YUV_Y_MARGIN)*3/2;
-    m_auiLumOffset[uiLayer] = ((auiMbX[uiLayer]<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;
-    m_auiCbOffset [uiLayer] = ((auiMbX[uiLayer]<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize;
-    m_auiCrOffset [uiLayer] = ((auiMbX[uiLayer]<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiSize/4;
-    m_auiHeight   [uiLayer] =   auiMbY[uiLayer]<<4;
-    m_auiWidth    [uiLayer] =   auiMbX[uiLayer]<<4;
-    m_auiStride   [uiLayer] =  (auiMbX[uiLayer]<<4)+ 2*YUV_X_MARGIN;
+    h264::LayerParameters& rcLayer  = m_pcEncoderCodingParameter->getLayerParameters( uiLayer );
+    auiMbX        [uiLayer]         = rcLayer.getFrameWidthInMbs ();
+    auiMbY        [uiLayer]         = rcLayer.getFrameHeightInMbs();
+    uiAllocMbX                      = gMax( uiAllocMbX, auiMbX[uiLayer] );
+    uiAllocMbY                      = gMax( uiAllocMbY, auiMbY[uiLayer] );
+    m_aauiCropping[uiLayer][0]      = 0;
+    m_aauiCropping[uiLayer][1]      = rcLayer.getHorPadding      ();
+    m_aauiCropping[uiLayer][2]      = 0;
+    m_aauiCropping[uiLayer][3]      = rcLayer.getVerPadding      ();
+    m_auiHeight   [uiLayer]         = auiMbY[uiLayer]<<4;
+    m_auiWidth    [uiLayer]         = auiMbX[uiLayer]<<4;
+    UInt  uiSize                    = ((uiAllocMbY<<4)+2*YUV_Y_MARGIN)*((uiAllocMbX<<4)+2*YUV_X_MARGIN);
+    auiPicSize    [uiLayer]         = ((uiAllocMbX<<4)+2*YUV_X_MARGIN)*((uiAllocMbY<<4)+2*YUV_Y_MARGIN)*3/2;
+    m_auiLumOffset[uiLayer]         = ((uiAllocMbX<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;
+    m_auiCbOffset [uiLayer]         = ((uiAllocMbX<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize;
+    m_auiCrOffset [uiLayer]         = ((uiAllocMbX<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiSize/4;
+    m_auiStride   [uiLayer]         =  (uiAllocMbX<<4)+ 2*YUV_X_MARGIN;
   }
 
   //===== loop over frames =====

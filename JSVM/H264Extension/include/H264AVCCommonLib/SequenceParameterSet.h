@@ -156,6 +156,9 @@ public:
     return Err::m_nOK;
   }
 
+  Void  setAllocFrameMbsX( UInt ui )  { m_uiAllocFrameMbsX = ui; }
+  Void  setAllocFrameMbsY( UInt ui )  { m_uiAllocFrameMbsY = ui; }
+
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType,
@@ -193,6 +196,9 @@ public:
   Int   getScaledBaseTopOffset    () const { return m_iScaledBaseTopOffset; }
   Int   getScaledBaseRightOffset  () const { return m_iScaledBaseRightOffset; }
   Int   getScaledBaseBottomOffset () const { return m_iScaledBaseBottomOffset; }
+
+  UInt  getAllocFrameMbsX         () const { return m_uiAllocFrameMbsX;  }
+  UInt  getAllocFrameMbsY         () const { return m_uiAllocFrameMbsY; }
 
   //JVT-W046 }
   // JVT-V035
@@ -312,6 +318,9 @@ protected:
   UInt          m_uiFrameCropRightOffset;
   UInt          m_uiFrameCropTopOffset;
   UInt          m_uiFrameCropBottomOffset;
+
+  UInt          m_uiAllocFrameMbsX;
+  UInt          m_uiAllocFrameMbsY;
 
 private:
   static const LevelLimit m_aLevelLimit[52];

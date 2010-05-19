@@ -767,7 +767,9 @@ LayerEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   UInt  uiNum4x4Blocks      = m_uiFrameWidthInMb * m_uiFrameHeightInMb * 4 * 4;
   m_uiWriteBufferSize       = 3 * ( uiNum4x4Blocks * 4 * 4 );
   ROFS( ( m_pucWriteBuffer  = new UChar [ m_uiWriteBufferSize ] ) );
-  ROT ( m_cDownConvert.init( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4, 16 ) );
+  UInt uiDCAllocX = rcSPS.getAllocFrameMbsX() << 4;
+  UInt uiDCAllocY = rcSPS.getAllocFrameMbsY() << 4;
+  ROT ( m_cDownConvert.init( uiDCAllocX, uiDCAllocY, 16 ) );
 
   //S051{
   ROFRS( m_auiFrameBits	=	new UInt[m_uiTotalFrame], Err::m_nERR );

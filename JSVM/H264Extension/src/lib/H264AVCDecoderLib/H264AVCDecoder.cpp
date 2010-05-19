@@ -213,6 +213,7 @@ H264AVCDecoder::initNALUnit( BinData*&    rpcBinData,
     default:
       {
         // no parsing required
+        bCompletelyParsed  = false;
         break;
       }
     }
@@ -390,6 +391,7 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
   default:
     {
       // ignore
+      bCompletelyParsed  = false;
       break;
     }
   }

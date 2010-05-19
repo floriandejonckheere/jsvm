@@ -433,6 +433,13 @@ protected:
 
   ErrVal  xAdjustRewriteReconstruction( IntMbTempData&  rcMbTempData );
   
+#if PROPOSED_DEBLOCKING_APRIL2010
+  ErrVal  xCheckInterProfileCompatibility( IntMbTempData&      rcMbTempData,
+                                           const YuvMbBuffer*  pcPredSignal,
+                                           const YuvMbBuffer*  pcRefLayerResidual,
+                                           Bool                b8x8 );
+#endif
+
   // JVT-W043 {
   UInt    jsvmCalcMAD                 ( IntMbTempData*& rpcMbBestData,
                                         MbDataAccess&   rcMbDataAccess );
@@ -453,6 +460,9 @@ protected:
   IntMbTempData*          m_pcIntMbTemp8x8Data;
   IntMbTempData*          m_pcIntMbBestIntraChroma;
   YuvMbBuffer*            m_pcIntOrgMbPelData;
+#if PROPOSED_DEBLOCKING_APRIL2010
+  YuvMbBuffer*            m_pcRefLayerResidual;
+#endif
   YuvPicBuffer*           m_pcIntPicBuffer;
   YuvPicBuffer*           m_pcIntraPredPicBuffer;
   BitWriteBufferIf*       m_BitCounter;

@@ -382,6 +382,8 @@ ErrVal
 PicEncoder::xInitParameterSets()
 {
   //===== init control manager =====
+  m_pcSPS->setAllocFrameMbsX( m_pcSPS->getFrameWidthInMbs () );
+  m_pcSPS->setAllocFrameMbsY( m_pcSPS->getFrameHeightInMbs() );
   RNOK( m_pcControlMng->initParameterSets( *m_pcSPS, *m_pcPPS ) );
 
   //===== set fixed parameters =====

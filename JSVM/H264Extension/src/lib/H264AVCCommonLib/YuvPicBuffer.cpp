@@ -1212,8 +1212,8 @@ ErrVal YuvPicBuffer::copy( YuvPicBuffer*  pcSrcYuvPicBuffer )
   XPel* pDes        = getMbLumAddr();
   Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
   Int   iDesStride  = getLStride();
-  UInt  uiHeight    = pcSrcYuvPicBuffer->getLHeight();
-  UInt  uiWidth     = pcSrcYuvPicBuffer->getLWidth ();
+  UInt  uiHeight    = gMin( pcSrcYuvPicBuffer->getLHeight(), getLHeight() );
+  UInt  uiWidth     = gMin( pcSrcYuvPicBuffer->getLWidth (), getLWidth () );
   UInt  y, x;
 
   //===== luminance =====

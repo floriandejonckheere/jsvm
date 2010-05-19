@@ -216,6 +216,11 @@ LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
   Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
   Bool                      b8x8            = rcMbDataAccess.getMbData().isTransformSize8x8();
 
+#if ( PRE_CORR_NOV2009_DEBLOCKING || PROPOSED_DEBLOCKING_APRIL2010 )
+  //===== set CBP for entire dependency representation =====
+  RNOK( xRecalcCBP( rcMbDataAccess ) );
+#endif
+
   //===== check residual blocks and set "residual CBP" =====
   UInt uiCbp = 0;
   if( pcResidual )
@@ -299,6 +304,57 @@ LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
 
 
 
+#if ( PRE_CORR_NOV2009_DEBLOCKING || PROPOSED_DEBLOCKING_APRIL2010 )
+ErrVal
+LoopFilter::xRecalcCBP( MbDataAccess &rcMbDataAccess )
+{
+  UInt uiCbp    = 0;
+  UInt uiStart  = 0;
+  UInt uiStop   = 16;
+  if( rcMbDataAccess.getMbData().isTransformSize8x8() )
+  {
+    const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan64 : g_aucFrameScan64;
+    uiStart <<= 2;
+    uiStop  <<= 2;
+    for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
+    {
+      TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( cIdx );
+      for( UInt ui = uiStart; ui < uiStop; ui++ )
+      {
+        if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
+        {
+          uiCbp |= 0x33 << cIdx.b8x8();
+          break;
+        }
+      }
+    }
+  }
+  else
+  {
+    const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+    {
+      TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+      for( UInt ui = uiStart; ui < uiStop; ui++ )
+      {
+        if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
+        {
+          uiCbp |= 1<<cIdx.b4x4();
+          break;
+        }
+      }
+    }
+    if( rcMbDataAccess.getMbData().isIntra16x16() )
+    {
+      uiCbp = uiCbp ? 0xFFFF : 0;
+    }
+  }
+  rcMbDataAccess.getMbData().setAndConvertMbExtCbp( uiCbp );
+  return Err::m_nOK;
+}
+#endif
+
+
 
 UInt
 LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
@@ -333,11 +389,40 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
     //===== check for intra =====
     ROTRS( rcMbDataCurr.isIntra(), 3 );
 
+#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+    //--- check inter-profile compatibility ---
+    if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
+        ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
+    {
+      if( ( rcMbDataCurr.is4x4BlkCoded( cIdx                           ) && !rcMbDataCurr.is4x4BlkResidual( cIdx                           ) ) ||
+          ( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ) && !rcMbDataCurr.is4x4BlkResidual( cIdx + CURR_MB_ABOVE_NEIGHBOUR ) )    )
+      {
+        printf( "Profile compatability issue with deblocking filter\n" );
+      }
+    }
+#endif
+
     //===== check for transform coefficients and residual samples =====
-    ROTRS( rcMbDataCurr.is4x4BlkResidual  ( cIdx                           ), 2 );
-    ROTRS( rcMbDataCurr.is4x4BlkResidual  ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
-    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                           ), 2 );
-    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkResidual    ( cIdx                           ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkResidual    ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+#if PROPOSED_DEBLOCKING_APRIL2010
+    if( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE )
+    {
+      ROTRS( rcMbDataCurr.is4x4BlkCoded     ( cIdx                           ), 2 );
+      ROTRS( rcMbDataCurr.is4x4BlkCoded     ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+    }
+    else
+    {
+      ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                           ), 2 );
+      ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+    }
+#elif PRE_CORR_NOV2009_DEBLOCKING
+    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx                           ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+#else
+    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx                           ), 2 );
+    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+#endif
 
     //===== check for motion vectors ====
     if( rcMbDataCurr.isInterPMb() )
@@ -383,11 +468,40 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
   ROTRS( rcMbDataCurr .isIntra(), bIntraBs );
   ROTRS( rcMbDataAbove.isIntra(), bIntraBs );
 
+#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+  //--- check inter-profile compatibility ---
+  if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
+      ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
+  {
+    if( ( rcMbDataCurr.is4x4BlkCoded( cIdx                            ) && !rcMbDataCurr.is4x4BlkResidual( cIdx                            ) ) ||
+        ( rcMbDataCurr.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ) && !rcMbDataCurr.is4x4BlkResidual( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ) )    )
+    {
+      printf( "Profile compatability issue with deblocking filter\n" );
+    }
+  }
+#endif
+
   //===== check for transform coefficients and residual samples =====
-  ROTRS( rcMbDataCurr. is4x4BlkResidual   ( cIdx                            ), 2 );
-  ROTRS( rcMbDataAbove.is4x4BlkResidual   ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
-  ROTRS( rcMbDataCurr. isDQId0AndBlkCoded ( cIdx                            ), 2 );
-  ROTRS( rcMbDataAbove.isDQId0AndBlkCoded ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+  ROTRS( rcMbDataCurr. is4x4BlkResidual     ( cIdx                            ), 2 );
+  ROTRS( rcMbDataAbove.is4x4BlkResidual     ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+#if PROPOSED_DEBLOCKING_APRIL2010
+  if( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE )
+  {
+    ROTRS( rcMbDataCurr. is4x4BlkCoded      ( cIdx                            ), 2 );
+    ROTRS( rcMbDataAbove.is4x4BlkCoded      ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+  }
+  else
+  {
+    ROTRS( rcMbDataCurr. isDQId0AndBlkCoded ( cIdx                            ), 2 );
+    ROTRS( rcMbDataAbove.isDQId0AndBlkCoded ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+  }
+#elif PRE_CORR_NOV2009_DEBLOCKING
+  ROTRS( rcMbDataCurr. is4x4BlkCoded        ( cIdx                            ), 2 );
+  ROTRS( rcMbDataAbove.is4x4BlkCoded        ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+#else
+  ROTRS( rcMbDataCurr. isDQId0AndBlkCoded   ( cIdx                            ), 2 );
+  ROTRS( rcMbDataAbove.isDQId0AndBlkCoded   ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+#endif
 
   //===== check for mixed mode =====
   ROTRS( m_bHorMixedMode, 1 );
@@ -434,11 +548,40 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
     //===== check for intra =====
     ROTRS( rcMbDataCurr.isIntra(), 3 );
 
+#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+    //--- check inter-profile compatibility ---
+    if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
+        ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
+    {
+      if( ( rcMbDataCurr.is4x4BlkCoded( cIdx                          ) && !rcMbDataCurr.is4x4BlkResidual( cIdx                          ) ) ||
+          ( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ) && !rcMbDataCurr.is4x4BlkResidual( cIdx + CURR_MB_LEFT_NEIGHBOUR ) )    )
+      {
+        printf( "Profile compatability issue with deblocking filter\n" );
+      }
+    }
+#endif
+
     //===== check for transform coefficients and residual samples =====
-    ROTRS( rcMbDataCurr.is4x4BlkResidual  ( cIdx                          ), 2 );
-    ROTRS( rcMbDataCurr.is4x4BlkResidual  ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
-    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                          ), 2 );
-    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkResidual    ( cIdx                          ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkResidual    ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+#if PROPOSED_DEBLOCKING_APRIL2010
+    if( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE )
+    {
+      ROTRS( rcMbDataCurr.is4x4BlkCoded     ( cIdx                          ), 2 );
+      ROTRS( rcMbDataCurr.is4x4BlkCoded     ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+    }
+    else
+    {
+      ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                          ), 2 );
+      ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+    }
+#elif PRE_CORR_NOV2009_DEBLOCKING
+    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx                          ), 2 );
+    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+#else
+    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx                          ), 2 );
+    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+#endif
 
     //===== check for motion vectors ====
     if( rcMbDataCurr.isInterPMb() )
@@ -483,11 +626,40 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
   ROTRS( rcMbDataCurr.isIntra(), 4 );
   ROTRS( rcMbDataLeft.isIntra(), 4 );
 
+#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+  //--- check inter-profile compatibility ---
+  if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
+      ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
+  {
+    if( ( rcMbDataCurr.is4x4BlkCoded( cIdx     ) && !rcMbDataCurr.is4x4BlkResidual( cIdx     ) ) ||
+        ( rcMbDataCurr.is4x4BlkCoded( cIdxLeft ) && !rcMbDataCurr.is4x4BlkResidual( cIdxLeft ) )    )
+    {
+      printf( "Profile compatability issue with deblocking filter\n" );
+    }
+  }
+#endif
+
   //===== check for transform coefficients and residual samples =====
-  ROTRS( rcMbDataCurr.is4x4BlkResidual  ( cIdx     ), 2 );
-  ROTRS( rcMbDataLeft.is4x4BlkResidual  ( cIdxLeft ), 2 );
-  ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx     ), 2 );
-  ROTRS( rcMbDataLeft.isDQId0AndBlkCoded( cIdxLeft ), 2 );
+  ROTRS( rcMbDataCurr.is4x4BlkResidual    ( cIdx     ), 2 );
+  ROTRS( rcMbDataLeft.is4x4BlkResidual    ( cIdxLeft ), 2 );
+#if PROPOSED_DEBLOCKING_APRIL2010
+  if( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE )
+  {
+    ROTRS( rcMbDataCurr.is4x4BlkCoded     ( cIdx     ), 2 );
+    ROTRS( rcMbDataLeft.is4x4BlkCoded     ( cIdxLeft ), 2 );
+  }
+  else
+  {
+    ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx     ), 2 );
+    ROTRS( rcMbDataLeft.isDQId0AndBlkCoded( cIdxLeft ), 2 );
+  }
+#elif PRE_CORR_NOV2009_DEBLOCKING
+  ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx     ), 2 );
+  ROTRS( rcMbDataLeft.is4x4BlkCoded       ( cIdxLeft ), 2 );
+#else
+  ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx     ), 2 );
+  ROTRS( rcMbDataLeft.isDQId0AndBlkCoded  ( cIdxLeft ), 2 );
+#endif
 
   //===== check for mixed mode =====
   ROTRS( m_bVerMixedMode, 1 );

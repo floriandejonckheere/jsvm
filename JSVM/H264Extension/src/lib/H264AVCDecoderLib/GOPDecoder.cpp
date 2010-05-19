@@ -2642,7 +2642,7 @@ LayerDecoder::xRewritePicture( BinDataList& rcBinDataList, MbDataCtrl& rcMbDataC
 
 ErrVal
 LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
-                               SliceDataNALUnit&  rcSliceDataNalUnit )
+                                SliceDataNALUnit&  rcSliceDataNalUnit )
 {
   //===== parse prefix header when available =====
   PrefixHeader* pcPrefixHeader = 0;
@@ -2689,6 +2689,10 @@ LayerDecoder::xReadSliceHeader( SliceHeader*&      rpcSliceHeader,
       RERR();
     }
   }
+
+  //==== set required buffer size =====
+  rpcSliceHeader->getSPS().setAllocFrameMbsX( rcSliceDataNalUnit.getAllocFrameWidthInMbs () );
+  rpcSliceHeader->getSPS().setAllocFrameMbsY( rcSliceDataNalUnit.getAllocFrameHeightInMbs() );
 
   return Err::m_nOK;
 }
@@ -2904,7 +2908,9 @@ LayerDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   RNOK(   m_pcBaseLayerCtrlField ->init( rcSPS ) );
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
-  ROT ( m_cDownConvert.init( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4, 16 ) );
+  UInt  uiAllocSizeX = rcSPS.getAllocFrameMbsX() << 4;
+  UInt  uiAllocSizeY = rcSPS.getAllocFrameMbsY() << 4;
+  ROT ( m_cDownConvert.init( uiAllocSizeX, uiAllocSizeY, 16 ) );
 
   //========= CREATE STATUS MAP ======
   ROFS( ( m_pacMbStatus = new MbStatus[ m_uiMbNumber ] ) );

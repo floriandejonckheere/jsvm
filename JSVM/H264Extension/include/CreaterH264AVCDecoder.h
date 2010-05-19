@@ -117,6 +117,8 @@ public:
   UInt          getFrameWidthInMb           ()  const { return m_uiFrameWidthInMb; }
   UInt          getFrameHeightInMb          ()  const { return m_uiFrameHeightInMb; }
   const UInt*   getCroppingRectangle        ()  const { return m_auiCroppingRectangle; }
+  UInt          getAllocFrameWidthInMbs     ()  const { return m_uiAllocFrameWidthInMbs; }
+  UInt          getAllocFrameHeightInMbs    ()  const { return m_uiAllocFrameHeightInMbs; }
 
   Bool  isDQIdMax                             ()  const { return m_bIsDQIdMax; }
   Bool  isDependencyIdMax                     ()  const { return m_bIsDependencyIdMax; }
@@ -126,6 +128,9 @@ public:
   Bool  isLastAccessUnitInStream              ()  const { return m_bLastAccessUnitInStream; }
   Bool  isPartOfIDRAccessUnit                 ()  const { return m_bPartOfIDRAccessUnit; }
   Bool  isHighestRewriteLayer                 ()  const { return m_bHighestRewriteLayer; }
+
+  Void  setAllocFrameWidthInMbs               ( UInt uiMbX )  { m_uiAllocFrameWidthInMbs  = uiMbX; }
+  Void  setAllocFrameHeightInMbs              ( UInt uiMbY )  { m_uiAllocFrameHeightInMbs = uiMbY; }
 
   Void  setDQIdMax                            ( Bool  bIsDQIdMax                            ) { m_bIsDQIdMax                            = bIsDQIdMax; }
   Void  setDependencyIdMax                    ( Bool  bIsDependencyIdMax                    ) { m_bIsDependencyIdMax                    = bIsDependencyIdMax; }
@@ -169,6 +174,9 @@ private:
   Bool        m_bLastAccessUnitInStream;
   Bool        m_bPartOfIDRAccessUnit;
   Bool        m_bHighestRewriteLayer;
+  //===== for determination of buffer sizes =====
+  UInt        m_uiAllocFrameWidthInMbs;
+  UInt        m_uiAllocFrameHeightInMbs;
 };
 
 
@@ -190,7 +198,6 @@ public:
   const SliceDataNALUnit* getLastVCLNalUnit   ()  const   { return m_pcLastVCLNALUnit; }
   const PrefixHeader*     getLastPrefixHeader ()  const   { return m_pcLastPrefixHeader; }
   const SliceHeader*      getLastSliceHeader  ()  const   { return m_pcLastSliceHeader; }
-  UInt                    getMaxBufferSize    ()  const;
 
 private:
   Void  xSetComplete      ( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,

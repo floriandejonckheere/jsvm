@@ -25,6 +25,16 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_7 -> JSVM_9_19_8
+==========================
+changes:
+- fix that prevents overflow when ScaledRefLayerPic[Width|Height]InSamples is >= 65536
+- fix that prevents an assertion for parsing of reversed/unspecified NAL units
+- fix for buffer allocation if enhancement layer is greater than base layer
+- proposed deblocking filter modification (VCEG-AN10_r3) as option per compiler flag
+  PROPOSED_DEBLOCKING_APRIL2010 (disabled by default)
+
+
 JSVM_9_19_6 -> JSVM_9_19_7
 ==========================
 changes:

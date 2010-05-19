@@ -298,8 +298,6 @@ public:
   UInt                            getTemporalResolution             () const {return m_uiTemporalResolution; }
   UInt                            getFrameDelay                     () const {return m_uiFrameDelay; }
 
-  UInt                            getBaseLayerSpatRes               () const {return m_uiBaseLayerSpatRes; }
-  UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
   UInt                            getConstrainedIntraPred           () const {return m_uiConstrainedIntraPred; }
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
@@ -373,8 +371,6 @@ public:
   Void setTemporalResolution              (UInt   p) { m_uiTemporalResolution             = p; }
   Void setFrameDelay                      (UInt   p) { m_uiFrameDelay                     = p; }
 
-  Void setBaseLayerSpatRes                (UInt   p) { m_uiBaseLayerSpatRes               = p; }
-  Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
   Void setChromaQPIndexOffset             (Int    p) { m_iChromaQPIndexOffset             = p; }
   Void set2ndChromaQPIndexOffset          (Int    p) { m_i2ndChromaQPIndexOffset          = p; }
   Void setConstrainedIntraPred            (UInt   p) { m_uiConstrainedIntraPred           = p; }
@@ -524,10 +520,6 @@ public:
   UInt                      m_uiNotCodedStages    ;
   UInt                      m_uiTemporalResolution;
   UInt                      m_uiFrameDelay;
-
-  //----- for scalable SEI ----
-  UInt                      m_uiBaseLayerSpatRes;
-  UInt                      m_uiBaseLayerTempRes;
 
   //----- ESS ----
   ResizeParameters          m_cResizeParameters;

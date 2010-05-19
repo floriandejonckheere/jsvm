@@ -1210,9 +1210,11 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
 ErrVal
 H264AVCEncoder::xInitParameterSets()
 {
-  Bool bOutput = true;
-  UInt uiSPSId = 0;
-  UInt uiPPSId = 0;
+  Bool bOutput    = true;
+  UInt uiSPSId    = 0;
+  UInt uiPPSId    = 0;
+  UInt uiAllocMbX = 0;
+  UInt uiAllocMbY = 0;
   UInt uiIndex;
 
   //===== determine values for Poc calculation =====
@@ -1240,6 +1242,8 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiVirtDecStages     = gMax( 1, uiDecStages + uiPaffOffset );
     UInt              uiNumRefPic         = ( ( 1 << uiVirtDecStages ) >> 1 ) + uiVirtDecStages + uiRefBasePicOffset;
     UInt              uiDPBSize           = uiNumRefPic;
+    uiAllocMbX                            = gMax( uiAllocMbX, uiMbX );
+    uiAllocMbY                            = gMax( uiAllocMbY, uiMbY );
     if( rcLayerParameters.getUseLongTerm() )
     {
       ROF( rcLayerParameters.getMMCOEnable() );
@@ -1500,6 +1504,8 @@ H264AVCEncoder::xInitParameterSets()
     //--ICU/ETRI FMO Implementation : FMO stuff end
 
     //===== initialization using parameter sets =====
+    pcSPS->setAllocFrameMbsX( uiAllocMbX );
+    pcSPS->setAllocFrameMbsY( uiAllocMbY );
     RNOK( m_pcControlMng->initParameterSets( *pcSPS, *pcPPS ) );
   }
 

@@ -49,8 +49,8 @@ MvScaleParam::MvScaleParam( ResizeParameters& rcResizeParameters, RefFrameList* 
   m_iScaledH        = rcResizeParameters.m_iScaledRefFrmHeight;
   m_iOffsetX        = rcResizeParameters.m_iLeftFrmOffset;
   m_iOffsetY        = rcResizeParameters.m_iTopFrmOffset;
-  m_iScaleX         = ( ( (UInt)m_iScaledW << 16 ) + ( m_iRefW >> 1 ) ) / m_iRefW;
-  m_iScaleY         = ( ( (UInt)m_iScaledH << 16 ) + ( m_iRefH >> 1 ) ) / m_iRefH;
+  m_iScaleX         = (Int)( ( ( (UInt64)m_iScaledW << 16 ) + ( m_iRefW >> 1 ) ) / m_iRefW );
+  m_iScaleY         = (Int)( ( ( (UInt64)m_iScaledH << 16 ) + ( m_iRefH >> 1 ) ) / m_iRefH );
 
   if( m_bCropChangeFlag )
   {
@@ -515,8 +515,8 @@ MotionUpsampling::xGetInitialBaseRefIdxAndMv( Int     i4x4BlkX,
     idOY    = m_cMvScale.m_aaidOY[eListIdx][riRefIdx-1];
     idSW    = m_cMvScale.m_aaidSW[eListIdx][riRefIdx-1];
     idSH    = m_cMvScale.m_aaidSH[eListIdx][riRefIdx-1];
-    iScaleX = ( ( ( m_cMvScale.m_iScaledW + idSW ) << 16 ) + ( m_cMvScale.m_iRefW >> 1 ) ) / m_cMvScale.m_iRefW;
-    iScaleY = ( ( ( m_cMvScale.m_iScaledH + idSH ) << 16 ) + ( m_cMvScale.m_iRefH >> 1 ) ) / m_cMvScale.m_iRefH;
+    iScaleX = (Int)( ( ( (Int64)( m_cMvScale.m_iScaledW + idSW ) << 16 ) + ( m_cMvScale.m_iRefW >> 1 ) ) / m_cMvScale.m_iRefW );
+    iScaleY = (Int)( ( ( (Int64)( m_cMvScale.m_iScaledH + idSH ) << 16 ) + ( m_cMvScale.m_iRefH >> 1 ) ) / m_cMvScale.m_iRefH );
   }
 
   //===== get scaled motion vector components =====
@@ -533,8 +533,8 @@ MotionUpsampling::xGetInitialBaseRefIdxAndMv( Int     i4x4BlkX,
     Int iYFrm       = ( iMbPosY + ( ( ( i4x4BlkY << 2 ) + 1 ) << ( iCurrFieldMb - m_cMvScale.m_iCurrField ) ) ) << m_cMvScale.m_iCurrField;
     Int iX          = iXFrm - m_cMvScale.m_iOffsetX;
     Int iY          = iYFrm - m_cMvScale.m_iOffsetY;
-    iScaleX         = ( ( ( 4 * idSW ) << 16 ) + ( m_cMvScale.m_iScaledW >> 1 ) ) / m_cMvScale.m_iScaledW;
-    iScaleY         = ( ( ( 4 * idSH ) << 16 ) + ( m_cMvScale.m_iScaledH >> 1 ) ) / m_cMvScale.m_iScaledH;
+    iScaleX         = (Int)( ( ( (Int64)( 4 * idSW ) << 16 ) + ( m_cMvScale.m_iScaledW >> 1 ) ) / m_cMvScale.m_iScaledW );
+    iScaleY         = (Int)( ( ( (Int64)( 4 * idSH ) << 16 ) + ( m_cMvScale.m_iScaledH >> 1 ) ) / m_cMvScale.m_iScaledH );
     iMvX           += ( ( iX * iScaleX + 32768 ) >> 16 ) - 4 * idOX;
     iMvY           += ( ( iY * iScaleY + 32768 ) >> 16 ) - 4 * idOY;
   }

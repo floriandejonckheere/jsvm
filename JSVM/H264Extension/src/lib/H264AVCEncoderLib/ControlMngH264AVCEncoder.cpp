@@ -44,15 +44,17 @@ ErrVal
 ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,
                                              const PictureParameterSet&   rcPPS )
 {
-  UInt  uiLayer             = rcSPS.getDependencyId          ();
+  UInt  uiLayer             = rcSPS.getDependencyId     ();
   UInt  uiMbX               = rcSPS.getFrameWidthInMbs  ();
   UInt  uiMbY               = rcSPS.getFrameHeightInMbs ();
   m_auiMbXinFrame[uiLayer]  = uiMbX;
   m_auiMbYinFrame[uiLayer]  = uiMbY;
 
   //===== initialize buffer controls and LayerEncoder =====
-  RNOK( m_apcYuvFullPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN    ) );
-  RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN, 1 ) );
+  UInt uiAllocX = rcSPS.getAllocFrameMbsX() << 4;
+  UInt uiAllocY = rcSPS.getAllocFrameMbsY() << 4;
+  RNOK( m_apcYuvFullPelBufferCtrl[uiLayer]->initSPS( uiAllocY, uiAllocX, YUV_Y_MARGIN, YUV_X_MARGIN    ) );
+  RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer]->initSPS( uiAllocY, uiAllocX, YUV_Y_MARGIN, YUV_X_MARGIN, 1 ) );
   if( ! m_bAVCMode )
   {
     RNOK( m_apcLayerEncoder      [uiLayer]->initParameterSets( rcSPS, rcPPS ) );

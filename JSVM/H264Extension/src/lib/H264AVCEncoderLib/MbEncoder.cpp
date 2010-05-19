@@ -59,6 +59,9 @@ MbEncoder::MbEncoder():
   m_pcIntMbTemp8x8Data( NULL ),
   m_pcIntMbBestIntraChroma( NULL ),
   m_pcIntOrgMbPelData( NULL ),
+#if PROPOSED_DEBLOCKING_APRIL2010
+  m_pcRefLayerResidual( NULL ),
+#endif
   m_pcIntPicBuffer( NULL ),
   m_pcIntraPredPicBuffer( NULL ),
   m_BitCounter( NULL )
@@ -602,6 +605,9 @@ MbEncoder::encodeMacroblockSVC( MbDataAccess&   rcMbDataAccess,       // current
   if( bCheckWithResPred )
   {
     m_pcIntOrgMbPelData->subtract( cBaseLayerBuffer );
+#if PROPOSED_DEBLOCKING_APRIL2010
+    m_pcRefLayerResidual = &cBaseLayerBuffer;
+#endif
 
     if( bCheckBaseMode && !pcMbDataAccessBase->getMbData().isIntra() )
     {
@@ -635,6 +641,9 @@ MbEncoder::encodeMacroblockSVC( MbDataAccess&   rcMbDataAccess,       // current
     }
 
     m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
+#if PROPOSED_DEBLOCKING_APRIL2010
+    m_pcRefLayerResidual = 0;
+#endif
   }
 
   //===== CHECK: inter modes without residual prediction =====
@@ -3289,6 +3298,10 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&      rcMbTempData,
       rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits + uiAdditionalBits, uiMbDist );
     }
 
+#if PROPOSED_DEBLOCKING_APRIL2010
+    RNOK( xCheckInterProfileCompatibility( rcMbTempData, &rcTempYuvMbBuffer, ( bBLSkipResPred ? &rcTempBLSkipBaseRes : m_pcRefLayerResidual ), false ) );
+#endif
+
     //===== check r-d cost =====
     if( rcMbTempData.rdCost() < dMinCost )
     {
@@ -3705,6 +3718,10 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&      rcMbTempData,
       rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits + uiAdditionalBits, uiMbDist );
     }
 
+#if PROPOSED_DEBLOCKING_APRIL2010
+    RNOK( xCheckInterProfileCompatibility( rcMbTempData, &rcTempYuvMbBuffer, ( bBLSkipResPred ? &rcTempBLSkipBaseRes : m_pcRefLayerResidual ), true ) );
+#endif
+
     //===== check r-d cost =====
     if( rcMbTempData.rdCost() < dMinCost )
     {
@@ -3742,6 +3759,103 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&      rcMbTempData,
   return Err::m_nOK;
 }
 
+
+#if PROPOSED_DEBLOCKING_APRIL2010
+ErrVal
+MbEncoder::xCheckInterProfileCompatibility( IntMbTempData&      rcMbTempData,
+                                            const YuvMbBuffer*  pcPredSignal,
+                                            const YuvMbBuffer*  pcRefLayerResidual,
+                                            Bool                b8x8 )
+{
+  const SequenceParameterSet& rcSPS = rcMbTempData.getSH().getSPS();
+  ROFRS( rcMbTempData.getResidualPredFlag(),                                                    Err::m_nOK );
+  ROTRS( rcSPS.getProfileIdc() == SCALABLE_BASELINE_PROFILE && !rcSPS.getConstrainedSet1Flag(), Err::m_nOK );
+  ROTRS( rcSPS.getProfileIdc() == SCALABLE_HIGH_PROFILE     && !rcSPS.getConstrainedSet0Flag(), Err::m_nOK );
+  ROF  ( pcPredSignal );
+  ROF  ( pcRefLayerResidual );
+  YuvMbBuffer cRecRes;
+  cRecRes.loadLuma( rcMbTempData );
+  cRecRes.subtract( *pcPredSignal );
+  cRecRes.addRes  ( *pcRefLayerResidual );
+  if( b8x8 )
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      Bool    bNonZeroCoeff = false;
+      TCoeff* pcCoeff       = rcMbTempData.get8x8( c8x8Idx );
+      for( UInt ui = 0; ui < 64; ui++ )
+      {
+        if( pcCoeff[ ui ] != 0 )
+        {
+          bNonZeroCoeff = true;
+          break;
+        }
+      }
+      if( bNonZeroCoeff )
+      {
+        Bool  bNonZeroSample  = false;
+        XPel* pBlk            = cRecRes.getYBlk( c8x8Idx );
+        UInt  uiStride        = cRecRes.getLStride();
+        for( UInt uiY = 0; uiY < 8 && !bNonZeroSample; uiY++, pBlk += uiStride )
+        {
+          for( UInt uiX = 0; uiX < 8; uiX++ )
+          {
+            if( pBlk[ uiX ] != 0 )
+            {
+              bNonZeroSample = true;
+              break;
+            }
+          }
+        }
+        if( !bNonZeroSample )
+        {
+          rcMbTempData.rdCost() = DOUBLE_MAX;
+          break;
+        }
+      }
+    }
+  }
+  else
+  {
+    for( B4x4Idx c4x4Idx; c4x4Idx.isLegal(); c4x4Idx++ )
+    {
+      Bool    bNonZeroCoeff = false;
+      TCoeff* pcCoeff       = rcMbTempData.get( c4x4Idx );
+      for( UInt ui = 0; ui < 16; ui++ )
+      {
+        if( pcCoeff[ ui ] != 0 )
+        {
+          bNonZeroCoeff = true;
+          break;
+        }
+      }
+      if( bNonZeroCoeff )
+      {
+        Bool  bNonZeroSample  = false;
+        XPel* pBlk            = cRecRes.getYBlk( c4x4Idx );
+        UInt  uiStride        = cRecRes.getLStride();
+        for( UInt uiY = 0; uiY < 4 && !bNonZeroSample; uiY++, pBlk += uiStride )
+        {
+          for( UInt uiX = 0; uiX < 4; uiX++ )
+          {
+            if( pBlk[ uiX ] != 0 )
+            {
+              bNonZeroSample = true;
+              break;
+            }
+          }
+        }
+        if( !bNonZeroSample )
+        {
+          rcMbTempData.rdCost() = DOUBLE_MAX;
+          break;
+        }
+      }
+    }
+  }
+  return Err::m_nOK;
+}
+#endif
 
 
 
@@ -4191,7 +4305,7 @@ MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );
 
   UInt  uiQP = rpcMbTempData->getMbDataAccess().getMbData().getQp();
-  RNOK( xSetRdCostInterMb( *rpcMbTempData, NULL, rcRefListStruct, uiQP, uiQP, bLowComplexMbEnable) );
+  RNOK( xSetRdCostInterMb( *rpcMbTempData, NULL, rcRefListStruct, uiQP, uiQP, bLowComplexMbEnable ) );
 
 
   //JVT-R057 LA-RDO}

@@ -460,7 +460,6 @@ ErrVal CodingParameter::check()
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );
       UInt uiLogFactorRate = getLogFactor( pcBaseLayer->getInputFrameRate(), pcLayer->getInputFrameRate() );
       ROTREPORT( uiLogFactorRate == MSYS_UINT_MAX, "Input Frame rate must be a power of 2 from layer to layer" );
-      pcLayer->setBaseLayerTempRes( uiLogFactorRate );
 
       if( bResolutionChange && m_uiCIUFlag )
       {
@@ -492,15 +491,11 @@ ErrVal CodingParameter::check()
         ROTREPORT( pcLayer->getIDRPeriod        () != pcBaseLayer->getIDRPeriod       (), "IDR periods must be the same in successive MGS layers" );
       }
 
-      ROTREPORT( pcLayer->getFrameWidthInSamples ()  < pcBaseLayer->getFrameWidthInSamples (), "Frame width  less than base layer frame width" );
-      ROTREPORT( pcLayer->getFrameHeightInSamples()  < pcBaseLayer->getFrameHeightInSamples(), "Frame height less than base layer frame height" );
-      UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidthInSamples (), pcLayer->getFrameWidthInSamples () );
-
-      pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
-
       ResizeParameters& rcRP = pcLayer->getResizeParameters();
-      if( rcRP.m_iExtendedSpatialScalability != ESS_NONE )
+      if( rcRP.m_iExtendedSpatialScalability == ESS_SEQ )
       {
+        ROTREPORT( rcRP.m_iScaledRefFrmWidth  < rcRP.m_iRefLayerFrmWidth,  "Scaled frame width  less than base layer frame width" );
+        ROTREPORT( rcRP.m_iScaledRefFrmHeight < rcRP.m_iRefLayerFrmHeight, "Scaled frame height less than base layer frame height" );
         Bool  bI    = pcLayer->isInterlaced();
         Int   iV    = ( bI ? 4 : 2 );
         Int   iL    = rcRP.m_iLeftFrmOffset;
@@ -512,6 +507,11 @@ ErrVal CodingParameter::check()
         ROTREPORT( bHor,        "Cropping window must be horizonzally aligned on a 2 pixel grid" );
         ROTREPORT( bVer && !bI, "Cropping window must be vertically aligned on a 2 pixel grid" );
         ROTREPORT( bVer &&  bI, "Cropping window must be vertically aligned on a 4 pixel grid for interlaced configurations" );
+      }
+      else if( rcRP.m_iExtendedSpatialScalability == ESS_NONE )
+      {
+        ROTREPORT( pcLayer->getFrameWidthInSamples ()  < pcBaseLayer->getFrameWidthInSamples (), "Scaled frame width  less than base layer frame width" );
+        ROTREPORT( pcLayer->getFrameHeightInSamples()  < pcBaseLayer->getFrameHeightInSamples(), "Scaled frame height less than base layer frame height" );
       }
 
       pcBaseLayer->setConstrainedIntraPred( 1 );
@@ -609,7 +609,7 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
     m_bConstrainedSetFlag0  = bBaseline;
     m_bConstrainedSetFlag1  = bMain;
     m_bConstrainedSetFlag2  = bExtended;
-    m_bConstrainedSetFlag3  = ( bHigh && bIntraOnly );
+    m_bConstrainedSetFlag3  = ( m_uiProfileIdc == HIGH_PROFILE && bIntraOnly );
     m_uiNumDependentDId     = 1;
     //----- update IDR period -----
     if( bIntraOnly )
@@ -630,9 +630,9 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
   if(   bForceScalBase )  RNOK( xForceScalableBaselineProfile ( pcCodingParameter ) );
   if(   bForceScalHigh )  RNOK( xForceScalableHighProfile     ( pcCodingParameter ) );
   //----- check compatibility -----
-  Bool  bScalBase         = xIsScalableBaselineProfile          ( pcCodingParameter );
-  Bool  bScalHigh         = xIsScalableHighProfile              ( pcCodingParameter );
-  Bool  bIntraOnly        = xIsIntraOnly                        ( pcCodingParameter );
+  Bool  bScalBase         = xIsScalableBaselineProfile        ( pcCodingParameter );
+  Bool  bScalHigh         = xIsScalableHighProfile            ( pcCodingParameter );
+  Bool  bIntraOnly        = xIsIntraOnly                      ( pcCodingParameter );
   ROT(  bForceScalBase  && !bScalBase );
   ROT(  bForceScalHigh  && !bScalHigh );
   //----- set parameters -----
@@ -645,7 +645,7 @@ LayerParameters::setAndCheckProfile( CodingParameter* pcCodingParameter )
   m_bConstrainedSetFlag0  = bScalBase;
   m_bConstrainedSetFlag1  = bScalHigh;
   m_bConstrainedSetFlag2  = false;
-  m_bConstrainedSetFlag3  = ( bScalHigh && bIntraOnly );
+  m_bConstrainedSetFlag3  = ( m_uiProfileIdc == SCALABLE_HIGH_PROFILE && bIntraOnly );
   m_uiNumDependentDId     = 1;
   if( m_uiBaseLayerId != MSYS_UINT_MAX )
   {

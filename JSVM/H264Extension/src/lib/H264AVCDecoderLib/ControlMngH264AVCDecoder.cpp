@@ -162,9 +162,8 @@ ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
   m_auiMbXinFrame[uiLayer]  = rcSH->getSPS().getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSH->getSPS().getFrameHeightInMbs  ();
 
-  UInt uiSizeX = m_auiMbXinFrame  [uiLayer] << 4;
-  UInt uiSizeY = m_auiMbYinFrame  [uiLayer] << 4;
-
+  UInt uiSizeX = rcSH->getSPS().getAllocFrameMbsX() << 4;
+  UInt uiSizeY = rcSH->getSPS().getAllocFrameMbsY() << 4;
   RNOK( m_apcYuvFullPelBufferCtrl [uiLayer]->initSlice( uiSizeY, uiSizeX, YUV_Y_MARGIN, YUV_X_MARGIN ) );
 
 	m_uiInitialized[uiLayer] = true;

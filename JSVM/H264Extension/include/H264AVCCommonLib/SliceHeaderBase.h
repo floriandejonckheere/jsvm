@@ -560,6 +560,7 @@ public:
   Bool                            hasDefaultScanIdx                     ()                    const { return m_uiScanIdxStart == 0 && m_uiScanIdxStop == 16; }
   Bool                            parameterSetsInitialized              ()                    const { return m_pcPPS != 0 && m_pcSPS != 0; }
   const SequenceParameterSet&     getSPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcSPS; }
+  SequenceParameterSet&           getSPS                                ()                          { AOF( parameterSetsInitialized() ); return const_cast<SequenceParameterSet&>(*m_pcSPS); }
   const PictureParameterSet&      getPPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcPPS; }
   const StatBuf<const UChar*,8>&  getScalingMatrix                      ()                    const { return m_acScalingMatrix; }
   StatBuf<const UChar*,8>&        getScalingMatrix                      ()                          { return m_acScalingMatrix; }
