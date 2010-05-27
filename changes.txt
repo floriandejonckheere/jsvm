@@ -25,6 +25,13 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_8 -> JSVM_9_19_9
+==========================
+changes:
+- enable proposed deblocking filter modification (VCEG-AN10_r3) by default
+  (can be disabled by setting PROPOSED_DEBLOCKING_APRIL2010 equal to 0)
+
+
 JSVM_9_19_7 -> JSVM_9_19_8
 ==========================
 changes:

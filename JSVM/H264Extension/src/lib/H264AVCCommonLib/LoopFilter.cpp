@@ -216,7 +216,7 @@ LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
   Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
   Bool                      b8x8            = rcMbDataAccess.getMbData().isTransformSize8x8();
 
-#if ( PRE_CORR_NOV2009_DEBLOCKING || PROPOSED_DEBLOCKING_APRIL2010 )
+#if PROPOSED_DEBLOCKING_APRIL2010
   //===== set CBP for entire dependency representation =====
   RNOK( xRecalcCBP( rcMbDataAccess ) );
 #endif
@@ -304,7 +304,7 @@ LoopFilter::xFilterMb( const MbDataCtrl*        pcMbDataCtrl,
 
 
 
-#if ( PRE_CORR_NOV2009_DEBLOCKING || PROPOSED_DEBLOCKING_APRIL2010 )
+#if PROPOSED_DEBLOCKING_APRIL2010
 ErrVal
 LoopFilter::xRecalcCBP( MbDataAccess &rcMbDataAccess )
 {
@@ -389,7 +389,7 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
     //===== check for intra =====
     ROTRS( rcMbDataCurr.isIntra(), 3 );
 
-#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+#if PROPOSED_DEBLOCKING_APRIL2010
     //--- check inter-profile compatibility ---
     if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
         ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
@@ -416,9 +416,6 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
       ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                           ), 2 );
       ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
     }
-#elif PRE_CORR_NOV2009_DEBLOCKING
-    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx                           ), 2 );
-    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
 #else
     ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx                           ), 2 );
     ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
@@ -468,7 +465,7 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
   ROTRS( rcMbDataCurr .isIntra(), bIntraBs );
   ROTRS( rcMbDataAbove.isIntra(), bIntraBs );
 
-#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+#if PROPOSED_DEBLOCKING_APRIL2010
   //--- check inter-profile compatibility ---
   if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
       ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
@@ -495,9 +492,6 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
     ROTRS( rcMbDataCurr. isDQId0AndBlkCoded ( cIdx                            ), 2 );
     ROTRS( rcMbDataAbove.isDQId0AndBlkCoded ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
   }
-#elif PRE_CORR_NOV2009_DEBLOCKING
-  ROTRS( rcMbDataCurr. is4x4BlkCoded        ( cIdx                            ), 2 );
-  ROTRS( rcMbDataAbove.is4x4BlkCoded        ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
 #else
   ROTRS( rcMbDataCurr. isDQId0AndBlkCoded   ( cIdx                            ), 2 );
   ROTRS( rcMbDataAbove.isDQId0AndBlkCoded   ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
@@ -548,7 +542,7 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
     //===== check for intra =====
     ROTRS( rcMbDataCurr.isIntra(), 3 );
 
-#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+#if PROPOSED_DEBLOCKING_APRIL2010
     //--- check inter-profile compatibility ---
     if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
         ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
@@ -575,9 +569,6 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
       ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx                          ), 2 );
       ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
     }
-#elif PRE_CORR_NOV2009_DEBLOCKING
-    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx                          ), 2 );
-    ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
 #else
     ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx                          ), 2 );
     ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
@@ -626,7 +617,7 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
   ROTRS( rcMbDataCurr.isIntra(), 4 );
   ROTRS( rcMbDataLeft.isIntra(), 4 );
 
-#if PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK
+#if PROPOSED_DEBLOCKING_APRIL2010
   //--- check inter-profile compatibility ---
   if( ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_BASELINE_PROFILE && rcMbDataAccess.getSH().getSPS().getConstrainedSet1Flag() ) ||
       ( rcMbDataAccess.getSH().getSPS().getProfileIdc() == SCALABLE_HIGH_PROFILE     && rcMbDataAccess.getSH().getSPS().getConstrainedSet0Flag() )    )
@@ -653,9 +644,6 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
     ROTRS( rcMbDataCurr.isDQId0AndBlkCoded( cIdx     ), 2 );
     ROTRS( rcMbDataLeft.isDQId0AndBlkCoded( cIdxLeft ), 2 );
   }
-#elif PRE_CORR_NOV2009_DEBLOCKING
-  ROTRS( rcMbDataCurr.is4x4BlkCoded       ( cIdx     ), 2 );
-  ROTRS( rcMbDataLeft.is4x4BlkCoded       ( cIdxLeft ), 2 );
 #else
   ROTRS( rcMbDataCurr.isDQId0AndBlkCoded  ( cIdx     ), 2 );
   ROTRS( rcMbDataLeft.isDQId0AndBlkCoded  ( cIdxLeft ), 2 );

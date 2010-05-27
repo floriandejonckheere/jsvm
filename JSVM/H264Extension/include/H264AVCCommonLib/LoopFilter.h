@@ -66,7 +66,7 @@ private:
                                         Bool                      bSpatialScalableFlag,
                                         LFPass                    eLFPass,
                                         const SliceHeader*        pcDBSliceHeader );
-#if ( PRE_CORR_NOV2009_DEBLOCKING || PROPOSED_DEBLOCKING_APRIL2010 )
+#if PROPOSED_DEBLOCKING_APRIL2010
   ErrVal        xRecalcCBP            ( MbDataAccess&             rcMbDataAccess );
 #endif
 

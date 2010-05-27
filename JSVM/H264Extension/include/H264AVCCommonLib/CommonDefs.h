@@ -286,16 +286,8 @@ typedef	enum
 #define MAX_NUM_PD_FRAGMENTS                          12
 
 
-//--- chose deblocking filter version ---
-#define PRE_CORR_NOV2009_DEBLOCKING                   0   // deblocking according to the version before the corrigendum change in Nov 2009
-#define PROPOSED_DEBLOCKING_APRIL2010                 0   // deblocking according to the proposal in April 2010 (cp. VCEG_AN10_r3)
-#define PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK   0   // check for bitstream constaint according to the proposal in April 2010 (cp. VCEG_AN10_r3)
-#if ( PRE_CORR_NOV2009_DEBLOCKING && PROPOSED_DEBLOCKING_APRIL2010 )
-#error "ONLY 1 DEBLOCKING MODIFICATION CAN BE SET"
-#endif
-#if ( PROPOSED_DEBLOCKING_APRIL2010_DECODER_CHECK && !PROPOSED_DEBLOCKING_APRIL2010 )
-#error "DEBLOCKING CHECK CANNOT BE SET WITHOUT ENABLING CHANGE"
-#endif
+//--- deblocking filter version ---
+#define PROPOSED_DEBLOCKING_APRIL2010                 1   // deblocking according to the proposal in April 2010 (cp. VCEG_AN10_r3)
 
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)
