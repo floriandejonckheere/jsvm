@@ -113,6 +113,7 @@ public:
   const SliceHeader*  getSliceHeader          ()  const { return    m_pcSliceHeader; }
   const SliceHeader*  getLastCodedSliceHeader ()  const { return    m_pcLastCodedSliceHeader; }
   UInt                getSliceIdc             ()  const { return    m_uiSliceIdc; }
+  UInt                getQ0SliceIdc           ()  const { return    m_uiQ0SliceIdc; }
   UInt                getFirstMbInSlice       ()  const { return    m_uiSliceIdc >> 7; }
   UInt                getDQId                 ()  const { return    m_uiSliceIdc        & 0x7F; }
   UInt                getDependencyId         ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
@@ -123,6 +124,7 @@ public:
 
 private:
   UInt          m_uiSliceIdc;
+  UInt          m_uiQ0SliceIdc;
   UInt          m_uiLastCodedDQId;
   UInt          m_uiMbCbpDQId0;
   Bool          m_bIsCoded;

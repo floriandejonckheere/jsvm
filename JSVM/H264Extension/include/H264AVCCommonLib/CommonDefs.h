@@ -8,7 +8,7 @@
 
 
 
-#define _JSVM_VERSION_ "9.19.8"
+#define _JSVM_VERSION_ "9.19.10(beta)"
 
 
 

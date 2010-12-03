@@ -275,6 +275,7 @@ MbData::copyTCoeffs( MbData& rcMbData )
 
 MbStatus::MbStatus()
 : m_uiSliceIdc            ( MSYS_UINT_MAX )
+, m_uiQ0SliceIdc          ( MSYS_UINT_MAX )
 , m_uiLastCodedDQId       ( MSYS_UINT_MAX )
 , m_uiMbCbpDQId0          ( 0 )
 , m_bIsCoded              ( false )
@@ -291,6 +292,7 @@ Void
 MbStatus::reset()
 {
   m_uiSliceIdc              = MSYS_UINT_MAX;
+  m_uiQ0SliceIdc            = MSYS_UINT_MAX;
   m_uiLastCodedDQId         = MSYS_UINT_MAX;
   m_uiMbCbpDQId0            = 0;
   m_bIsCoded                = false;
@@ -317,6 +319,10 @@ MbStatus::update( MbDataAccess& rcMbDataAccess )
   m_uiSliceIdc       +=  rcSliceHeader.getQualityId     ();
   m_bIsCoded          =  rcSliceHeader.isTrueSlice      ();
   m_pcSliceHeader     = &rcSliceHeader;
+  if( rcSliceHeader.getQualityId() == 0 )
+  {
+    m_uiQ0SliceIdc    =  m_uiSliceIdc;
+  }
   if( m_bIsCoded )
   {
     m_uiLastCodedDQId         =  getDQId();

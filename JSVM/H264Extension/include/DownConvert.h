@@ -107,10 +107,11 @@ public:
                                       bool                    bChroma,
                                       bool                    bBotFlag,
                                       bool                    bVerticalInterpolation,
+                                      bool                    bFrameMb,
                                       int                     iMargin = 0 );
   void  xVertIntraUpsampling        ( int  iBaseW,   int  iBaseH,
                                       int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
-                                      int  iYBorder, bool bBotFlag, bool bChromaFilter );
+                                      int  iYBorder, bool bBotFlag, bool bFrameMb, bool bChromaFilter );
   void  xBasicIntraUpsampling       ( int  iBaseW,   int  iBaseH,   int  iCurrW,   int  iCurrH,
                                       int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
                                       int  iShiftX,  int  iShiftY,  int  iScaleX,  int  iScaleY,

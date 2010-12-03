@@ -2498,41 +2498,53 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
   {
     for( Int iSliceGroupId = rcFMO.getFirstSliceGroupId(); ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId = rcFMO.getNextSliceGroupId( iSliceGroupId ) )
     {
-      UInt  uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
-      UInt  uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
-      UInt  uiFirstMbAddress      = MSYS_UINT_MAX;
-      UInt  uiNumMbsInSlice       = 0;
+      Int   iFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
+      Int   iLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
+      Int   iNextMbAddress       = -1;
+      UInt  uiFirstMbAddress     = MSYS_UINT_MAX;
+      UInt  uiNumMbsInSlice      = 0;
 
-      for( UInt uiMbAddress = uiFirstMbInSliceGroup; uiMbAddress <= uiLastMbInSliceGroup; uiMbAddress = rcFMO.getNextMBNr( uiMbAddress ) )
+      for( Int iMbAddress = iFirstMbInSliceGroup; iMbAddress != -1; iMbAddress = iNextMbAddress )
       {
-        if( m_pacMbStatus[ uiMbAddress ].getDQId() != uiDQId )
+        iNextMbAddress = rcFMO.getNextMBNr( iMbAddress );
+        if( m_pacMbStatus[ iMbAddress ].getDQId() != uiDQId )
         {
           if( ! uiNumMbsInSlice )
           {
-            uiFirstMbAddress  = uiMbAddress;
+            uiFirstMbAddress  = (UInt)iMbAddress;
           }
           uiNumMbsInSlice++;
-        }
-        if( uiNumMbsInSlice && ( m_pacMbStatus[ uiMbAddress ].getDQId() == uiDQId || uiMbAddress == uiLastMbInSliceGroup ) )
-        {
-          if( m_bRewritingLayerRep )
+
+          Bool bLastMissingSliceMb  = ( iMbAddress == iLastMbInSliceGroup );
+          if( !bLastMissingSliceMb )
           {
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-            fprintf( stderr, "WARNING: Rewriting of incomplete layer representations may result in non-conforming bitstreams\n" );
-#else
-            fprintf( stderr, "INFORMATION: Decoding of incomplete layer representations with MaxTCoeffLevelPredFlag may result in unsuitable visual quality\n" );
-#endif
+            assert( iNextMbAddress == -1 );
+            bLastMissingSliceMb     = ( m_pacMbStatus[ iNextMbAddress ].getDQId()       == uiDQId                                   ||
+                                        m_pacMbStatus[ iNextMbAddress ].getQ0SliceIdc() != m_pacMbStatus[ iMbAddress ].getQ0SliceIdc() );
           }
-          //===== create copy virtual skip slice and add to list =====
-          SliceHeader* pcSliceHeader = new SliceHeader( *pcLastSliceHeader );
-          ROF( pcSliceHeader );
-          pcSliceHeader->setTrueSlice                 ( false );
-          pcSliceHeader->setSliceSkipFlag             ( true );
-          pcSliceHeader->setFirstMbInSlice            ( uiFirstMbAddress );
-          pcSliceHeader->setNumMbsInSliceMinus1       ( uiNumMbsInSlice - 1 );
-          pcSliceHeader->setTCoeffLevelPredictionFlag ( m_bRewritingLayerRep );
-          pcSliceHeader->setLastCodedSliceHeader      ( m_pacMbStatus[ uiFirstMbAddress ].getLastCodedSliceHeader() );
-          cVirtualSkipSliceList.push_back( pcSliceHeader );
+
+          if( bLastMissingSliceMb )
+          {
+            if( m_bRewritingLayerRep )
+            {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+              fprintf( stderr, "WARNING: Rewriting of incomplete layer representations may result in non-conforming bitstreams\n" );
+#else
+              fprintf( stderr, "INFORMATION: Decoding of incomplete layer representations with MaxTCoeffLevelPredFlag may result in unsuitable visual quality\n" );
+#endif
+            }
+            //===== create copy virtual skip slice and add to list =====
+            SliceHeader* pcSliceHeader = new SliceHeader( *pcLastSliceHeader );
+            ROF( pcSliceHeader );
+            pcSliceHeader->setTrueSlice                 ( false );
+            pcSliceHeader->setSliceSkipFlag             ( true );
+            pcSliceHeader->setFirstMbInSlice            ( uiFirstMbAddress );
+            pcSliceHeader->setNumMbsInSliceMinus1       ( uiNumMbsInSlice - 1 );
+            pcSliceHeader->setTCoeffLevelPredictionFlag ( m_bRewritingLayerRep );
+            pcSliceHeader->setLastCodedSliceHeader      ( m_pacMbStatus[ uiFirstMbAddress ].getLastCodedSliceHeader() );
+            cVirtualSkipSliceList.push_back( pcSliceHeader );
+            uiNumMbsInSlice = 0;
+          }
         }
       }
     }

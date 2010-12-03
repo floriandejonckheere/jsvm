@@ -1619,7 +1619,7 @@ MbEncoder::xEstimateMbIntra4( IntMbTempData*&  rpcMbTempData,
   UInt uiExtCbp = 0;
   UInt uiMbBits = 0;
 
-  UInt tmp_max_qp = ( uiQp - SHIFT_QP );
+  Int tmp_max_qp  = ( uiQp - SHIFT_QP );
   if ( tmp_max_qp<0) tmp_max_qp=0;
   UInt lambda_val = 4 * g_iQP2quant[tmp_max_qp];
 

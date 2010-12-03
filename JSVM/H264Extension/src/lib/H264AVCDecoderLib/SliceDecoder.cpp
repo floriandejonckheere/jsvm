@@ -130,14 +130,7 @@ SliceDecoder::decode( SliceHeader&  rcSH,
                                               pcRefFrameList1,
                                               bReconstructAll ) );
 
-  	if( rcSH.isTrueSlice())
-	  {
-		  uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
-	  }
-	  else
-	  {
-		  uiMbAddress++;
-	  }
+    uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
   }
 
   if( ePicType!=FRAME )

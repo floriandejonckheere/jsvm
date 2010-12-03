@@ -290,8 +290,13 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
                                     pcParameters->m_bFieldPicFlag             == false    );
   bool  bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   &&
                                     pcParameters->m_bRefLayerFrameMbsOnlyFlag == true     );
-  bool  bVerticalInterpolation  = ( bFrameBasedResampling                     == false  &&
-                                    pcParameters->m_bFieldPicFlag             == false    );
+  bool  bBotFieldFrameMbsOnly   = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag == true   &&
+                                    pcParameters->m_bFieldPicFlag             == true   &&
+                                    pcParameters->m_bBotFieldFlag             == true     );
+  bool  bVerticalInterpolation  = ( bBotFieldFrameMbsOnly                     == true   ||
+                                   (bFrameBasedResampling                     == false  &&
+                                    pcParameters->m_bFieldPicFlag             == false   ));
+  bool  bFrameMb                = ( bBotFieldFrameMbsOnly                     == false    );
   bool  bCurrBotField           = ( pcParameters->m_bFieldPicFlag             == true   &&
                                     pcParameters->m_bBotFieldFlag             == true     );
   bool  bBotFieldFlag           = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag ?  false
@@ -317,22 +322,22 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
     //===== top field =====
     unsigned char* pFld = pucBufferY;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideY << 1 );
-    xCompIntraUpsampling( pcParameters, false,  false,       false         );
+    xCompIntraUpsampling( pcParameters, false,  false,       false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideY << 1 );
 
     //===== bottom field =====
     pFld += iStrideY;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideY << 1 );
-    xCompIntraUpsampling( pcParameters, false,  true,        false         );
+    xCompIntraUpsampling( pcParameters, false,  true,        false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideY << 1 );
   }
   else
   {
     unsigned char* pSrc = pucBufferY + iStrideY * iBaseBot;
     unsigned char* pDes = pucBufferY + iStrideY * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideY << iBaseField );
-    xCompIntraUpsampling( pcParameters, false,  bBotFieldFlag,        bVerticalInterpolation );
-    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideY << iCurrField );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideY << iBaseField           );
+    xCompIntraUpsampling( pcParameters, false,  bBotFieldFlag,        bVerticalInterpolation, bFrameMb );
+    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideY << iCurrField           );
   }
 
   iBaseW >>= 1;
@@ -348,25 +353,25 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
     //===== top field (U) =====
     unsigned char* pFld = pucBufferU;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideU << 1 );
-    xCompIntraUpsampling( pcParameters, true,   false,       false         );
+    xCompIntraUpsampling( pcParameters, true,   false,       false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideU << 1 );
 
     //===== bottom field (U) =====
     pFld += iStrideU;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideU << 1 );
-    xCompIntraUpsampling( pcParameters, true,   true,        false         );
+    xCompIntraUpsampling( pcParameters, true,   true,        false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideU << 1 );
 
     //===== top field (V) =====
     pFld = pucBufferV;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideV << 1 );
-    xCompIntraUpsampling( pcParameters, true,   false,       false         );
+    xCompIntraUpsampling( pcParameters, true,   false,       false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideV << 1 );
 
     //===== bottom field (V) =====
     pFld += iStrideV;
     xCopyToImageBuffer  ( pFld,         iBaseW, iBaseH >> 1, iStrideV << 1 );
-    xCompIntraUpsampling( pcParameters, true,   true,        false         );
+    xCompIntraUpsampling( pcParameters, true,   true,        false, true   );
     xCopyFromImageBuffer( pFld,         iCurrW, iCurrH >> 1, iStrideV << 1 );
   }
   else
@@ -374,16 +379,16 @@ DownConvert::upsamplingSVC( unsigned char*    pucBufferY,   int   iStrideY,
     //===== U =====
     unsigned char* pSrc = pucBufferU + iStrideU * iBaseBot;
     unsigned char* pDes = pucBufferU + iStrideU * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideU << iBaseField );
-    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation );
-    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideU << iCurrField );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideU << iBaseField           );
+    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation, bFrameMb );
+    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideU << iCurrField           );
 
     //===== V =====
     pSrc = pucBufferV + iStrideV * iBaseBot;
     pDes = pucBufferV + iStrideV * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideV << iBaseField );
-    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation );
-    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideV << iCurrField );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iStrideV << iBaseField           );
+    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation, bFrameMb );
+    xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iStrideV << iCurrField           );
   }
 }
 
@@ -686,7 +691,7 @@ DownConvert::xClip( int iValue, int imin, int imax )
 
 
 void
-DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma, bool bBotFlag, bool bVerticalInterpolation, int iMargin )
+DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma, bool bBotFlag, bool bVerticalInterpolation, bool bFrameMb, int iMargin )
 {
   //===== set general parameters =====
   int   iBotField   = ( bBotFlag ? 1 : 0 );
@@ -762,7 +767,7 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
   {
     xVertIntraUpsampling( iCurrW,   iCurrH,
                           iLOffset, iTOffset, iROffset, iBOffset,
-                          iYBorder, bBotFlag, bChroma );
+                          iYBorder, bBotFlag, bFrameMb, bChroma );
   }
 }
 
@@ -770,18 +775,19 @@ DownConvert::xCompIntraUpsampling( ResizeParameters* pcParameters, bool bChroma,
 void
 DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH,
                                    int  iLOffset, int  iTOffset, int  iROffset, int  iBOffset,
-                                   int  iYBorder, bool bBotFlag, bool bChromaFilter )
+                                   int  iYBorder, bool bBotFlag, bool bFrameMb, bool bChromaFilter )
 {
   AOT( !bChromaFilter && iYBorder < 2 );
   AOT(  bChromaFilter && iYBorder < 1 );
 
+  int iFrameMb      = ( bFrameMb ? 1 : 0 );
   int iBotField     = ( bBotFlag ? 1 : 0 );
   int iCurrW        = iBaseW;
-  int iCurrH        = iBaseH   << 1;
+  int iCurrH        = iBaseH   << iFrameMb;
   int iCurrLOffset  = iLOffset;
-  int iCurrTOffset  = iTOffset << 1;
+  int iCurrTOffset  = iTOffset << iFrameMb;
   int iCurrROffset  = iROffset;
-  int iCurrBOffset  = iBOffset << 1;
+  int iCurrBOffset  = iBOffset << iFrameMb;
 
   //========== vertical upsampling ===========
   for( int j = 0; j < iCurrW; j++ )
@@ -798,14 +804,14 @@ DownConvert::xVertIntraUpsampling( int  iBaseW,   int  iBaseH,
         continue;
       }
 
-      if( ( i % 2 ) == iBotField )
+      if( iFrameMb == 1 && ( i % 2 ) == iBotField )
       {
         int iSrc = ( ( i >> 1 ) + iYBorder ) * m_iImageStride;
         m_paiTmp1dBuffer[i] = piSrc[ iSrc ];
       }
       else
       {
-        int iSrc = ( ( i >> 1 ) + iYBorder - iBotField ) * m_iImageStride;
+        int iSrc = ( ( i >> iFrameMb ) + iYBorder - iBotField ) * m_iImageStride;
         if( bChromaFilter )
         {
           m_paiTmp1dBuffer[i]   = ( piSrc[ iSrc ] + piSrc[ iSrc + m_iImageStride ] + 1 ) >> 1;
@@ -1856,8 +1862,13 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
                                             pcParameters->m_bFieldPicFlag             == false    );
   bool          bFrameBasedResampling   = ( pcParameters->m_bFrameMbsOnlyFlag         == true   &&
                                             pcParameters->m_bRefLayerFrameMbsOnlyFlag == true     );
-  bool          bVerticalInterpolation  = ( bFrameBasedResampling                     == false  &&
-                                            pcParameters->m_bFieldPicFlag             == false    );
+  bool          bBotFieldFrameMbsOnly   = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag == true   &&
+                                            pcParameters->m_bFieldPicFlag             == true   &&
+                                            pcParameters->m_bBotFieldFlag             == true     );
+  bool          bVerticalInterpolation  = ( bBotFieldFrameMbsOnly                     == true   ||
+                                           (bFrameBasedResampling                     == false  &&
+                                            pcParameters->m_bFieldPicFlag             == false   ));
+  bool          bFrameMb                = ( bBotFieldFrameMbsOnly                     == false    );
   bool          bCurrBotField           = ( pcParameters->m_bFieldPicFlag             == true   &&
                                             pcParameters->m_bBotFieldFlag             == true     );
   bool          bBotFieldFlag           = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag ?  false
@@ -1879,22 +1890,22 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
     const short*  pSrcFld = psSrcY;
     short*        pDesFld = psDesY;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideY << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, false,  false,       false,            iMargin );
+    xCompIntraUpsampling( pcParameters, false,  false,       false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideY << 1 );
 
     //===== bottom field =====
     pSrcFld += iSrcStrideY;
     pDesFld += iDesStrideY;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideY << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, false,  true,        false,            iMargin );
+    xCompIntraUpsampling( pcParameters, false,  true,        false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideY << 1 );
   }
   else
   {
     const short*  pSrc = psSrcY + iSrcStrideY * iBaseBot;
     short*        pDes = psDesY + iDesStrideY * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideY << iBaseField, iMargin );
-    xCompIntraUpsampling( pcParameters, false,  bBotFieldFlag,        bVerticalInterpolation,    iMargin );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideY << iBaseField,        iMargin );
+    xCompIntraUpsampling( pcParameters, false,  bBotFieldFlag,        bVerticalInterpolation, bFrameMb, iMargin );
     xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iDesStrideY << iCurrField );
   }
 
@@ -1913,28 +1924,28 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
     const short*  pSrcFld = psSrcU;
     short*        pDesFld = psDesU;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideC << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   false,       false,            iMargin );
+    xCompIntraUpsampling( pcParameters, true,   false,       false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideC << 1 );
 
     //===== bottom field (U) =====
     pSrcFld += iSrcStrideC;
     pDesFld += iDesStrideC;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideC << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   true,        false,            iMargin );
+    xCompIntraUpsampling( pcParameters, true,   true,        false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideC << 1 );
 
     //===== top field (V) =====
     pSrcFld = psSrcV;
     pDesFld = psDesV;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideC << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   false,       false,            iMargin );
+    xCompIntraUpsampling( pcParameters, true,   false,       false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideC << 1 );
 
     //===== bottom field (V) =====
     pSrcFld += iSrcStrideC;
     pDesFld += iDesStrideC;
     xCopyToImageBuffer  ( pSrcFld,      iBaseW, iBaseH >> 1, iSrcStrideC << 1, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   true,        false,            iMargin );
+    xCompIntraUpsampling( pcParameters, true,   true,        false, true,      iMargin );
     xCopyFromImageBuffer( pDesFld,      iCurrW, iCurrH >> 1, iDesStrideC << 1 );
   }
   else
@@ -1942,15 +1953,15 @@ DownConvert::xIntraUpsampling( Frame*             pcFrame,
     //===== U =====
     const short*  pSrc = psSrcU + iSrcStrideC * iBaseBot;
     short*        pDes = psDesU + iDesStrideC * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideC << iBaseField, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation,    iMargin );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideC << iBaseField,        iMargin );
+    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation, bFrameMb, iMargin );
     xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iDesStrideC << iCurrField );
 
     //===== V =====
     pSrc = psSrcV + iSrcStrideC * iBaseBot;
     pDes = psDesV + iDesStrideC * iCurrBot;
-    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideC << iBaseField, iMargin );
-    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation,    iMargin );
+    xCopyToImageBuffer  ( pSrc,         iBaseW, iBaseH >> iBaseField, iSrcStrideC << iBaseField,        iMargin );
+    xCompIntraUpsampling( pcParameters, true,   bBotFieldFlag,        bVerticalInterpolation, bFrameMb, iMargin );
     xCopyFromImageBuffer( pDes,         iCurrW, iCurrH >> iCurrField, iDesStrideC << iCurrField );
   }
 }
