@@ -55,6 +55,7 @@ LayerEncoder::LayerEncoder()
 , m_bFrameMbsOnlyFlag               ( true )
 , m_uiDependencyId                       ( 0 )
 , m_uiScalableLayerId								( 0 )
+, m_uiLayerId                       ( MSYS_UINT_MAX )
 , m_uiBaseLayerId                   ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel              ( 15 )
 , m_uiFrameWidthInMb                ( 0 )
@@ -286,6 +287,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiNumberLayersCnt       = pcCodingParameter->getNumberOfLayers();
   // JVT-W049 }
   m_uiDependencyId               = pcLayerParameters->getDependencyId                 ();
+  m_uiLayerId               = pcLayerParameters->getLayerId                 ();
   m_uiBaseLayerId           = pcLayerParameters->getBaseLayerId             ();
 
 // JVT-Q065 EIDR{
@@ -319,8 +321,8 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   m_bDefaultBaseModeFlag      = pcLayerParameters->getILPredMode              () == 1;
   m_bDefaultMotionPredFlag    = pcLayerParameters->getILPredMotion            () == 1;
   m_bDefaultResidualPredFlag  = pcLayerParameters->getILPredResidual          () == 1;
-  m_bBiPred8x8Disable         = pcLayerParameters->getBiPred8x8Disable() > 0;
-  m_bMCBlks8x8Disable         = pcLayerParameters->getMCBlks8x8Disable() > 0;
+  m_bBiPred8x8Disable         = m_bNominalBiPred8x8Disable = pcLayerParameters->getBiPred8x8Disable() > 0;
+  m_bMCBlks8x8Disable         = m_bNominalMCBlks8x8Disable = pcLayerParameters->getMCBlks8x8Disable() > 0;
   m_bBotFieldFirst            = pcLayerParameters->getBotFieldFirst() > 0;
   m_bUseLongTermPics          = pcLayerParameters->getUseLongTerm() > 0;
   m_iMaxLongTermFrmIdx        = -1;
@@ -2076,6 +2078,17 @@ LayerEncoder::updateMaxSliceSize( UInt uiAUIndex, UInt& ruiMaxSliceSize )
   return Err::m_nOK;
 }
 
+Bool
+LayerEncoder::isMGSEnhancementLayer( UInt& ruiLevelIdc )
+{
+  if( m_bMGS && m_bSameResBL )
+  {
+    ruiLevelIdc = m_pcSPS->getConvertedLevelIdc();
+    return true;
+  }
+  return false;
+}
+
 ErrVal
 LayerEncoder::getBaseLayerLevelIdc( UInt& uiLevelIdc, Bool& bBiPred8x8Disable, Bool& bMCBlks8x8Disable )
 {
@@ -2245,19 +2258,17 @@ LayerEncoder::xSetBaseLayerData( UInt    uiFrameIdInGOP,
     bDefaultResidual  = true;
   }
 
-  if( bAdaptiveBaseMode )
+  Bool bMGSKeyPicEL = ( uiBaseLayerId != MSYS_UINT_MAX      && // when base layer available
+                        pcSliceHeader->getTemporalId() == 0 && // only for TL=0 pictures
+                        m_bMGS                              && // only when MGS
+                        m_bSameResBL                        && // only when not lowest MGS layer (QL=0)
+                        m_uiEncodeKeyPictures   >  0        ); // only when MGS key pictures
+  if( bAdaptiveBaseMode && bMGSKeyPicEL )
   {
-    if( uiBaseLayerId != MSYS_UINT_MAX      && // when base layer available
-        pcSliceHeader->getTemporalId() == 0 && // only for TL=0 pictures
-        m_bMGS                              && // only when MGS
-        m_bSameResBL                        && // only when not lowest MGS layer (QL=0)
-        m_uiEncodeKeyPictures   >  0         ) // only when MGS key pictures
-    {
-      bAdaptiveBaseMode = false;
-      bDefaultBaseMode  = true;
-    }
+    bAdaptiveBaseMode = false;
+    bDefaultBaseMode  = true;
   }
-  if( bDefaultBaseMode && m_uiGOPSize == ( 1U << m_uiDecompositionStages ) )
+  if( bDefaultBaseMode && m_uiGOPSize == ( 1U << m_uiDecompositionStages ) && !bMGSKeyPicEL )
   {
     PicType eTestPicType = ( m_pbFieldPicFlag[ m_uiGOPSize ] ? ( m_bBotFieldFirst ? BOT_FIELD : TOP_FIELD ) : FRAME );
     if( m_pacControlData[ m_uiGOPSize ].getSliceHeader( eTestPicType )->getIdrFlag() )
@@ -3054,6 +3065,20 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
     }
     // JVT-W043 }
 
+    m_bMCBlks8x8Disable       = m_bNominalMCBlks8x8Disable;
+    m_bBiPred8x8Disable       = m_bNominalBiPred8x8Disable;
+    Bool bMGSKeyPicBaseLayer  = ( m_bMGS && !m_bHighestMGSLayer && pcSliceHeader->getTemporalId() == 0 && m_uiEncodeKeyPictures > 0 );
+    if(  bMGSKeyPicBaseLayer )
+    {
+      UInt  uiLevelIdc        = m_pcSPS->getConvertedLevelIdc();
+      UInt  uiMaxELLevelIdc   = 0;
+      Bool  bHasMGSEL         = m_pcH264AVCEncoder->hasMGSEnhancementLayer( m_uiLayerId, uiMaxELLevelIdc );
+      Bool  bLevelIssue       = bHasMGSEL && ( ( uiLevelIdc < 30 && uiMaxELLevelIdc >= 30 ) || ( uiLevelIdc == 30 && uiMaxELLevelIdc > 30 ) );
+      if(   bLevelIssue )
+      {
+        m_bMCBlks8x8Disable = m_bBiPred8x8Disable = true;
+      }
+    }
 
     //===== set layer representation parameters =====
     RNOK( xInitControlData( uiFrameIdInGOP, uiTemporalId, ePicType ) );
@@ -3378,7 +3403,6 @@ LayerEncoder::xEncodePicture( Bool&           rbPictureCoded,
       }
     }
     // JVT-R057 LA-RDO}
-
 
 
     //===== trace =====

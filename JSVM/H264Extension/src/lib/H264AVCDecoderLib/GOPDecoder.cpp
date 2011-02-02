@@ -2163,6 +2163,7 @@ LayerDecoder::init( UInt                   uiDependencyId,
   m_bDependencyRepresentationInitialized  = false;
   m_bLayerRepresentationInitialized       = false;
   m_bInterLayerPredLayerRep               = false;
+  m_bFirstILPredSliceInLayerRep           = false;
   m_bRewritingLayerRep                    = false;
   m_uiFrameWidthInMb                      = 0;
   m_uiFrameHeightInMb                     = 0;
@@ -2280,6 +2281,7 @@ LayerDecoder::xInitSlice( SliceHeader*&     rpcSliceHeader,
     fprintf( stderr, "Layer representation has different values of tcoeff_level_prediction_flag -> not supported\n" );
     ROT( 1 );
   }
+  m_bFirstILPredSliceInLayerRep           = (!m_bInterLayerPredLayerRep && bInterLayerPredSlice );
   m_bInterLayerPredLayerRep               = ( m_bInterLayerPredLayerRep || bInterLayerPredSlice );
   m_bRewritingLayerRep                    = ( m_bRewritingLayerRep      || bRewritingSlice      );
 
@@ -2468,6 +2470,7 @@ LayerDecoder::xFinishSlice( SliceHeader&            rcSliceHeader,
   //===== finish layer representation and update parameters =====
   RNOK  ( xFinishLayerRepresentation( rcSliceHeader, rcPicBufferOutputList, rcPicBufferUnusedList, rcSliceDataNalUnit, rcBinDataList ) );
   m_bLayerRepresentationInitialized = false;
+  m_bFirstILPredSliceInLayerRep     = false;
   m_bInterLayerPredLayerRep         = false;
   m_bRewritingLayerRep              = false;
   m_uiQualityId++;
@@ -3110,6 +3113,10 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   MbDataCtrl*   pcBaseDataCtrl      = 0;
   SliceHeader*  pcSliceHeader       = rcControlData.getSliceHeader();
 
+  if( bFirstSliceInLayerRepresentation )
+  {
+    rcControlData.setSpatialScalability( false );
+  }
   if( ! pcSliceHeader->getNoInterLayerPredFlag() )
   {
     RNOK( xGetBaseLayerData( rcControlData,
@@ -3118,10 +3125,6 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
                              pcBaseDataCtrl,
                              m_cResizeParameters ) );
     rcControlData.setSpatialScalability( m_cResizeParameters.getSpatialResolutionChangeFlag() );
-  }
-  else
-  {
-    rcControlData.setSpatialScalability( false );
   }
 
   //===== motion data =====
@@ -3149,7 +3152,7 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   //===== residual data =====
   if( pcBaseResidual )
   {
-    if( bFirstSliceInLayerRepresentation )
+    if( m_bFirstILPredSliceInLayerRep )
     {
       RNOK( m_pcBaseLayerResidual->residualUpsampling( pcBaseResidual, m_cDownConvert, &m_cResizeParameters, pcBaseDataCtrl ) );
     }
@@ -3159,7 +3162,7 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   //===== reconstruction (intra) =====
   if( pcBaseFrame )
   {
-    if( bFirstSliceInLayerRepresentation )
+    if( m_bFirstILPredSliceInLayerRep )
     {
       Frame*  pcTempBaseFrame = m_apcFrameTemp[0];
       Frame*  pcTempFrame     = m_apcFrameTemp[1];

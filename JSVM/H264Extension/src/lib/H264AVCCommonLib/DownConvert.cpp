@@ -2617,7 +2617,7 @@ DownConvert::xDetermineTransBlkIdcs( int iBaseW, int iBaseH, bool bChroma, bool 
   if( ! pcRP->m_bRefLayerIsMbAffFrame )
   {
     //===== progressive frame, field picture, or field of non-Mbaff frame =====
-    int iYShift         = ( pcRP->m_bRefLayerFrameMbsOnlyFlag || pcRP->m_bFieldPicFlag ? 0 : 1 );
+    int iYShift         = ( pcRP->m_bRefLayerFrameMbsOnlyFlag || pcRP->m_bRefLayerFieldPicFlag ? 0 : 1 );
     int iMbSizeX        = ( bChroma ? 8 : 16 );
     int iMbSizeY        = iMbSizeX >> iYShift;
     int iPicWidthInMbs  = iBaseW / iMbSizeX;

@@ -428,8 +428,9 @@ public:
   Void setBaseLayerCGSSNR                    (UInt ui)    { m_uiBaseLayerCGSSNR                   = ui;}
   Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
 //DS_FIX_FT_09_2007
-   Void setNonDiscardable                  ()       { m_bDiscardable = false;}
+  Void setNonDiscardable                  ()       { m_bDiscardable = false;}
 //~DS_FIX_FT_09_2007
+  Void setDiscardable                     ()       { m_bDiscardable = true;}  //zhangxd_20101220
   Bool isDiscardable                      ()          { return m_bDiscardable;}
 //JVT-T054}
 

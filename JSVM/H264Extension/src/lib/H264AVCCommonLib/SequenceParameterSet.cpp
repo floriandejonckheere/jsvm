@@ -275,7 +275,7 @@ SequenceParameterSet::doesFulfillMGSConstraint( const SequenceParameterSet& rcSP
 }
 
 ErrVal
-SequenceParameterSet::copySPSDataForMGSEnhancement( const SequenceParameterSet& rcSPS )
+SequenceParameterSet::copySPSDataForMGSEnhancement( const SequenceParameterSet& rcSPS, UInt CurrQId ) //zhangxd_20101220
 {
   m_uiChromaFormatIdc                 = rcSPS.m_uiChromaFormatIdc;
   m_bSeparateColourPlaneFlag          = rcSPS.m_bSeparateColourPlaneFlag;
@@ -306,7 +306,7 @@ SequenceParameterSet::copySPSDataForMGSEnhancement( const SequenceParameterSet& 
   ROF ( m_pcVUI );
   ROF ( rcSPS.m_pcVUI );
   RNOK( m_pcVUI->copyExceptHRDParametersAndSVCExt( *rcSPS.m_pcVUI ) );
-  if  ( rcSPS.isSubSetSPS() )
+  if( rcSPS.isSubSetSPS() && CurrQId != 1 ) //zhangxd_20101220
   {
     m_bInterlayerDeblockingPresent    = rcSPS.m_bInterlayerDeblockingPresent;
     m_uiExtendedSpatialScalability    = rcSPS.m_uiExtendedSpatialScalability;

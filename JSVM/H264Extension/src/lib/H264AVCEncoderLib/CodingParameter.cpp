@@ -307,6 +307,12 @@ UInt CodingParameter::getLogFactor( Double r0, Double r1 )
 
 ErrVal CodingParameter::check()
 {
+  if( !getAVCmode() && getNumberOfLayers() && getLayerParameters(0).getLowComplexMbEnable() )
+  {
+    m_cMotionVectorSearchParams.setFullPelDFunc ( 0 );
+    m_cMotionVectorSearchParams.setSubPelDFunc  ( 0 );
+  }
+
   ROTS( m_cLoopFilterParams           .check() );
   ROTS( m_cInterLayerLoopFilterParams .check() );
   ROTS( m_cMotionVectorSearchParams   .check() );

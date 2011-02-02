@@ -56,8 +56,8 @@ ReconstructionBypass::padRecFrame( Frame*             pcFrame,
   RNOK( pcFrame->addFrameFieldBuffer() );
 
   UInt    uiFrmWidth  =   pcResizeParameters->m_iRefLayerFrmWidth  >> 4;
-  UInt    uiFrmHeight =   pcResizeParameters->m_iRefLayerFrmHeight >> 4;
-  Bool    bMbAffFrame =   pcResizeParameters->m_bRefLayerIsMbAffFrame;
+  UInt    uiFrmHeight =   pcResizeParameters->m_iRefLayerFrmHeight >> ( pcResizeParameters->m_bRefLayerFieldPicFlag ? 5 : 4 );
+  Bool    bMbAffFrame = ( ! pcResizeParameters->m_bRefLayerFrameMbsOnlyFlag && ! pcResizeParameters->m_bRefLayerFieldPicFlag );
   PicType ePicType    = ( pcResizeParameters->m_bRefLayerFieldPicFlag ? ( pcResizeParameters->m_bRefLayerBotFieldFlag ? BOT_FIELD : TOP_FIELD ) : FRAME );
   UInt    auiOutMask[9];
 

@@ -492,6 +492,7 @@ Void YuvMbBuffer::setAllSamplesToZero()
   }
 }
 
+
 Void YuvMbBufferExtension::loadSurrounding( const YuvPicBuffer* pcSrcBuffer, Int iMbXOffset, Int iMbYOffset )
 {
   Int x, y;
@@ -556,6 +557,7 @@ Void YuvMbBufferExtension::loadSurrounding( const YuvPicBuffer* pcSrcBuffer, Int
     pDes[x-1] = pSrc[x-1];
   }
 }
+
 
 //TMM_INTERLACE {
 Void YuvMbBufferExtension::loadSurrounding_MbAff( const YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset, Int iMbYOffset )

@@ -82,7 +82,8 @@ public:
 																UInt          uiLayerId,
 																PicType       ePicType,
 																UInt					uiTemporalId );
-
+  Bool    hasMGSEnhancementLayer( UInt        uiLayerId,
+                                  UInt&       ruiMaxLevelIdc );
   ErrVal getBaseLayerLevelIdc ( UInt          uiBaseLayerId,
                                 UInt&         uiLevelIdc,
                                 Bool&         bBiPred8x8Disable,

@@ -484,6 +484,7 @@ protected:
   Bool                  m_bSPSInitialized;
   Bool                  m_bDependencyRepresentationInitialized;
   Bool                  m_bLayerRepresentationInitialized;
+  Bool                  m_bFirstILPredSliceInLayerRep;
   Bool                  m_bInterLayerPredLayerRep;
   Bool                  m_bRewritingLayerRep;
   UInt                  m_uiFrameWidthInMb;

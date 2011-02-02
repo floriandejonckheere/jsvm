@@ -429,8 +429,16 @@ AccessUnit::xSetParameters()
     UInt  uiNextDQId = SLICE(iIter)->getDQId();
     while( iIter != iEnd )
     {
-      if( ! ISVCL(iIter) || SLICE(iIter)->getDQId() == uiCurrDQId )
+      if( ! ISVCL(iIter) )
       {
+        iIter++;
+      }
+      else if( SLICE(iIter)->getDQId() == uiCurrDQId )
+      {
+        if( uiNextDQId == MSYS_UINT_MAX )
+        {
+          uiNextDQId = SLICE(iIter)->getRefLayerDQId();
+        }
         iIter++;
       }
       else if( uiNextDQId == MSYS_UINT_MAX || SLICE(iIter)->getDQId() > uiNextDQId )

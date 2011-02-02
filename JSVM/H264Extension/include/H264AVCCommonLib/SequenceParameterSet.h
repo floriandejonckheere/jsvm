@@ -47,7 +47,7 @@ public:
 	SequenceParameterSet& operator = ( const SequenceParameterSet& rcSPS );
 
   Bool    doesFulfillMGSConstraint    ( const SequenceParameterSet& rcSPS )  const;
-  ErrVal  copySPSDataForMGSEnhancement( const SequenceParameterSet& rcSPS );
+  ErrVal  copySPSDataForMGSEnhancement( const SequenceParameterSet& rcSPS, UInt CurrQId ); //zhangxd_20101220
 
   static UInt   getLevelIdc               ( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbs );
   UInt          getMaxDPBSize             () const;

@@ -25,6 +25,19 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_9 -> JSVM_9_19_10
+===========================
+changes:
+- corrected resampling from frame (frame_mbs_only_flag=1) to bottom field    [already in JSVM_9_19_10_BETA]
+- corrected decoding of incomplete layer representations (for special cases) [already in JSVM_9_19_10_BETA]
+- corrected residual resampling from field to frame (frame_mbs_only_flag=1)
+- corrected construction of non-available samples for resampling from a field
+- corrected construction of non-available samples for resampling from a non-MbAff frame
+- corrected motion resampling from field pictures
+- corrected handling of layer representatons where some (but not all) slices have no_inter_layer_pred_flag = 1
+- some minor encoder only corrections
+
+
 JSVM_9_19_8 -> JSVM_9_19_9
 ==========================
 changes:

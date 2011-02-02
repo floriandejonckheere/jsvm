@@ -1004,7 +1004,31 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
       rcCurrRP.m_iRefLayerHeightInSamples     = rcCurrRP.m_iHeightInSamples;
     }
   }
+  //>>> zhangxd_20101220 >>>
+  for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+  {
+	  UInt uiBaseLayerId   = getLayerParameters( ui ).getBaseLayerId();
+	  UInt maxDependencyId = getLayerParameters( m_uiNumberOfLayers - 1 ).getLayerCGSSNR();
 
+	  if( ui && uiBaseLayerId == MSYS_UINT_MAX )
+	  {
+		  uiBaseLayerId = ui - 1; 
+	  }
+
+	  if( uiBaseLayerId != MSYS_UINT_MAX && uiBaseLayerId != ui - 1 )
+	  {
+		  for( UInt i = uiBaseLayerId + 1; i < ui; i++ )
+      {
+				getLayerParameters(i).setDiscardable();
+      }
+	  }
+
+	  if( uiBaseLayerId != MSYS_UINT_MAX && getLayerParameters(ui).getLayerCGSSNR() == maxDependencyId && getLayerParameters(ui).getQualityLevelCGSSNR() != 0 )
+	  {
+		  getLayerParameters(ui).setDiscardable();
+	  }
+  }
+  //<<< zhangxd_20101220 <<<
   return Err::m_nOK;
 }
 

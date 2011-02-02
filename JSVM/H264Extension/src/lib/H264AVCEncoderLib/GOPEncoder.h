@@ -216,6 +216,7 @@ public:
   ErrVal        getBaseLayerStatus  ( Bool&                           bExists,
 																			PicType                         ePicType,
 																			UInt														uiTemporalId );
+  Bool          isMGSEnhancementLayer( UInt&                          ruiLevelIdc );
   ErrVal        getBaseLayerLevelIdc( UInt&                           uiLevelIdc,
                                       Bool&                           bBiPred8x8Disable,
                                       Bool&                           bMCBlks8x8Disable );
@@ -439,6 +440,7 @@ protected:
   Bool                          m_bFrameMbsOnlyFlag;                  // frame macroblocks only block
   UInt                          m_uiDependencyId;                     // layer id for current layer
   UInt                          m_uiScalableLayerId;                  // scalable layer id for current layer
+  UInt                          m_uiLayerId;                          // current layer id
   UInt                          m_uiBaseLayerId;                      // layer id of base layer
   UInt                          m_uiBaseQualityLevel;                 // quality level of the base layer
   UInt                          m_uiFrameWidthInMb;                   // frame width in macroblocks
@@ -593,6 +595,8 @@ protected:
   UInt                          m_uiNumberLayersCnt;
   // JVT-W049 }
 
+  Bool          m_bNominalBiPred8x8Disable;
+  Bool          m_bNominalMCBlks8x8Disable;
   Bool          m_bBiPred8x8Disable;
   Bool          m_bMCBlks8x8Disable;
   Bool          m_bBotFieldFirst;

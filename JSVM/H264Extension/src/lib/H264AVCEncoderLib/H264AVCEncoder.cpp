@@ -94,13 +94,10 @@ H264AVCEncoder::getLowPassRec( UInt uiLayerId, UInt uiLowPassIndex )
   Frame* pcLPRec = 0;
   for( UInt uiBL = MSYS_UINT_MAX; ( uiBL = m_pcCodingParameter->getLayerParameters( uiLayerId ).getBaseLayerId() ) != MSYS_UINT_MAX; uiLayerId = uiBL )
   {
-    if( m_apcLayerEncoder[uiBL]->getMGSLPRec( uiLowPassIndex ) )
+    if( m_apcLayerEncoder[uiBL]->getMGSLPRec( uiLowPassIndex ) && m_pcCodingParameter->getLayerParameters( uiBL ).getQualityLevelCGSSNR() == 0 )  //zhangxd_20101220
     {
       pcLPRec = m_apcLayerEncoder[uiBL]->getMGSLPRec( uiLowPassIndex );
-    }
-    else
-    {
-      break;
+	    break; //zhangxd_20101220
     }
   }
   return pcLPRec;
@@ -147,6 +144,20 @@ H264AVCEncoder::getPicCodingType( UInt uiBaseLayerId, UInt uiTemporalId, UInt ui
 {
   AOF( uiBaseLayerId < m_pcCodingParameter->getNumberOfLayers() );
   return m_apcLayerEncoder[ uiBaseLayerId ]->getPicCodingType( uiTemporalId, uiFrmIdInTLayer );
+}
+
+Bool    
+H264AVCEncoder::hasMGSEnhancementLayer( UInt uiLayerId, UInt& ruiMaxLevelIdc )
+{
+  Bool bMGSEnhLayer = false;
+  for( UInt ui = uiLayerId+1; ui < m_pcCodingParameter->getNumberOfLayers(); ui++ )
+  {
+    if( m_apcLayerEncoder[ui]->isMGSEnhancementLayer( ruiMaxLevelIdc ) )
+      bMGSEnhLayer = true;
+    else
+      break;
+  }
+  return bMGSEnhLayer;
 }
 
 ErrVal
@@ -1439,7 +1450,7 @@ H264AVCEncoder::xInitParameterSets()
       UInt                  uiCurrDQId  = ( uiCurrDId << 4 ) + uiCurrQId;
       SequenceParameterSet* pcQ0SPS = 0;
       RNOK( m_pcParameterSetMng->getActiveSPS   (  pcQ0SPS, uiCurrDQId - 1 ) );
-      RNOK( pcSPS->copySPSDataForMGSEnhancement ( *pcQ0SPS ) );
+      RNOK( pcSPS->copySPSDataForMGSEnhancement ( *pcQ0SPS, uiCurrQId ) ); //zhangxd_20101220
     }
 
 

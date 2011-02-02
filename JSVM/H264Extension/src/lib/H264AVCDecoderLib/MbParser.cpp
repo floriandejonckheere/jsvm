@@ -129,6 +129,11 @@ MbParser::read( MbDataAccess&  rcMbDataAccess,
         rcMbDataAccess.getMbData().setBLSkipFlag( false );
     }
 
+    if( rcMbDataAccess.getSH().getStoreRefBasePicFlag() && rcMbDataAccess.getSH().getQualityId() > 0 && rcMbDataAccess.getMbData().getBLSkipFlag() == false )
+    {
+      printf("Conformance Issue: base_mode_flag = 0 in enhancement layer MGS key picture\n");
+    }
+
     //===== macroblock mode =====
     if( ! rcMbDataAccess.getMbData().getBLSkipFlag() )
     {

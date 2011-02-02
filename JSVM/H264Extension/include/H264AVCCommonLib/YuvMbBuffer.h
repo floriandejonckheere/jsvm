@@ -81,8 +81,8 @@ protected:
 class H264AVCCOMMONLIB_API YuvMbBufferExtension : public YuvMbBuffer
 {
 public:
-  Void loadSurrounding      ( const YuvPicBuffer* pcSrcBuffer,              Int iMbXOffset = 0, Int iMbYOffset = 0 );
-  Void loadSurrounding_MbAff( const YuvPicBuffer* pcSrcBuffer, UInt uiMask, Int iMbXOffset = 0, Int iMbYOffset = 0 ); //TMM_INTERLACE
+  Void loadSurrounding      ( const YuvPicBuffer* pcSrcBuffer,               Int iMbXOffset = 0, Int iMbYOffset = 0 );
+  Void loadSurrounding_MbAff( const YuvPicBuffer* pcSrcBuffer, UInt uiMask,  Int iMbXOffset = 0, Int iMbYOffset = 0 ); //TMM_INTERLACE
 
   Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );
   Void mergeFromRightBelow( LumaIdx cIdx, Bool bCornerMbPresent, Bool bHalfYSize = false );

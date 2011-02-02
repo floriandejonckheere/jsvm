@@ -186,7 +186,7 @@ MotionUpsampling::xInitMb( Int iMbXCurr, Int iMbYCurr )
     Int     iMbOffsetBase = ( m_rcResizeParameters.m_iRefLayerFrmWidth >> 4 )  * iBotField;
     Int     iMbIdxBase    = iMbOffsetBase + iMbYBase * iMbStrideBase + iMbXBase;
     MbData& rcMbDataBase  = m_rcMbDataCtrlBase.getMbDataByIndex( (UInt)iMbIdxBase );
-    Bool    bFieldMbFlag  = rcMbDataBase.getFieldFlag();
+    Bool    bFieldMbFlag  = rcMbDataBase.getFieldFlag() || m_rcResizeParameters.m_bRefLayerFieldPicFlag;
     m_bCurrFieldMb        = bFieldMbFlag;
   }
   return Err::m_nOK;
@@ -483,8 +483,8 @@ MotionUpsampling::xGetInitialBaseRefIdxAndMv( Int     i4x4BlkX,
   Int           iMbIdxBase        = iPartIdc >> 4;
   B4x4Idx       c4x4IdxBase       = iPartIdc & 15;
   MbData&       rcMbDataBase      = m_rcMbDataCtrlBase.getMbDataByIndex ( (UInt)iMbIdxBase );
-  Int           iCurrFieldMb      = ( m_bCurrFieldMb                ? 1 : 0 );
-  Int           iBaseFieldMb      = ( rcMbDataBase  .getFieldFlag() ? 1 : 0 );
+  Int           iCurrFieldMb      = ( m_bCurrFieldMb                                                              ? 1 : 0 );
+  Int           iBaseFieldMb      = ( m_rcResizeParameters.m_bRefLayerFieldPicFlag || rcMbDataBase.getFieldFlag() ? 1 : 0 );
   MbMotionData& rcMotionDataBase  = rcMbDataBase    .getMbMotionData  ( eListIdx    );
   Int           iRefIdxBase       = rcMotionDataBase.getRefIdx        ( c4x4IdxBase );
   const Mv&     rcMvBase          = rcMotionDataBase.getMv            ( c4x4IdxBase );
