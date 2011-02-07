@@ -2280,7 +2280,7 @@ DownConvert::xUpdateMbMapForSliceId( ResizeParameters*  pcParameters,
   int         iRefCompHeight      = ( pcParameters->m_iRefLayerFrmHeight   >> iCShift ) >> ( pcParameters->m_bRefLayerFrameMbsOnlyFlag ? 0 : 1 );
   int         iRefFieldPic        = ( pcParameters->m_bRefLayerFieldPicFlag ? 1 : 0 );
   int         iRefBotField        = ( pcParameters->m_bRefLayerBotFieldFlag ? 1 : 0 );
-  int         iRefFldCompInFrm    = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag || pcParameters->m_bFieldPicFlag ? 0 : 1 );
+  int         iRefFldCompInFrm    = ( pcParameters->m_bRefLayerFrameMbsOnlyFlag || pcParameters->m_bRefLayerFieldPicFlag ? 0 : 1 );
   int         iMbIdxStride        = ( iRefPicWidthInMbs << iRefFieldPic );
   int         iMbIdxOffset        = ( iRefPicWidthInMbs  * iRefBotField );
 
