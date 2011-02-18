@@ -25,6 +25,14 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_10 -> JSVM_9_19_11
+============================
+changes:
+- corrected deblocking filter strength derivation for SpatialResolutionChangeFlag = 1 and I_BL macroblocks
+  (using transform coefficient levels instead of scaled transform coefficients)
+
+
+
 JSVM_9_19_9 -> JSVM_9_19_10
 ===========================
 changes:

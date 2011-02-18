@@ -1207,6 +1207,7 @@ MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
     MbData&         rcMbData      = getMbData( uiMbX, uiMbY );
     const MbStatus& rcMbStatus    = apcMbStatus[ uiMbIdx ];
     UInt            uiMbCbpDQID0  = 0;
+    UInt            uiMbCbpLevels = rcMbData.getMbExtCbp();
     if( apcMbStatus )
     {
       if( rcMbStatus.getLastCodedDQId() == 0 )
@@ -1216,9 +1217,10 @@ MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
     }
     else if( uiCurrDQId == 0 )
     {
-      uiMbCbpDQID0    = rcMbData.getMbExtCbp();
+      uiMbCbpDQID0    = uiMbCbpLevels;
     }
-    rcMbData.setMbCbpDQId0( uiMbCbpDQID0 );
+    rcMbData.setMbCbpDQId0    ( uiMbCbpDQID0  );
+    rcMbData.setMbCbpLevelsLF ( uiMbCbpLevels );
   }
   return Err::m_nOK;
 }

@@ -381,8 +381,8 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
     //===== check special condition for I_BL in spatial scalable coding =====
     if( bSpatialScalableFlag && rcMbDataCurr.isIntraBL() )
     {
-      ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx                           ), 1 ); // only coefficients of the current layer are counted
-      ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr.has4x4NonZeroLevels( cIdx                           ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr.has4x4NonZeroLevels( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
       return 0;
     }
 
@@ -397,7 +397,7 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
       if( ( rcMbDataCurr.is4x4BlkCoded( cIdx                           ) && !rcMbDataCurr.is4x4BlkResidual( cIdx                           ) ) ||
           ( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ) && !rcMbDataCurr.is4x4BlkResidual( cIdx + CURR_MB_ABOVE_NEIGHBOUR ) )    )
       {
-        printf( "Profile compatability issue with deblocking filter\n" );
+        printf( "Profile compatibility issue with deblocking filter\n" );
       }
     }
 #endif
@@ -451,8 +451,8 @@ LoopFilter::xGetHorFilterStrength ( const MbDataAccess& rcMbDataAccess,
     ROTRS( rcMbDataAbove.isIntraButnotIBL(),  bIntraBs );
     if( rcMbDataCurr.isIntraBL() && rcMbDataAbove.isIntraBL() )
     {
-      ROTRS( rcMbDataCurr .is4x4BlkCoded( cIdx                            ), 1 ); // only coefficients of the current layer are counted
-      ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr .has4x4NonZeroLevels( cIdx                            ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataAbove.has4x4NonZeroLevels( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
       return 0;
     }
     ROTRS( ! rcMbDataCurr .isIntra() && rcMbDataCurr .is4x4BlkResidual( cIdx                            ), 2 );
@@ -534,8 +534,8 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
     //===== check special condition for I_BL in spatial scalable coding =====
     if( bSpatialScalableFlag && rcMbDataCurr.isIntraBL() )
     {
-      ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx                          ), 1 ); // only coefficients of the current layer are counted
-      ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr.has4x4NonZeroLevels( cIdx                          ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr.has4x4NonZeroLevels( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 1 ); // only coefficients of the current layer are counted
       return 0;
     }
 
@@ -604,8 +604,8 @@ LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAccess,
     ROTRS( rcMbDataLeft.isIntraButnotIBL(),  4 );
     if( rcMbDataCurr.isIntraBL() && rcMbDataLeft.isIntraBL() )
     {
-      ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx     ), 1 ); // only coefficients of the current layer are counted
-      ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdxLeft ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataCurr.has4x4NonZeroLevels( cIdx     ), 1 ); // only coefficients of the current layer are counted
+      ROTRS( rcMbDataLeft.has4x4NonZeroLevels( cIdxLeft ), 1 ); // only coefficients of the current layer are counted
       return 0;
     }
     ROTRS( ! rcMbDataCurr.isIntra() && rcMbDataCurr.is4x4BlkResidual( cIdx     ), 2 );

@@ -63,6 +63,7 @@ MbDataStruct::MbDataStruct()
 , m_bFieldFlag          ( 0 )
 , m_uiMbCbpResidual     ( 0 )
 , m_uiMbCbpDQId0        ( 0 )    
+, m_uiMbCbpLevelsLF     ( 0 )
 , m_bRPSafe							( true )
 {
   DO_DBG( clearIntraPredictionModes( true ) );//TMM_INTERLACE

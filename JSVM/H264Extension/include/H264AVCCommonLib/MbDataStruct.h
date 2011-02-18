@@ -45,6 +45,7 @@ public:
   Bool is4x4BlkCoded  ( LumaIdx cLumaIdx )                const { return (0 != ((m_uiMbCbp >> cLumaIdx) & 1)); }
   Bool is4x4BlkResidual( LumaIdx cLumaIdx )               const { return (0 != ((m_uiMbCbpResidual >> cLumaIdx) & 1)); }
   Bool isDQId0AndBlkCoded( LumaIdx cLumaIdx )             const { return (0 != ((m_uiMbCbpDQId0 >> cLumaIdx) & 1)); }
+  Bool has4x4NonZeroLevels( LumaIdx cLumaIdx )            const { return (0 != ((m_uiMbCbpLevelsLF >> cLumaIdx) & 1)); }
   UInt getCbpChroma4x4()                                  const { return m_uiMbCbp >> 28; }
   UInt getMbCbp       ()                                  const { return m_uiMbCbp >> 24; }
   UInt getMbExtCbp    ()                                  const { return m_uiMbCbp; }
@@ -98,6 +99,7 @@ public:
   Void      setSkipFlag( Bool b)                                { m_bSkipFlag = b; }
   Void      setMbCbpResidual( UInt uiMbCbpResidual )            { m_uiMbCbpResidual = uiMbCbpResidual; }
   Void      setMbCbpDQId0   ( UInt uiMbCbpDQId0 )               { m_uiMbCbpDQId0 = uiMbCbpDQId0; }
+  Void      setMbCbpLevelsLF( UInt uiMbCbpLevelsLF )            { m_uiMbCbpLevelsLF = uiMbCbpLevelsLF; }
 
   Bool      getResidualPredFlag   ()                      const { return m_bResidualPredFlag; }
   Bool      getInCropWindowFlag   ()                      const { return m_bInCropWindowFlag; }
@@ -143,6 +145,7 @@ protected:
   Bool      m_bFieldFlag;
 	UInt      m_uiMbCbpResidual;
   UInt      m_uiMbCbpDQId0;
+  UInt      m_uiMbCbpLevelsLF;
   Bool      m_bRPSafe;
 
 public:
