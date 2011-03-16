@@ -24,6 +24,12 @@ Further desirable improvements:
 - setting of IROI parameters in scalability info SEI and IROI-based extraction
 
 
+JSVM_9_19_11 -> (currently untagged version)
+============================================
+changes:
+- addition of project and solution files for Visual Studio 10
+
+
 
 JSVM_9_19_10 -> JSVM_9_19_11
 ============================
