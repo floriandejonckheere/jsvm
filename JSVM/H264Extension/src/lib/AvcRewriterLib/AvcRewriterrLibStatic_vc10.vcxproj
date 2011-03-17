@@ -85,6 +85,8 @@
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectName)d</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectName)d</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -453,19 +455,19 @@
     <ClInclude Include="..\H264AVCDecoderLib\UvlcReader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\tools\DownConvert\DownConvertStatic_vc9.vcxproj">
+    <ProjectReference Include="..\..\tools\DownConvert\DownConvertStatic_vc10.vcxproj">
       <Project>{e89a623a-ee7d-41a0-921a-26472d977e2d}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\H264AVCDecoderLib\H264AVCDecoderLibStatic_vc9.vcxproj">
+    <ProjectReference Include="..\H264AVCDecoderLib\H264AVCDecoderLibStatic_vc10.vcxproj">
       <Project>{e2b9b66a-cd35-466b-bb35-0d1fbbe55ee6}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\H264AVCEncoderLib\H264AVCEncoderLibStatic_vc9.vcxproj">
+    <ProjectReference Include="..\H264AVCEncoderLib\H264AVCEncoderLibStatic_vc10.vcxproj">
       <Project>{429a9314-f0a4-46e4-9b79-cf1fbefbb777}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\H264AVCVideoIoLib\H264AVCVideoIoLibStatic_vc9.vcxproj">
+    <ProjectReference Include="..\H264AVCVideoIoLib\H264AVCVideoIoLibStatic_vc10.vcxproj">
       <Project>{82257dcf-2d80-412c-8416-128ce791e930}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
