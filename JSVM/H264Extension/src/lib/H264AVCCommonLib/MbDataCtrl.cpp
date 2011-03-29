@@ -1208,12 +1208,14 @@ MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
     const MbStatus& rcMbStatus    = apcMbStatus[ uiMbIdx ];
     UInt            uiMbCbpDQID0  = 0;
     UInt            uiMbCbpLevels = rcMbData.getMbExtCbp();
+    UInt            uiSliceIdcLF  = rcMbData.getSliceId(); // use sliceId in encoder (no incomplete layer representations)
     if( apcMbStatus )
     {
       if( rcMbStatus.getLastCodedDQId() == 0 )
       {
         uiMbCbpDQID0  = rcMbStatus.getMbCbpDQId0();
       }
+      uiSliceIdcLF    = rcMbStatus.getLastCodedSliceIdc();
     }
     else if( uiCurrDQId == 0 )
     {
@@ -1221,6 +1223,7 @@ MbDataCtrl::initSliceLF( SliceHeader& rcSH, const MbStatus* apcMbStatus )
     }
     rcMbData.setMbCbpDQId0    ( uiMbCbpDQID0  );
     rcMbData.setMbCbpLevelsLF ( uiMbCbpLevels );
+    rcMbData.setSliceIdcLF    ( uiSliceIdcLF  );
   }
   return Err::m_nOK;
 }

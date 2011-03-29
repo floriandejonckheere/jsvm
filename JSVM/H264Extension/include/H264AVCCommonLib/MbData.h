@@ -119,12 +119,14 @@ public:
   UInt                getDependencyId         ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
   UInt                getQualityId            ()  const { return    m_uiSliceIdc        & 0xF; }
   UInt                getLastCodedDQId        ()  const { return    m_uiLastCodedDQId; }
+  UInt                getLastCodedSliceIdc    ()  const { return    m_uiLastCodedSliceIdc; }
   UInt                getMbCbpDQId0           ()  const { return    m_uiMbCbpDQId0; }
   Bool                isCoded                 ()  const { return    m_bIsCoded; }
 
 private:
   UInt          m_uiSliceIdc;
   UInt          m_uiQ0SliceIdc;
+  UInt          m_uiLastCodedSliceIdc;
   UInt          m_uiLastCodedDQId;
   UInt          m_uiMbCbpDQId0;
   Bool          m_bIsCoded;

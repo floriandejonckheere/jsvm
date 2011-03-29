@@ -259,6 +259,8 @@ public:
   UInt  getAvailableMask  () const { return m_uiAvailable; }
   Bool  isAvailableLeft   () const { return xIsAvailable( m_rcMbLeft  ); }
   Bool  isAvailableAbove  () const { B4x4Idx cIdx; return xIsAvailable( xGetBlockAbove( cIdx ) ); }
+  Bool  isAvailableLeftLF () const { return xIsAvailableLF( m_rcMbLeft  ); }
+  Bool  isAvailableAboveLF() const { B4x4Idx cIdx; return xIsAvailableLF( xGetBlockAbove( cIdx ) ); }
 
   Bool  isLeftMbExisting  () const { return m_uiPosX != 0; }
   Bool  isAboveMbExisting       () const { return ( ! ((m_uiPosY == 0) || ((m_uiPosY == 1) && m_rcMbCurr.getFieldFlag()))); }
@@ -393,8 +395,19 @@ protected:
   {
     return   ( rcMbData.getSliceId() == m_rcMbCurr.getSliceId() );
   }
+  Bool  xIsAvailableLF   ( const MbData& rcMbData )  const
+  {
+    return   ( rcMbData.getSliceIdcLF() == m_rcMbCurr.getSliceIdcLF() );
+  }
   Bool  xIsAvailableIntra( const MbData& rcMbData )  const
   {
+    Bool bConstrainedIntraPred = m_rcSliceHeader.getPPS().getConstrainedIntraPredFlag();
+    if( ! m_rcSliceHeader.isTrueSlice() )
+    {
+      const SliceHeader*  pcLastCodedSliceHeader  = m_rcSliceHeader.getLastCodedSliceHeader();
+      AOF  ( pcLastCodedSliceHeader );
+      bConstrainedIntraPred = pcLastCodedSliceHeader->getPPS().getConstrainedIntraPredFlag();
+    }
     if( ! m_rcSliceHeader.isTrueSlice() && m_rcSliceHeader.getTCoeffLevelPredictionFlag() )
     {
       //===== special handling for incomplete layer representations with tcoeff_level_prediction_flag equal to 1 =====
@@ -411,7 +424,7 @@ protected:
     {
       return false;
     }
-    if( !m_rcSliceHeader.getPPS().getConstrainedIntraPredFlag() )
+    if( !bConstrainedIntraPred )
     {
       return true;
     }

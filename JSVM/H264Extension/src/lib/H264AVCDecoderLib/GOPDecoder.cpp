@@ -2521,9 +2521,9 @@ LayerDecoder::xCheckForMissingSlices( const SliceDataNALUnit& rcSliceDataNalUnit
           Bool bLastMissingSliceMb  = ( iMbAddress == iLastMbInSliceGroup );
           if( !bLastMissingSliceMb )
           {
-            assert( iNextMbAddress == -1 );
-            bLastMissingSliceMb     = ( m_pacMbStatus[ iNextMbAddress ].getDQId()       == uiDQId                                   ||
-                                        m_pacMbStatus[ iNextMbAddress ].getQ0SliceIdc() != m_pacMbStatus[ iMbAddress ].getQ0SliceIdc() );
+            assert( iNextMbAddress != -1 );
+            bLastMissingSliceMb     = ( m_pacMbStatus[ iNextMbAddress ].getDQId() == uiDQId ||
+                                        m_pacMbStatus[ iNextMbAddress ].getLastCodedSliceIdc() != m_pacMbStatus[ iMbAddress ].getLastCodedSliceIdc() );
           }
 
           if( bLastMissingSliceMb )

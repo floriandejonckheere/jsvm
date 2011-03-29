@@ -711,7 +711,7 @@ LoopFilter::xFilterLeftEdge( const MbDataAccess& rcMbDataAccess, Int iFilterIdc,
 {
   ROTRS( iFilterIdc == 1,                                           false );
   ROFRS( rcMbDataAccess.isLeftMbExisting(),                         false );
-  if(  ! rcMbDataAccess.isAvailableLeft () )
+  if(  ! rcMbDataAccess.isAvailableLeftLF() )
   {
     ROTRS( iFilterIdc == 2,                                         false );
     ROTRS( iFilterIdc == 5,                                         false );
@@ -735,7 +735,7 @@ LoopFilter::xFilterTopEdge( const MbDataAccess& rcMbDataAccess, Int iFilterIdc, 
 {
   ROTRS( iFilterIdc == 1,                                           false );
   ROFRS( rcMbDataAccess.isAboveMbExisting(),                        false );
-  if(  ! rcMbDataAccess.isAvailableAbove () )
+  if(  ! rcMbDataAccess.isAvailableAboveLF() )
   {
     ROTRS( iFilterIdc == 2,                                         false );
     ROTRS( iFilterIdc == 5,                                         false );

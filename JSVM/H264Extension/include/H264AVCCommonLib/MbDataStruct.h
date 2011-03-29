@@ -37,6 +37,8 @@ public:
 
   UInt  getFwdBwd ( LumaIdx cIdx    )                     const { return getBlockFwdBwd( Par8x8( ((cIdx.y()>>1)<<1) + (cIdx.x()>>1) ) ); }
 
+  UInt  getSliceIdcLF()                                   const { return m_uiSliceIdcLF; }
+
   const Bool isInterPMb()                                 const { return m_usFwdBwd == 0x1111; }
   Bool isBlockFwdBwd  ( Par8x8 ePar8x8, ListIdx eLstIdx ) const { const UInt ui = 1<<(eLstIdx + (ePar8x8<<2)); return ( m_usFwdBwd & ui) == ui; }
   UInt getBlockFwdBwd ( Par8x8 ePar8x8 )                  const { return ( m_usFwdBwd >> (ePar8x8<<2) ) & 3; }
@@ -100,6 +102,7 @@ public:
   Void      setMbCbpResidual( UInt uiMbCbpResidual )            { m_uiMbCbpResidual = uiMbCbpResidual; }
   Void      setMbCbpDQId0   ( UInt uiMbCbpDQId0 )               { m_uiMbCbpDQId0 = uiMbCbpDQId0; }
   Void      setMbCbpLevelsLF( UInt uiMbCbpLevelsLF )            { m_uiMbCbpLevelsLF = uiMbCbpLevelsLF; }
+  Void      setSliceIdcLF   ( UInt uiSliceIdcLF )               { m_uiSliceIdcLF = uiSliceIdcLF; }
 
   Bool      getResidualPredFlag   ()                      const { return m_bResidualPredFlag; }
   Bool      getInCropWindowFlag   ()                      const { return m_bInCropWindowFlag; }
@@ -146,6 +149,8 @@ protected:
 	UInt      m_uiMbCbpResidual;
   UInt      m_uiMbCbpDQId0;
   UInt      m_uiMbCbpLevelsLF;
+  UInt      m_uiSliceIdcLF;
+
   Bool      m_bRPSafe;
 
 public:

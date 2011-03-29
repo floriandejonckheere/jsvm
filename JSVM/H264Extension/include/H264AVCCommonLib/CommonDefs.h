@@ -7,9 +7,7 @@
 #endif // _MSC_VER > 1000
 
 
-
-#define _JSVM_VERSION_  "9.19.11"
-
+#define _JSVM_VERSION_  "9.19.12"
 
 
 #define MB_BUFFER_WIDTH 24
