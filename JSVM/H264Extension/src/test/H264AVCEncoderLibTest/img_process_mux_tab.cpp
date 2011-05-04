@@ -146,29 +146,6 @@ void img_process_filter_vert_line(const ImgProcessFilter1D *flt, const imgpel *p
 //-----------------------------------------------------------------------------
 // Private methods
 //-----------------------------------------------------------------------------
-static void TaBFilterWithFilterIdx(imgpel **output, imgpel **input0, imgpel **input1, int width, int height, int offset0, int offset1, int iFilterIdx)
-{
-  int j, jj = offset0;
-  int hheight = (height >> 1);
-  ImgProcessFilter1D *flt = create_img_process_filter_1D(iFilterIdx);
-  int stride = (int)((char*)(input0[1]) - (char*)(input0[0]))/sizeof(imgpel);
-
-  for (j = 0; j < hheight; j++)
-  { 
-    img_process_filter_vert_line(flt, input0[jj], output[j], 0, width, flt->c_taps_div2, height-flt->c_taps_div2, 1, jj, stride, height);
-    jj += 2;
-  }
-  jj = offset1;
-  stride = (int)((char*)(input1[1]) - (char*)(input1[0]))/sizeof(imgpel);
-  for (j = hheight; j < (hheight<<1); j++)
-  { 
-    img_process_filter_vert_line(flt, input1[jj], output[j], 0, width, flt->c_taps_div2, height-flt->c_taps_div2, 1, jj, stride, height);
-    jj += 2;
-  }
-  destroy_img_process_filter_1D(flt);
-
-}
-
 static void TaBBasic(imgpel *output, int iStrideOut, imgpel *input0, imgpel *input1, int iStrideIn, int width, int height, int offset0, int offset1)
 {
   int j, jj = offset0;
@@ -186,25 +163,6 @@ static void TaBBasic(imgpel *output, int iStrideOut, imgpel *input0, imgpel *inp
     jj+=2;
   }
 
-}
-
-static void TaBFilterWithFilter(imgpel **output, imgpel **input0, imgpel **input1, int width, int height, int offset0, int offset1, ImgProcessFilter1D *flt)
-{
-  int j, jj = offset0;
-  int hheight = (height >> 1);  
-  int stride = (int)((char*)(input0[1]) - (char*)(input0[0]))/sizeof(imgpel);
-  for (j = 0; j < hheight; j++)
-  { 
-    img_process_filter_vert_line(flt, input0[jj], output[j], 0, width, flt->c_taps_div2, height-flt->c_taps_div2, 1, jj, stride, height);
-    jj += 2;
-  }
-  jj = offset1;
-  stride = (int)((char*)(input1[1]) - (char*)(input1[0]))/sizeof(imgpel);
-  for (j = hheight; j < (hheight<<1); j++)
-  { 
-    img_process_filter_vert_line(flt, input1[jj], output[j], 0, width, flt->c_taps_div2, height-flt->c_taps_div2, 1, jj, stride, height);
-    jj += 2;
-  }
 }
 
 void H264AVCEncoderTest::tabMux(UChar *output, Int iStrideOut, UChar *input0, UChar *input1, Int iStrideIn, Int width, Int height, Int offset0, Int offset1, Int iFilterIdx)

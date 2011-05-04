@@ -60,7 +60,8 @@ ImgProcessFilter1D * create_img_process_filter_1D( int filter_type)
   ptr = (ImgProcessFilter1D *)malloc( sizeof( ImgProcessFilter1D ) );
   if ( ptr == NULL )
   {
-    no_mem_exit("Cannot allocate memory for RPUFilter1D structure.");
+    fprintf(stderr, "Cannot allocate memory for RPUFilter1D structure.\n" );
+    exit(100);
   }
 
   ptr->c_tap       = sbs_filter_length[filter_type];  
@@ -189,32 +190,6 @@ static void SbSBasic(imgpel *output, int iStrideOut, imgpel *input0, imgpel *inp
       *(p_out++) = *p_in1;
       p_in1 += 2;
     }
-  }
-}
-
-static void SbSFilterWithFilterIdx(imgpel **output, imgpel **input0, imgpel **input1, int width, int height, int offset0, int offset1, int iFilterIdx)
-{
-  int j;
-  int hwidth = (width >> 1);
-  //unified;
-  ImgProcessFilter1D *flt = create_img_process_filter_1D(iFilterIdx);
-  for (j = 0; j < height; j++)
-  {
-    img_process_filter_hor_line(flt, input0[j]+offset0, output[j], offset0, width, flt->c_taps_div2, width-flt->c_taps_div2, 2);
-    img_process_filter_hor_line(flt, input1[j]+offset1, output[j]+hwidth, offset1, width, flt->c_taps_div2, width-flt->c_taps_div2, 2);
-  }
-  destroy_img_process_filter_1D(flt);
-}
-
-static void SbSFilterWithFilter(imgpel **output, imgpel **input0, imgpel **input1, int width, int height, int offset0, int offset1, ImgProcessFilter1D *flt)
-{
-  int j;
-  int hwidth = (width >> 1);
-  //unified; 
-  for (j = 0; j < height; j++)
-  {
-    img_process_filter_hor_line(flt, input0[j]+offset0, output[j], offset0, width, flt->c_taps_div2, width-flt->c_taps_div2, 2);
-    img_process_filter_hor_line(flt, input1[j]+offset1, output[j]+hwidth, offset1, width, flt->c_taps_div2, width-flt->c_taps_div2, 2);
   }
 }
 

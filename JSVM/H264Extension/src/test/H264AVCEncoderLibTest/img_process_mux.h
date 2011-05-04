@@ -18,12 +18,6 @@ typedef struct img_process_filter_1D
   int symmetric;
 } ImgProcessFilter1D;
 
-static void no_mem_exit(char *where)
-{
-   fprintf(stderr, "Could not allocate memory: %s\n", where);
-   exit(100);
-}
-
 static inline int iClip1(int high, int x)
 {
   x = gMax(x, 0);
