@@ -287,6 +287,14 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\img_process_mux_sbs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\img_process_mux_tab.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -302,6 +310,10 @@
 			</File>
 			<File
 				RelativePath="H264AVCEncoderTest.h"
+				>
+			</File>
+			<File
+				RelativePath=".\img_process_mux.h"
 				>
 			</File>
 		</Filter>

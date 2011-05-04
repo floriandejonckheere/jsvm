@@ -13,7 +13,6 @@ H264AVC_NAMESPACE_BEGIN
 
 XDistortion::XDistortion()
 {
-
 }
 
 XDistortion::~XDistortion()

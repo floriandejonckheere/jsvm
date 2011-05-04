@@ -24,6 +24,12 @@
     <ClCompile Include="H264AVCEncoderTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="img_process_mux_sbs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="img_process_mux_tab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EncoderCodingParameter.h">
@@ -33,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="H264AVCEncoderTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="img_process_mux.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

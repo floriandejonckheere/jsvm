@@ -24,6 +24,18 @@ Further desirable improvements:
 - setting of IROI parameters in scalability info SEI and IROI-based extraction
 
 
+
+
+JSVM_9_19_12 -> JSVM_9_19_13
+============================
+changes:
+- changes by Dolby for supporting 3d multiplexing (for MFC standardization):
+  - see macro DOLBY_ENCMUX_ENABLE (enabled by default)
+  - sample config files are in folder jsvm\JSVM\H264Extension\data\Dolby_3DMux
+  - note: additional encoding parameters are not described in the JSVM software manual
+
+
+
 JSVM_9_19_11 -> JSVM_9_19_12
 ============================
 changes:

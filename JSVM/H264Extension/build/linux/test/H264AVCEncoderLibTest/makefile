@@ -24,6 +24,9 @@ OBJS          	= \
 		$(OBJ_DIR)/EncoderCodingParameter.o \
 		$(OBJ_DIR)/H264AVCEncoderLibTest.o \
 		$(OBJ_DIR)/H264AVCEncoderTest.o \
+		$(OBJ_DIR)/img_process_mux_sbs.o \
+		$(OBJ_DIR)/img_process_mux_tab.o \
+
 
 # set libs to link with
 LIBS		= -ldl -lpthread

@@ -31,10 +31,15 @@ ErrVal
 WriteYuvToFile::init( const std::string& rcFileName )
 {
   ROF( rcFileName.size() );
-  if( Err::m_nOK != m_cFile.open( rcFileName, LargeFile::OM_WRITEONLY ) )
+#if 1  // DOLBY_ENCMUX_ENABLE
+  if( rcFileName.compare("none") && rcFileName.compare("\"\"") )
+#endif // DOLBY_ENCMUX_ENABLE
   {
-    std::cerr << "failed to open YUV output file " << rcFileName.data() << std::endl;
-    return Err::m_nERR;
+    if( Err::m_nOK != m_cFile.open( rcFileName, LargeFile::OM_WRITEONLY ) )
+    {
+      std::cerr << "failed to open YUV output file " << rcFileName.data() << std::endl;
+      return Err::m_nERR;
+    }
   }
   return Err::m_nOK;
 }
@@ -58,7 +63,7 @@ WriteYuvToFile::writeFrame( const UChar* pLum,
                             UInt         uiStride,
                             const UInt   rauiCropping[] )
 {
-  ROF( m_cFile.is_open() );
+  ROFRS( m_cFile.is_open(), Err::m_nOK );
 
   UInt          y;
   const UChar*  pucSrc;

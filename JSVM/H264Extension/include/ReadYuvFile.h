@@ -36,6 +36,7 @@ public:
                      UInt uiBufWidth,
                      UInt uiBufStride );
 
+  Int  getFillMode() {return m_eFillMode;};
 
 protected:
   ErrVal xReadPlane( UChar *pucDest, UInt uiBufHeight, UInt uiBufWidth, UInt uiBufStride, UInt uiPicHeight, UInt uiPicWidth, UInt uiStartLine, UInt uiEndLine );

@@ -1,4 +1,5 @@
 
+#include <time.h>
 #include "H264AVCEncoderLibTest.h"
 #include "H264AVCEncoderTest.h"
 #include "EncoderCodingParameter.h"
@@ -68,9 +69,25 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
     RNOKS( ReadYuvFile   ::create( m_apcReadYuv [uiLayer] ) );
 
     ReadYuvFile::FillMode eFillMode = ( rcLayer.isInterlaced() ? ReadYuvFile::FILL_FIELD : ReadYuvFile::FILL_FRAME );
+#if DOLBY_ENCMUX_ENABLE
+    if(m_pcEncoderCodingParameter->getMuxMethod() && uiNumberOfLayers>1)
+    {
+      h264::LayerParameters&  rcLayer0 = m_pcEncoderCodingParameter->getLayerParameters( 0 );
+      RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename        (),
+                                          rcLayer0.getFrameHeightInSamples (),
+                                          rcLayer0.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );
+    }
+    else
+    {
+      RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename        (),
+                                          rcLayer.getFrameHeightInSamples (),
+                                          rcLayer.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );
+    }
+#else
     RNOKS( m_apcReadYuv[uiLayer]->init( rcLayer.getInputFilename        (),
                                         rcLayer.getFrameHeightInSamples (),
                                         rcLayer.getFrameWidthInSamples  (), 0, MSYS_UINT_MAX, eFillMode ) );
+#endif
   }
 
 
@@ -289,8 +306,10 @@ H264AVCEncoderTest::go()
   PicBufferList           acPicBufferUnusedList   [MAX_LAYERS];
   ExtBinDataAccessorList  cOutExtBinDataAccessorList;
   Bool                    bMoreSets;
-
-
+#if DOLBY_ENCMUX_ENABLE
+  PicBuffer*              apcMuxPicBuffer[MAX_LAYERS];
+#endif
+  
   //===== initialization =====
   RNOK( m_pcH264AVCEncoder->init( m_pcEncoderCodingParameter ) );
 
@@ -431,6 +450,29 @@ H264AVCEncoderTest::go()
     m_auiStride   [uiLayer]         =  (uiAllocMbX<<4)+ 2*YUV_X_MARGIN;
   }
 
+#if DOLBY_ENCMUX_ENABLE
+  if(m_pcEncoderCodingParameter->getMuxMethod() && uiNumLayers >1)
+  {
+    for(uiLayer=0; uiLayer<2; uiLayer++)
+    {
+      apcMuxPicBuffer[uiLayer] = NULL;
+	    UChar* pcBuffer = new UChar[ auiPicSize[uiLayer] ];
+      ::memset( pcBuffer,  0x00, auiPicSize[uiLayer] *sizeof(UChar) );
+      apcMuxPicBuffer[uiLayer] = new PicBuffer( pcBuffer );
+    }
+  }
+  else
+  {
+    for(uiLayer=0; uiLayer<2; uiLayer++)
+    {
+      apcMuxPicBuffer[uiLayer] = NULL;
+    }
+  }
+#endif
+
+  // start time measurement
+  clock_t start = clock();
+
   //===== loop over frames =====
   for( uiFrame = 0; uiFrame < uiMaxFrame; uiFrame++ )
   {
@@ -444,12 +486,33 @@ H264AVCEncoderTest::go()
         RNOK( xGetNewPicBuffer( apcReconstructPicBuffer [uiLayer], uiLayer, auiPicSize[uiLayer] ) );
         RNOK( xGetNewPicBuffer( apcOriginalPicBuffer    [uiLayer], uiLayer, auiPicSize[uiLayer] ) );
 
+#if DOLBY_ENCMUX_ENABLE
+        if( (m_pcEncoderCodingParameter->getMuxMethod() && uiNumLayers >1) )
+        {
+          RNOK( m_apcReadYuv[uiLayer]->readFrame( *apcOriginalPicBuffer[uiLayer] + m_auiLumOffset[0],
+                                                  *apcOriginalPicBuffer[uiLayer] + m_auiCbOffset [0],
+                                                  *apcOriginalPicBuffer[uiLayer] + m_auiCrOffset [0],
+                                                  m_auiHeight [0],
+                                                  m_auiWidth  [0],
+                                                  m_auiStride [0] ) );
+        }
+        else
+        {
+          RNOK( m_apcReadYuv[uiLayer]->readFrame( *apcOriginalPicBuffer[uiLayer] + m_auiLumOffset[uiLayer],
+                                                  *apcOriginalPicBuffer[uiLayer] + m_auiCbOffset [uiLayer],
+                                                  *apcOriginalPicBuffer[uiLayer] + m_auiCrOffset [uiLayer],
+                                                  m_auiHeight [uiLayer],
+                                                  m_auiWidth  [uiLayer],
+                                                  m_auiStride [uiLayer] ) );
+        }
+#else
         RNOK( m_apcReadYuv[uiLayer]->readFrame( *apcOriginalPicBuffer[uiLayer] + m_auiLumOffset[uiLayer],
                                                 *apcOriginalPicBuffer[uiLayer] + m_auiCbOffset [uiLayer],
                                                 *apcOriginalPicBuffer[uiLayer] + m_auiCrOffset [uiLayer],
                                                 m_auiHeight [uiLayer],
                                                 m_auiWidth  [uiLayer],
                                                 m_auiStride [uiLayer] ) );
+#endif
       }
       else
       {
@@ -457,6 +520,86 @@ H264AVCEncoderTest::go()
         apcOriginalPicBuffer    [uiLayer] = 0;
       }
     }
+
+#if DOLBY_ENCMUX_ENABLE
+    if( (m_pcEncoderCodingParameter->getMuxMethod() && uiNumLayers >1) && (apcOriginalPicBuffer[0] && apcOriginalPicBuffer[1]))
+    {
+      //mux process;
+      if(m_pcEncoderCodingParameter->getMuxMethod() == 1)
+      {
+        h264::LayerParameters&  rcLayer0 = m_pcEncoderCodingParameter->getLayerParameters( 0 );
+        UInt uiWidth = rcLayer0.getFrameWidthInSamples();
+        UInt uiHeight = rcLayer0.getFrameHeightInSamples();
+
+        sbsMux(*apcMuxPicBuffer[0] + m_auiLumOffset[0], m_auiStride[0], *apcOriginalPicBuffer[0] + m_auiLumOffset[0],  *apcOriginalPicBuffer[1] + m_auiLumOffset[0], m_auiStride[0],
+          uiWidth, uiHeight, m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+        sbsMux(*apcMuxPicBuffer[0] + m_auiCbOffset[0], (m_auiStride[0]>>1), *apcOriginalPicBuffer[0] + m_auiCbOffset[0],  *apcOriginalPicBuffer[1] + m_auiCbOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1), m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+        sbsMux(*apcMuxPicBuffer[0] + m_auiCrOffset[0], (m_auiStride[0]>>1), *apcOriginalPicBuffer[0] + m_auiCrOffset[0],  *apcOriginalPicBuffer[1] + m_auiCrOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1), m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+
+        //padding;
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiLumOffset[0], m_auiStride[0], uiWidth, uiHeight, m_auiWidth[0], m_auiHeight[0], m_apcReadYuv[0]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiCbOffset[0], (m_auiStride[0]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[0]>>1), (m_auiHeight[0]>>1), m_apcReadYuv[0]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiCrOffset[0], (m_auiStride[0]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[0]>>1), (m_auiHeight[0]>>1), m_apcReadYuv[0]->getFillMode()));
+
+        sbsMuxFR(*apcMuxPicBuffer[1] + m_auiLumOffset[1], m_auiStride[1], *apcOriginalPicBuffer[0] + m_auiLumOffset[0],  *apcOriginalPicBuffer[1] + m_auiLumOffset[0], m_auiStride[0],
+          uiWidth, uiHeight);
+        sbsMuxFR(*apcMuxPicBuffer[1] + m_auiCbOffset[1], (m_auiStride[1]>>1), *apcOriginalPicBuffer[0] + m_auiCbOffset[0],  *apcOriginalPicBuffer[1] + m_auiCbOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1));
+        sbsMuxFR(*apcMuxPicBuffer[1] + m_auiCrOffset[1], (m_auiStride[1]>>1), *apcOriginalPicBuffer[0] + m_auiCrOffset[0],  *apcOriginalPicBuffer[1] + m_auiCrOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1));
+
+        //padding;
+        uiWidth = m_pcEncoderCodingParameter->getLayerParameters( 1 ).getFrameWidthInSamples();
+        uiHeight = m_pcEncoderCodingParameter->getLayerParameters( 1 ).getFrameHeightInSamples();
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiLumOffset[1], m_auiStride[1], uiWidth, uiHeight, m_auiWidth[1], m_auiHeight[1], m_apcReadYuv[1]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiCbOffset[1], (m_auiStride[1]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[1]>>1), (m_auiHeight[1]>>1), m_apcReadYuv[1]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiCrOffset[1], (m_auiStride[1]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[1]>>1), (m_auiHeight[1]>>1), m_apcReadYuv[1]->getFillMode()));
+      }
+      else
+      {
+        h264::LayerParameters&  rcLayer0 = m_pcEncoderCodingParameter->getLayerParameters( 0 );
+        UInt uiWidth = rcLayer0.getFrameWidthInSamples();
+        UInt uiHeight = rcLayer0.getFrameHeightInSamples();
+
+        tabMux(*apcMuxPicBuffer[0] + m_auiLumOffset[0], m_auiStride[0], *apcOriginalPicBuffer[0] + m_auiLumOffset[0],  *apcOriginalPicBuffer[1] + m_auiLumOffset[0], m_auiStride[0],
+          uiWidth, uiHeight, m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+        tabMux(*apcMuxPicBuffer[0] + m_auiCbOffset[0], (m_auiStride[0]>>1), *apcOriginalPicBuffer[0] + m_auiCbOffset[0],  *apcOriginalPicBuffer[1] + m_auiCbOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1), m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+        tabMux(*apcMuxPicBuffer[0] + m_auiCrOffset[0], (m_auiStride[0]>>1), *apcOriginalPicBuffer[0] + m_auiCrOffset[0],  *apcOriginalPicBuffer[1] + m_auiCrOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1), m_pcEncoderCodingParameter->getMuxOffset(0), m_pcEncoderCodingParameter->getMuxOffset(1), m_pcEncoderCodingParameter->getMuxFilter());
+
+        //padding;
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiLumOffset[0], m_auiStride[0], uiWidth, uiHeight, m_auiWidth[0], m_auiHeight[0], m_apcReadYuv[0]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiCbOffset[0], (m_auiStride[0]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[0]>>1), (m_auiHeight[0]>>1), m_apcReadYuv[0]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[0] + m_auiCrOffset[0], (m_auiStride[0]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[0]>>1), (m_auiHeight[0]>>1), m_apcReadYuv[0]->getFillMode()));
+
+        tabMuxFR(*apcMuxPicBuffer[1] + m_auiLumOffset[1], m_auiStride[1], *apcOriginalPicBuffer[0] + m_auiLumOffset[0],  *apcOriginalPicBuffer[1] + m_auiLumOffset[0], m_auiStride[0],
+          uiWidth, uiHeight);
+        tabMuxFR(*apcMuxPicBuffer[1] + m_auiCbOffset[1], (m_auiStride[1]>>1), *apcOriginalPicBuffer[0] + m_auiCbOffset[0],  *apcOriginalPicBuffer[1] + m_auiCbOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1));
+        tabMuxFR(*apcMuxPicBuffer[1] + m_auiCrOffset[1], (m_auiStride[1]>>1), *apcOriginalPicBuffer[0] + m_auiCrOffset[0],  *apcOriginalPicBuffer[1] + m_auiCrOffset[0], (m_auiStride[0]>>1),
+          (uiWidth>>1), (uiHeight>>1));
+
+        //padding;
+        uiWidth = m_pcEncoderCodingParameter->getLayerParameters( 1 ).getFrameWidthInSamples();
+        uiHeight = m_pcEncoderCodingParameter->getLayerParameters( 1 ).getFrameHeightInSamples();
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiLumOffset[1], m_auiStride[1], uiWidth, uiHeight, m_auiWidth[1], m_auiHeight[1], m_apcReadYuv[1]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiCbOffset[1], (m_auiStride[1]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[1]>>1), (m_auiHeight[1]>>1), m_apcReadYuv[1]->getFillMode()));
+        RNOK(padBuf(*apcMuxPicBuffer[1] + m_auiCrOffset[1], (m_auiStride[1]>>1), (uiWidth>>1), (uiHeight>>1), (m_auiWidth[1]>>1), (m_auiHeight[1]>>1), m_apcReadYuv[1]->getFillMode()));
+      }
+
+      //swap the buffer;
+      for( uiLayer = 0; uiLayer < 2; uiLayer++ )
+      {
+        PicBuffer *pTmp = m_acActivePicBufferList[uiLayer].popBack();
+        apcOriginalPicBuffer[uiLayer] = apcMuxPicBuffer[uiLayer];
+        m_acActivePicBufferList[uiLayer].pushBack(apcOriginalPicBuffer[uiLayer]);
+        apcMuxPicBuffer[uiLayer] = pTmp;
+      }
+    }
+#endif
 
     //===== call encoder =====
     RNOK( m_pcH264AVCEncoder->process( cOutExtBinDataAccessorList,
@@ -478,6 +621,8 @@ H264AVCEncoderTest::go()
     }
   }
 
+  // stop time measurement
+  clock_t end = clock();
 
   //===== finish encoding =====
   UInt  uiNumCodedFrames = 0;
@@ -541,6 +686,20 @@ H264AVCEncoderTest::go()
     delete pcQuadraticRC;
   }
   // JVT-W043 }
+
+#if DOLBY_ENCMUX_ENABLE
+  for(uiLayer=0; uiLayer<2; uiLayer++)
+  {
+    if(apcMuxPicBuffer[uiLayer])
+    {
+      delete [] (*apcMuxPicBuffer[uiLayer]);
+      delete apcMuxPicBuffer[uiLayer];
+    }
+  }
+#endif
+
+  // output encoding time
+  fprintf(stdout, "Encoding speed: %.3lf ms/frame, Time:%.3lf ms, Frames: %d\n", (double)(end-start)*1000/CLOCKS_PER_SEC/uiMaxFrame, (double)(end-start)*1000/CLOCKS_PER_SEC, uiMaxFrame);
 
   return Err::m_nOK;
 }

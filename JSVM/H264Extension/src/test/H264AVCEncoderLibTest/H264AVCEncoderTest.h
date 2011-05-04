@@ -56,6 +56,14 @@ protected:
                             UInt                    uiLayer );
   ErrVal  xRelease        ( PicBufferList&          rcList,
                             UInt                    uiLayer );
+#if DOLBY_ENCMUX_ENABLE
+  //Dolby muxing functions
+  void sbsMux(UChar *output, Int iStrideOut, UChar *input0, UChar *input1, Int iStrideIn, Int width, Int height, Int offset0=0, Int offset1=1, Int iFilterIdx=7);
+  ErrVal padBuf(UChar *output, Int iStrideOut, Int width, Int height, Int width_out, Int height_out, Int fillMode);
+  void sbsMuxFR(UChar *output, Int iStrideOut, UChar *input0, UChar *input1, Int iStrideIn, Int width, Int height);
+  void tabMux(UChar *output, Int iStrideOut, UChar *input0, UChar *input1, Int iStrideIn, Int width, Int height, Int offset0=0, Int offset1=1, Int iFilterIdx=7);
+  void tabMuxFR(UChar *output, Int iStrideOut, UChar *input0, UChar *input1, Int iStrideIn, Int width, Int height);
+#endif
 
 protected:
   EncoderIoParameter            m_cEncoderIoParameter;

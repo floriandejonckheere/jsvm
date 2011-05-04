@@ -7,6 +7,6 @@
 #include "CreaterH264AVCEncoder.h"
 #include "H264AVCVideoIoLib.h"
 
-
+#define DOLBY_ENCMUX_ENABLE  1         
 
 #endif //__H264AVCENCODERLIBTEST_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

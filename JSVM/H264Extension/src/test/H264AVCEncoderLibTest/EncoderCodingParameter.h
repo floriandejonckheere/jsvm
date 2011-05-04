@@ -94,6 +94,13 @@ protected:
 class EncoderCodingParameter :
 public h264::CodingParameter
 {
+#if DOLBY_ENCMUX_ENABLE
+private:
+  Int                       m_iMuxMethod;
+  Int                       m_iMuxFilter;
+  Int                       m_iMuxOffset[MAX_LAYERS];
+#endif
+
 protected:
   EncoderCodingParameter          (){}
   virtual ~EncoderCodingParameter (){}
@@ -106,6 +113,12 @@ public:
                             std::string&               rcBitstreamFile );
 
   Void          printHelp ();
+
+#if DOLBY_ENCMUX_ENABLE
+  Int  getMuxMethod() { return m_iMuxMethod;}
+  Int  getMuxFilter() { return m_iMuxFilter;}
+  Int  getMuxOffset(Int iLayerIdx) {return m_iMuxOffset[iLayerIdx];}
+#endif
 
 protected:
   Bool    equals( const Char* str1, const Char* str2, UInt nLetter ) { return 0 == ::strncmp( str1, str2, nLetter); }
@@ -809,6 +822,12 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //JVT-AD021 {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MultiLayerLambdaSel",     &m_uiMultiLayerLambda,                                 0 );
   //JVT-AD021 }
+#if DOLBY_ENCMUX_ENABLE
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("MuxMethod",     &m_iMuxMethod,                                 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("MuxFilter",     &m_iMuxFilter,                                 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("MuxOffset0",    &(m_iMuxOffset[0]),                              0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("MuxOffset1",    &(m_iMuxOffset[1]),                              0 );
+#endif
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))
@@ -1029,6 +1048,43 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 	  }
   }
   //<<< zhangxd_20101220 <<<
+
+#if DOLBY_ENCMUX_ENABLE
+  //check parameter integrity;
+  if(m_iMuxMethod)
+  {
+    if(m_uiNumberOfLayers<2 || m_iMuxFilter>11 || m_iMuxFilter <0)
+    {
+      fprintf(stderr, "The parameters for MuxMethod(%d) is not correct!\n", m_iMuxMethod);
+      return Err::m_nInvalidParameter;
+    }
+    if(m_iMuxMethod <0 || m_iMuxMethod >2)
+    {
+      fprintf(stderr, "MuxMethod(%d) is not supported yet!\n", m_iMuxMethod);
+      return Err::m_nInvalidParameter;
+    }
+    //check the resolution;
+    LayerParameters& cpLayer0 = getLayerParameters(0);
+    LayerParameters& cpLayer1 = getLayerParameters(1);
+    if(m_iMuxMethod == 1)
+    {
+      if(cpLayer0.getFrameWidthInSamples()*2 != cpLayer1.getFrameWidthInSamples() || cpLayer0.getFrameHeightInSamples() != cpLayer1.getFrameHeightInSamples())
+      {
+        fprintf(stderr, "The resolution for layer 0 and layer 1 is not correct for side by side muxing!\n");
+        return Err::m_nInvalidParameter;
+      }
+    }
+    else
+    {
+      if(cpLayer0.getFrameWidthInSamples() != cpLayer1.getFrameWidthInSamples() || cpLayer0.getFrameHeightInSamples()*2 != cpLayer1.getFrameHeightInSamples())
+      {
+        fprintf(stderr, "The resolution for layer 0 and layer 1 is not correct for top and bottom muxing!\n");
+        return Err::m_nInvalidParameter;
+      }
+    }
+  }
+#endif
+
   return Err::m_nOK;
 }
 
