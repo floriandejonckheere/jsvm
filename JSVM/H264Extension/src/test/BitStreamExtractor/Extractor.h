@@ -230,7 +230,7 @@ protected:
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
   Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
   // JVT-S080 LMI {
-  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData,
+  ErrVal        xChangeScalableSEIMessage( BinData *pcBinData,
 		                                        BinData *pcBinDataSEI,
 																						h264::SEI::SEIMessage* pcScalableSEIMessage,
                                             UInt uiKeepScalableLayer,

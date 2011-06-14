@@ -860,7 +860,7 @@ Extractor::xAnalyse()
 
           if( uiQualityLevel ) //Q!=0
           {
-            ROF(uiScalableLayerIdBas == getScalableLayer( uiDependencyId, uiTempLevel, uiQualityLevel-1 ));
+          //ROF(uiScalableLayerIdBas == getScalableLayer( uiDependencyId, uiTempLevel, uiQualityLevel-1 )); // as suggested by Danny Hong
             m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] =
               m_adTotalBitrate[uiScalableLayerIdDes] - m_adTotalBitrate[uiScalableLayerIdBas];
              if( uiTempLevel && m_auiDirDepLayerDelta[uiScalableLayerIdDes][1] != MSYS_UINT_MAX ) // T>0, Q>0
@@ -1781,7 +1781,7 @@ Extractor::xExtractPoints()
         if( pcScalableSEIMessage->getMessageType() != h264::SEI::SCALABLE_SEI )
             bWriteBinData = false;
 
-         RNOK( xChangeScalableSEIMesssage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, MSYS_UINT_MAX,//uiKeepScalableLayer,
+         RNOK( xChangeScalableSEIMessage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, MSYS_UINT_MAX,//uiKeepScalableLayer,
                                            uiWantedScalableLayer, uiWantedLayer, uiWantedLevel, dWantedFGSLayer , MSYS_UINT_MAX ) );
 
         if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
@@ -2219,7 +2219,7 @@ Extractor::xWriteScalableSEIToBuffer(h264::SEI::SEIMessage* pcScalableSei, BinDa
 
 // JVT-S080 LMI {
 ErrVal
-Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEILysNotPreDepChange, h264::SEI::SEIMessage* pcScalableSEIMessage,
+Extractor::xChangeScalableSEIMessage( BinData *pcBinData, BinData *pcBinDataSEILysNotPreDepChange, h264::SEI::SEIMessage* pcScalableSEIMessage,
             UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate)
 
 {
@@ -2510,7 +2510,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       {
         //change direct dependent layer info
         assert( j <= 2 );
-        UInt uiOldDepScaLayer  = uiScalableLayer - ( pcOldScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayer, j)+1 );
+      //UInt uiOldDepScaLayer  = uiScalableLayer - ( pcOldScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayer, j)+1 );
+        UInt uiOldDepScaLayer  = uiScalableLayer - ( m_auiDirDepLayerDelta[uiScalableLayer][j] ); // as suggested by Danny Hong
         UInt uiOldDependencyId = pcOldScalableSei->getDependencyId(uiOldDepScaLayer);
         UInt uiOldTempLevel    = pcOldScalableSei->getTemporalId(uiOldDepScaLayer);
         UInt uiOldQualityLevel = pcOldScalableSei->getQualityId(uiOldDepScaLayer);
@@ -3029,7 +3030,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
       {
         if( pcScalableSEIMessage->getMessageType() != h264::SEI::SCALABLE_SEI )
            bWriteBinData = false;
-          RNOK( xChangeScalableSEIMesssage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, uiKeepScalableLayer, uiWantedScalableLayer,
+          RNOK( xChangeScalableSEIMessage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, uiKeepScalableLayer, uiWantedScalableLayer,
             uiMaxLayer, uiMaxTempLevel, dMaxFGSLayer, uiMaxBitrate ) );
 
         if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
