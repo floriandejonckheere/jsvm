@@ -20,7 +20,7 @@
 
 #if DOLBY_ENCMUX_ENABLE
 
-static const int sbs_filter_taps[12][13] = {
+static const int sbs_filter_taps[17][14] = {
   {  1}, //{  16,  16},                   //Bilinear
   {  1,    6,    1},              // horizontal
   { -1,    2,    6,    2,   -1},  // horizontal_lp
@@ -32,20 +32,25 @@ static const int sbs_filter_taps[12][13] = {
   {  2,    0,   -4,   -3,    5,   19,   26,   19,     5,    -3,    -4,     0,     2},  //SVC;
   { 27,  -17,  -80,  273,  618,  273,  -80,  -17,    27},    //CDF9;
   { 93,  -59, -605, 1142, -605,  -59, 93},  //CDF7;
-  {-8,   -14,   34,   -9,  -89,  215,  765,  215,   -89,    -9,    34,    -14,   -8} // /1024
+  {-8,   -14,   34,   -9,  -89,  215,  765,  215,   -89,    -9,    34,    -14,   -8}, // /1024
+  {  5,    8,   13,   38,   38,   13,    8,    5},                                         //bilinear;
+  {  1,   -6,   -5,    7,   26,   41,   41,   26,     7,    -5,    -6,     1},             //JVT-R006;
+  {  1,    1,   -2,   -4,    1,   12,   23,   23,    12,     1,    -4,    -2,     1,    1}, //JVT-R070;
+  { -8,    0,   24,   48,   48,   24,    0,   -8}, // SVC-fractional
+  {  7,   24,  -19,  -57,  128,  429,  429,  128,   -57,   -19,    24,     7} // HF0-fractional
 };
 
-static const int sbs_filter_length[12] = { 
-  1/*2*/, 3, 5, 3, 5, 7, 13, 13, 13, 9, 7, 13
+static const int sbs_filter_length[17] = { 
+  1/*2*/, 3, 5, 3, 5, 7, 13, 13, 13, 9, 7, 13, 8, 12, 14, 8, 12
 };
 
-static const int sbs_filter_normal[12] = { 
-  0/*5*/,  3,  3,  2, 5, 6,  10,  10,  6,  10, 10/*6*/, 10
+static const int sbs_filter_normal[17] = { 
+  0/*5*/,  3,  3,  2, 5, 6,  10,  10,  6,  10, 10/*6*/, 10, 7,  7,  6,  7, 10
 };
 
 
-static const int sbs_filter_offset[12] = { 
-  0/*16*/,  4,  4,  (512+2), 16, 32,  512, 512, 32, 512, (128*1024+512)/*512*/, 512
+static const int sbs_filter_offset[17] = { 
+  0/*16*/,  4,  4,  (512+2), 16, 32,  512, 512, 32, 512, (128*1024+512)/*512*/, 512, 64, 64, 32, 64, 512
 };
 
 
@@ -143,6 +148,51 @@ static inline imgpel filter_unsafe_right_positions( const ImgProcessFilter1D *fl
   return (imgpel)iClip1( flt->max_pel_value, shift_off_sf( val, flt->c_offset, flt->c_normal1 ) );
 }
 
+static inline imgpel filter_even_unsafe_right_positions( const ImgProcessFilter1D *flt, const imgpel *p_in, int right_samples  )
+{
+  const short *c_coef = flt->coef1;
+  int hmin = -flt->c_taps_div2;
+  int hmax = flt->c_tap + hmin;
+  const imgpel *p1 = p_in - flt->c_taps_div2 -1;
+
+  int val = 0, k;
+
+  for (k = hmin; k < right_samples ; k++)
+  { 
+    val +=  *(++p1) * *(c_coef++);
+  }
+  for (k = right_samples; k < hmax ; k++)
+  { 
+    val += *p1 * *(c_coef++);
+  }
+  return (imgpel)iClip1( flt->max_pel_value, shift_off_sf( val, flt->c_offset, flt->c_normal1 ) );
+}
+
+static void img_process_filter_even_hor_line(const ImgProcessFilter1D *flt, const imgpel *p_in, imgpel *p_out, int origin_x, int end_x, int center_start_x, 
+                                 int center_end_x, int step)
+{
+  int i;  
+
+  // left columns
+  for ( i = origin_x; i < center_start_x; i += step)
+  {
+    *(p_out++) = filter_unsafe_left_positions( flt, p_in, i );
+    p_in += step;
+  }
+  // center columns
+  for ( /*i = center_start_x*/; i < center_end_x; i += step)
+  {
+    *(p_out++) = filter_safe_positions( flt, p_in );
+    p_in += step;
+  }
+  // right columns
+  for ( /*i = center_end_x*/; i < end_x; i += step )
+  {
+    *(p_out++) = filter_even_unsafe_right_positions( flt, p_in, end_x - i - 1 );
+    p_in += step;
+  }
+}
+
 void img_process_filter_hor_line(const ImgProcessFilter1D *flt, const imgpel *p_in, imgpel *p_out, int origin_x, int end_x, int center_start_x, 
                                  int center_end_x, int step)
 {
@@ -197,7 +247,17 @@ void H264AVCEncoderTest::sbsMux(UChar *output, Int iStrideOut, UChar *input0, UC
 {
   int j;
   int hwidth = (width >> 1);
-  if(iFilterIdx >0)
+  if ( iFilterIdx > 11 )
+  {
+    ImgProcessFilter1D *flt = create_img_process_filter_1D(iFilterIdx);
+    for (j = 0; j < height; j++)
+    {
+      img_process_filter_even_hor_line( flt, input0+j*iStrideIn +offset0, output+j*iStrideOut,        offset0, width + offset0, flt->c_taps_div2, width - flt->c_taps_div2 + offset0, 2 );
+      img_process_filter_even_hor_line( flt, input1+j*iStrideIn +offset1, output+j*iStrideOut+hwidth, offset1, width + offset1, flt->c_taps_div2, width - flt->c_taps_div2 + offset1, 2 );
+    }
+    destroy_img_process_filter_1D(flt);
+  }
+  else if ( iFilterIdx > 0 )
   {
     ImgProcessFilter1D *flt = create_img_process_filter_1D(iFilterIdx);
     for (j = 0; j < height; j++)

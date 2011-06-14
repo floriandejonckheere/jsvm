@@ -1053,7 +1053,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //check parameter integrity;
   if(m_iMuxMethod)
   {
-    if(m_uiNumberOfLayers<2 || m_iMuxFilter>11 || m_iMuxFilter <0)
+    if(m_uiNumberOfLayers<2 || m_iMuxFilter>16 || m_iMuxFilter <0)
     {
       fprintf(stderr, "The parameters for MuxMethod(%d) is not correct!\n", m_iMuxMethod);
       return Err::m_nInvalidParameter;

@@ -1482,6 +1482,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
       uiRunCount -= uiRun;
       uiCoeffCnt--;
     } while( uiRunCount != 0 && uiCoeffCnt != 0);
+    aiLevelRun[uiCoeffCnt+0x10] = uiRunCount;
   }
 
   return Err::m_nOK;

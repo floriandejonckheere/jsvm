@@ -26,6 +26,18 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_13 -> JSVM_9_19_14
+============================
+changes:
+- changes by Dolby for 3d multiplexing
+  - add fractional-pixel sub-sampling support for layer 0 (the base layer) for both SbS
+    and aB frame-compatible formats
+  - updated software manual that includes a full description of the new parameters 
+    as well as instructions on how they affect each other, especially with 
+    respect to properly using fractional-pixel sub-sampling
+
+
+
 JSVM_9_19_12 -> JSVM_9_19_13
 ============================
 changes:
