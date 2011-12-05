@@ -725,9 +725,26 @@ MotionUpsampling::xDeriveBlockModeAndUpdateMv( Int i8x8BlkIdx )
 Bool
 MotionUpsampling::x8x8BlocksHaveSameMotion( ListIdx eListIdx, Int i8x8IdxA, Int i8x8IdxB )
 {
-  // reference indexes
+  Bool  bBlkASameMv   = true;
+  Bool  bBlkBSameMv   = true;
+  Int   aaiComp[4][4] = { {0,1,4,5}, {2,3,6,7}, {8,9,12,13}, {10,11,14,15} };
+
+  for( Int i=0; i<3; i++ )
+  {
+    if( m_aaacMv[eListIdx][ aaiComp[i8x8IdxA][i] % 4 ][ aaiComp[i8x8IdxA][i] / 4 ] != m_aaacMv[eListIdx][ aaiComp[i8x8IdxA][i+1] % 4 ][ aaiComp[i8x8IdxA][i+1] / 4 ] )
+    {
+      bBlkASameMv = false;
+    }
+    if( m_aaacMv[eListIdx][ aaiComp[i8x8IdxB][i] % 4 ][ aaiComp[i8x8IdxB][i] / 4 ] != m_aaacMv[eListIdx][ aaiComp[i8x8IdxB][i+1] % 4 ][ aaiComp[i8x8IdxB][i+1] / 4 ] )
+    {
+      bBlkBSameMv = false;
+    }
+  }
+  // check reference indices
   ROFRS( m_aaaiRefIdx[eListIdx][i8x8IdxA&1][i8x8IdxA>>1] == m_aaaiRefIdx[eListIdx][i8x8IdxB&1][i8x8IdxB>>1], false );
-  // motion vectors
+  // check motion vectors
+  ROFRS( bBlkASameMv, false ); // inside block A
+  ROFRS( bBlkBSameMv, false ); // inside block B
   ROFRS( m_aaacMv[eListIdx][(i8x8IdxA&1)<<1][(i8x8IdxA>>1)<<1] == m_aaacMv[eListIdx][(i8x8IdxB&1)<<1][(i8x8IdxB>>1)<<1], false );
   return true;
 }
@@ -736,12 +753,6 @@ MotionUpsampling::x8x8BlocksHaveSameMotion( ListIdx eListIdx, Int i8x8IdxA, Int 
 ErrVal
 MotionUpsampling::xDeriveMbMode()
 {
-  m_eMbMode = MODE_8x8;
-  ROFRS( m_aeBlkMode[0] == BLK_8x8, Err::m_nOK );
-  ROFRS( m_aeBlkMode[1] == BLK_8x8, Err::m_nOK );
-  ROFRS( m_aeBlkMode[2] == BLK_8x8, Err::m_nOK );
-  ROFRS( m_aeBlkMode[3] == BLK_8x8, Err::m_nOK );
-
   //===== summarize 8x8 blocks when possible =====
   Bool  bHorMatch   = true;
   Bool  bVerMatch   = true;
