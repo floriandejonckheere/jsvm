@@ -25,6 +25,12 @@ Further desirable improvements:
 
 
 
+JSVM_9_19_14 -> JSVM_9_19_15
+============================
+changes:
+- fix for macroblock type derivation in inter-layer prediction
+
+
 
 JSVM_9_19_13 -> JSVM_9_19_14
 ============================
