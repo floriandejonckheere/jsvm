@@ -1,7 +1,7 @@
 
 #include "H264AVCVideoIoLib.h"
 #include "ReadYuvFile.h"
-
+#include <cstdio>
 
 ReadYuvFile::ReadYuvFile()
 : m_uiLumPicHeight( 0 )

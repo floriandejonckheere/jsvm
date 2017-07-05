@@ -42,7 +42,7 @@ public:
 #include "Typedefs.h"
 #include "Macros.h"
 #include "MemList.h"
-
+#include <vector>
 
 typedef MemCont< UChar > BinData;
 typedef MemAccessor< UChar > BinDataAccessor;
@@ -90,11 +90,11 @@ class MyList : public std::list< T >
 public:
   typedef typename std::list<T>::iterator MyIterator;
 
-  MyList& operator += ( const MyList& rcMyList) { if( ! rcMyList.empty() ) { insert( this->end(), rcMyList.begin(), rcMyList.end());} return *this; } // leszek
+  MyList& operator += ( const MyList& rcMyList) { if( ! rcMyList.empty() ) { this->insert( this->end(), rcMyList.begin(), rcMyList.end());} return *this; } // leszek
   T popBack()                           { T cT = this->back(); this->pop_back(); return cT;  }
   T popFront()                          { T cT = this->front(); this->pop_front(); return cT; }
-  Void pushBack( const T& rcT )         { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ push_back( rcT);} } }
-  Void pushFront( const T& rcT )        { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ push_front( rcT);} } }
+  Void pushBack( const T& rcT )         { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ this->push_back( rcT);} } }
+  Void pushFront( const T& rcT )        { if( sizeof(T) == sizeof(void*) ) { if( rcT != NULL ){ this->push_front( rcT);} } }
   MyIterator find( const T& rcT ) {  return std::find( this->begin(), this->end(), rcT ); } // leszek
 };
 
