@@ -1,6 +1,6 @@
 
 #include "ReadBitstreamFile.h"
-
+#include <cstdio>
 
 ReadBitstreamFile::ReadBitstreamFile()
 {
